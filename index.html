@@ -1,0 +1,1477 @@
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOOSPHERE // OS - Polymathic Neural Cartography & Memetic Warfare Engine</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        void: '#030509',
+                        obsidian: '#080c14',
+                        surface: '#0e1424',
+                        'surface-bright': '#172138',
+                        neon: {
+                            cyan: '#00f7ff',
+                            amber: '#ffaa00',
+                            violet: '#a855f7',
+                            crimson: '#ff0055',
+                            emerald: '#00ff9d',
+                            hyper: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['"Syne"', 'sans-serif'],
+                        esoteric: ['"Cinzel"', 'serif'],
+                    },
+                    boxShadow: {
+                        'neon-cyan': '0 0 25px rgba(0, 247, 255, 0.25)',
+                        'neon-crimson': '0 0 25px rgba(255, 0, 85, 0.25)',
+                        'neon-amber': '0 0 25px rgba(255, 170, 0, 0.25)',
+                        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.7)',
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'scanline': 'scanline 8s linear infinite',
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%, 100%': { opacity: 0.8, filter: 'drop-shadow(0 0 15px rgba(0,247,255,0.4))' },
+                            '50%': { opacity: 0.4, filter: 'drop-shadow(0 0 5px rgba(0,247,255,0.1))' }
+                        },
+                        scanline: {
+                            '0%': { transform: 'translateY(-100%)' },
+                            '100%': { transform: 'translateY(1000%)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(3, 5, 9, 0.8); }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00f7ff; }
+
+        /* CRT Screen Scanline Overlay */
+        .crt-overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 26, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 247, 255, 0.12);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        .window-active {
+            border-color: rgba(0, 247, 255, 0.4) !important;
+            box-shadow: 0 0 30px rgba(0, 247, 255, 0.15), 0 20px 50px rgba(0,0,0,0.9) !important;
+            z-index: 40 !important;
+        }
+
+        .glow-text-cyan { text-shadow: 0 0 10px rgba(0, 247, 255, 0.6); }
+        .glow-text-amber { text-shadow: 0 0 10px rgba(255, 170, 0, 0.6); }
+        .glow-text-crimson { text-shadow: 0 0 10px rgba(255, 0, 85, 0.6); }
+
+        .hex-bg {
+            background-image: radial-gradient(rgba(0, 247, 255, 0.07) 1px, transparent 1px), radial-gradient(rgba(168, 85, 247, 0.05) 1px, transparent 1px);
+            background-size: 24px 24px;
+            background-position: 0 0, 12px 12px;
+        }
+
+        /* Prevent text selection when dragging windows */
+        .no-select { user-select: none; -webkit-user-select: none; }
+
+        .cursor-cross { cursor: crosshair; }
+    </style>
+</head>
+
+<body class="bg-void text-slate-300 font-sans h-screen w-screen overflow-hidden hex-bg select-none relative crt-overlay">
+
+    <!-- TOP SYSTEM STATUS BAR -->
+    <header class="h-10 border-b border-cyan-950/80 bg-obsidian/90 backdrop-blur-md px-4 flex items-center justify-between text-xs font-mono z-50 relative">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2 text-neon-cyan font-bold tracking-widest text-sm">
+                <i data-lucide="atom" class="w-4 h-4 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
+                <span class="glow-text-cyan font-esoteric font-black tracking-wider">NOÖSPHERE // OS v9.4.1</span>
+            </div>
+            <span class="text-slate-600">|</span>
+            <div class="flex items-center space-x-2 text-slate-400">
+                <span class="inline-block w-2 h-2 rounded-full bg-neon-emerald animate-ping"></span>
+                <span class="text-[10px] tracking-wider text-neon-emerald font-semibold uppercase">HYPER-COGNITION: ONLINE</span>
+            </div>
+            <span class="text-slate-600 hidden md:inline">|</span>
+            <div class="hidden md:flex items-center space-x-2 text-slate-400">
+                <span>SYNAPSE CAPACITY:</span>
+                <span id="synapse-count" class="text-neon-amber font-bold">142 NODES</span>
+            </div>
+            <div class="hidden lg:flex items-center space-x-2 text-slate-400">
+                <span>ENTROPY QUOTIENT:</span>
+                <span id="entropy-val" class="text-neon-cyan font-bold">0.8427 Δ/s</span>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Audio FX Toggle -->
+            <button id="audio-toggle-btn" onclick="toggleAudio()" class="px-2 py-1 rounded bg-surface hover:bg-surface-bright border border-cyan-900/50 text-slate-400 hover:text-neon-cyan transition flex items-center space-x-1">
+                <i data-lucide="volume-2" id="audio-icon" class="w-3.5 h-3.5"></i>
+                <span class="text-[10px]">ACOUSTICS: ON</span>
+            </button>
+
+            <!-- Reset Windows -->
+            <button onclick="resetWindowPositions()" class="px-2 py-1 rounded bg-surface hover:bg-surface-bright border border-cyan-900/50 text-slate-400 hover:text-neon-amber transition flex items-center space-x-1" title="Reset Grid Alignment">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline text-[10px]">RE-ALIGN</span>
+            </button>
+
+            <!-- Quick Add Idea -->
+            <button onclick="quickInjectModal()" class="px-3 py-1 rounded bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/40 text-neon-cyan transition flex items-center space-x-1.5 font-bold">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span class="text-[10px] tracking-wider">SYNTHESIZE</span>
+            </button>
+
+            <!-- System Time / Chrono -->
+            <div id="chrono-clock" class="text-slate-400 font-mono tracking-widest pl-2">00:00:00 UTC</div>
+        </div>
+    </header>
+
+    <!-- DESKTOP WORKSPACE & MOVABLE PANELS CONTAINER -->
+    <main id="workspace" class="relative w-full h-[calc(100vh-2.5rem-2.5rem)] overflow-hidden">
+
+        <!-- ============================================================
+             1. WINDOW: NEURAL SWARM & MULTI-MAPPED VAULT (CANVAS GRAPH)
+             ============================================================ -->
+        <div id="win-graph" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-cyan-500/30 window-active shadow-2xl transition-all duration-75"
+             style="top: 15px; left: 15px; width: 620px; height: 500px; z-index: 30;">
+            <!-- Window Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-cyan-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="network" class="w-4 h-4 text-neon-cyan"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-cyan">NEURAL_VAULT // HYPER-GRAPH ATLAS</span>
+                    <span class="bg-cyan-950/80 border border-cyan-700/50 text-[10px] px-1.5 py-0.2 rounded text-cyan-300 font-mono">FORCE-SIM</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="graphEngine.recluster()" class="p-1 hover:text-neon-cyan text-slate-400 text-xs" title="Regenerate Force Field"><i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="graphEngine.toggleLabels()" class="p-1 hover:text-neon-cyan text-slate-400 text-xs" title="Toggle Concept Labels"><i data-lucide="type" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="minimizeWindow('win-graph')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-graph')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+            
+            <!-- Graph Tool Controls -->
+            <div class="bg-obsidian/70 px-3 py-1.5 border-b border-cyan-950/60 flex items-center justify-between text-[11px] font-mono">
+                <div class="flex items-center space-x-2">
+                    <span class="text-slate-500">FILTER:</span>
+                    <button onclick="graphEngine.filterDomain('all')" class="domain-btn text-neon-cyan underline font-bold px-1" data-d="all">ALL</button>
+                    <button onclick="graphEngine.filterDomain('memetics')" class="domain-btn text-slate-400 hover:text-neon-crimson px-1" data-d="memetics">MEMETICS</button>
+                    <button onclick="graphEngine.filterDomain('semiotics')" class="domain-btn text-slate-400 hover:text-neon-violet px-1" data-d="semiotics">SEMIOTICS</button>
+                    <button onclick="graphEngine.filterDomain('psychoacoustics')" class="domain-btn text-slate-400 hover:text-neon-amber px-1" data-d="psychoacoustics">ACOUSTIC</button>
+                    <button onclick="graphEngine.filterDomain('hyperstition')" class="domain-btn text-slate-400 hover:text-neon-emerald px-1" data-d="hyperstition">HYPERSTITION</button>
+                </div>
+                <div class="text-[10px] text-slate-400 flex items-center space-x-2">
+                    <span>PAN: DRAG CANVAS</span>
+                    <span>•</span>
+                    <span>ZOOM: SCROLL</span>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport -->
+            <div class="relative flex-1 bg-void/90 overflow-hidden cursor-cross">
+                <canvas id="neural-canvas" class="w-full h-full block"></canvas>
+                <!-- HUD Overlay inside graph -->
+                <div id="node-inspector-hud" class="absolute bottom-3 left-3 right-3 bg-surface/90 border border-cyan-500/40 p-2.5 rounded text-xs font-mono pointer-events-none transition-opacity duration-200 opacity-0 backdrop-blur-md">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span id="hud-cluster" class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-cyan-950 text-neon-cyan font-bold border border-cyan-700/50">SEMIOTIC ENGINE</span>
+                            <h4 id="hud-title" class="font-bold text-slate-100 text-sm mt-0.5">Quantum Baudrillardian Simulation</h4>
+                            <p id="hud-desc" class="text-slate-400 text-[11px] leading-relaxed mt-0.5 line-clamp-2">Hyperreal memetic diffusion vectors leveraging non-linear acoustic harmonics to warp brand cognition.</p>
+                        </div>
+                        <div class="text-right pl-2">
+                            <span class="text-[9px] text-slate-500 block">MEMETIC VALENCE</span>
+                            <span id="hud-metric" class="text-neon-emerald font-bold text-xs">98.4 %</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             2. WINDOW: SYNAPSE-X // POLYMATH LLM TERMINAL & REPL
+             ============================================================ -->
+        <div id="win-terminal" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-cyan/25 window-active shadow-2xl transition-all duration-75"
+             style="top: 15px; left: 650px; width: 560px; height: 500px; z-index: 25;">
+            <!-- Window Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-cyan-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="terminal" class="w-4 h-4 text-neon-emerald"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-emerald">SYNAPSE-X // POLYMATH RECURSIVE LLM</span>
+                    <span class="bg-emerald-950/80 border border-emerald-700/50 text-[10px] px-1.5 py-0.2 rounded text-emerald-300 font-mono">ZERO-LATENCY ENGINE</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="polymathLLM.clearChat()" class="p-1 hover:text-neon-cyan text-slate-400" title="Flush Buffer"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="minimizeWindow('win-terminal')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-terminal')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+
+            <!-- Terminal Output Buffer -->
+            <div id="terminal-output" class="flex-1 p-3.5 overflow-y-auto font-mono text-xs space-y-3 bg-void/80 text-slate-300 leading-relaxed border-b border-cyan-950">
+                <!-- System Banner -->
+                <div class="p-3 bg-surface/60 border border-cyan-800/40 rounded">
+                    <div class="text-neon-cyan font-bold flex items-center space-x-2 mb-1">
+                        <i data-lucide="cpu" class="w-4 h-4"></i>
+                        <span>POLYMATHIC COGNITION CORE INITIALIZED // UNBOUND MODE</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px] leading-normal">
+                        Ready to synthesize marketing hegemonies, obscure psychoanalytic strategies, hyperstitional branding axioms, and viral semiotics. Type any prompt, request an esoteric campaign strategy, or synthesize knowledge from ingested files.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Presets & Quick Directives -->
+            <div class="bg-obsidian/90 px-3 py-1.5 border-b border-cyan-950/60 flex items-center space-x-1 overflow-x-auto text-[10px] font-mono no-scrollbar">
+                <span class="text-slate-500 mr-1 shrink-0">DIRECTIVES:</span>
+                <button onclick="polymathLLM.runDirective('hyperstition')" class="px-2 py-0.5 rounded bg-surface hover:bg-surface-bright border border-cyan-900/60 text-cyan-300 hover:text-white shrink-0">⚡ Hyperstition Blueprint</button>
+                <button onclick="polymathLLM.runDirective('viral-semiotics')" class="px-2 py-0.5 rounded bg-surface hover:bg-surface-bright border border-crimson-900/60 text-neon-crimson hover:text-white shrink-0">🧬 Viral Semiotic Attack</button>
+                <button onclick="polymathLLM.runDirective('psychoacoustic-funnel')" class="px-2 py-0.5 rounded bg-surface hover:bg-surface-bright border border-amber-900/60 text-neon-amber hover:text-white shrink-0">🔊 Acoustic Indoctrination</button>
+                <button onclick="polymathLLM.runDirective('esoteric-manifesto')" class="px-2 py-0.5 rounded bg-surface hover:bg-surface-bright border border-violet-900/60 text-neon-violet hover:text-white shrink-0">📜 Occult Brand Manifesto</button>
+            </div>
+
+            <!-- Terminal Input Line -->
+            <div class="p-2.5 bg-obsidian flex items-center space-x-2">
+                <span class="text-neon-emerald font-mono font-bold text-sm">λ&gt;</span>
+                <input id="terminal-input" type="text" placeholder="Type prompt (e.g., 'Formulate an esoteric ad strategy for luxury neuro-implants')..." 
+                       class="flex-1 bg-surface border border-cyan-950 focus:border-neon-cyan px-3 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-600 rounded outline-none shadow-inner"
+                       onkeydown="if(event.key === 'Enter') polymathLLM.submitUserPrompt()" />
+                <button onclick="polymathLLM.submitUserPrompt()" class="px-3 py-1.5 rounded bg-neon-cyan/20 border border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan hover:text-void font-bold text-xs transition">
+                    TRANSMIT
+                </button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             3. WINDOW: HYPER-INGESTION PROTOCOL (FILE UPLOADER & PARSER)
+             ============================================================ -->
+        <div id="win-uploader" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-amber/25 window-active shadow-2xl transition-all duration-75"
+             style="top: 530px; left: 15px; width: 440px; height: 350px; z-index: 20;">
+            <!-- Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-amber-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="file-up" class="w-4 h-4 text-neon-amber"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-amber">INGESTION_VECTOR // FILE-TO-NEURAL</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="minimizeWindow('win-uploader')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-uploader')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+
+            <!-- Upload Area & Drag Zone -->
+            <div class="p-3.5 flex-1 flex flex-col space-y-3 bg-void/85 overflow-y-auto">
+                <div id="drop-zone" ondragover="event.preventDefault(); this.classList.add('border-neon-amber');" 
+                     ondragleave="this.classList.remove('border-neon-amber');" 
+                     ondrop="handleFileDrop(event)"
+                     class="border-2 border-dashed border-cyan-900/70 hover:border-neon-amber rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer transition bg-surface/30 group">
+                    <i data-lucide="upload-cloud" class="w-8 h-8 text-slate-500 group-hover:text-neon-amber transition mb-1"></i>
+                    <span class="text-xs font-mono font-bold text-slate-300">DROP OBSCURITY CORPUS HERE</span>
+                    <span class="text-[10px] text-slate-500 font-mono mt-0.5">Supports .TXT, .MD, .JSON, .CSV, .PDF (text), Whitepapers</span>
+                    <input type="file" id="file-input" multiple class="hidden" onchange="handleFileInput(event)" />
+                    <button onclick="document.getElementById('file-input').click()" class="mt-2.5 px-3 py-1 rounded bg-amber-500/10 border border-amber-500/40 text-amber-300 hover:bg-amber-500/20 text-[10px] font-mono">
+                        BROWSE LOCAL ARTIFACTS
+                    </button>
+                </div>
+
+                <!-- Live Upload Ingestion Feed -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between items-center text-[10px] font-mono text-slate-400 mb-1">
+                        <span>INGESTED ARTIFACTS & NODE SYNTHESIS:</span>
+                        <span id="ingest-status-text" class="text-neon-emerald">READY FOR STREAM</span>
+                    </div>
+                    <div id="ingestion-history" class="flex-1 space-y-1.5 overflow-y-auto max-h-28 pr-1 font-mono text-[11px]">
+                        <div class="p-2 rounded bg-surface/50 border border-cyan-950 flex items-center justify-between text-slate-400">
+                            <span class="truncate flex items-center space-x-1.5">
+                                <i data-lucide="file-text" class="w-3 h-3 text-neon-cyan"></i>
+                                <span>baudrillard_simulacra_memetics.txt</span>
+                            </span>
+                            <span class="text-[10px] text-neon-emerald font-bold shrink-0">+6 NODES MAP</span>
+                        </div>
+                        <div class="p-2 rounded bg-surface/50 border border-cyan-950 flex items-center justify-between text-slate-400">
+                            <span class="truncate flex items-center space-x-1.5">
+                                <i data-lucide="file-text" class="w-3 h-3 text-neon-violet"></i>
+                                <span>mkultra_subliminal_branding.md</span>
+                            </span>
+                            <span class="text-[10px] text-neon-emerald font-bold shrink-0">+11 NODES MAP</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             4. WINDOW: MEMETIC WARFARE & SOCIAL ENGINEERING RADAR
+             ============================================================ -->
+        <div id="win-analytics" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-crimson/25 window-active shadow-2xl transition-all duration-75"
+             style="top: 530px; left: 470px; width: 440px; height: 350px; z-index: 22;">
+            <!-- Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-crimson-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="activity" class="w-4 h-4 text-neon-crimson"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-crimson">MEMETIC_CONTAGION // TELEMETRY</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="minimizeWindow('win-analytics')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-analytics')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+
+            <!-- Analytics Visualizer Content -->
+            <div class="p-3 bg-void/85 flex-1 flex flex-col space-y-2.5 font-mono text-xs overflow-y-auto">
+                <!-- Gauge Grid -->
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="bg-surface/60 border border-crimson-900/40 p-2 rounded text-center">
+                        <span class="text-[9px] text-slate-500 block uppercase">Mimetic Virality (R0)</span>
+                        <span id="stat-r0" class="text-neon-crimson font-bold text-sm tracking-wider">8.94 Ψ</span>
+                    </div>
+                    <div class="bg-surface/60 border border-cyan-900/40 p-2 rounded text-center">
+                        <span class="text-[9px] text-slate-500 block uppercase">Cognitive Resonance</span>
+                        <span id="stat-cog" class="text-neon-cyan font-bold text-sm tracking-wider">96.2 %</span>
+                    </div>
+                    <div class="bg-surface/60 border border-violet-900/40 p-2 rounded text-center">
+                        <span class="text-[9px] text-slate-500 block uppercase">Subliminal Depth</span>
+                        <span id="stat-sub" class="text-neon-violet font-bold text-sm tracking-wider">1.42 μW</span>
+                    </div>
+                </div>
+
+                <!-- SVG Social Engineering Vector Radar -->
+                <div class="bg-surface/40 border border-cyan-950 rounded p-2 flex items-center justify-between">
+                    <div class="w-36 h-28 flex items-center justify-center">
+                        <svg viewBox="0 0 100 100" class="w-28 h-28 filter drop-shadow">
+                            <!-- Radar Web -->
+                            <polygon points="50,10 88,38 73,82 27,82 12,38" fill="none" stroke="#1e293b" stroke-width="1"/>
+                            <polygon points="50,25 73,42 63,68 37,68 27,42" fill="none" stroke="#1e293b" stroke-width="1"/>
+                            <!-- Data Polygon -->
+                            <polygon id="radar-poly" points="50,18 82,36 68,78 30,70 18,34" fill="rgba(255, 0, 85, 0.2)" stroke="#ff0055" stroke-width="1.5"/>
+                            <circle cx="50" cy="50" r="1.5" fill="#00f7ff"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 pl-3 text-[10px] space-y-1">
+                        <div class="flex justify-between text-slate-400">
+                            <span>HYPERSTITION VECTOR:</span>
+                            <span class="text-neon-cyan font-bold">92%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden">
+                            <div class="bg-neon-cyan h-full" style="width: 92%"></div>
+                        </div>
+
+                        <div class="flex justify-between text-slate-400 mt-1">
+                            <span>NARRATIVE INFILTRATION:</span>
+                            <span class="text-neon-crimson font-bold">88%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden">
+                            <div class="bg-neon-crimson h-full" style="width: 88%"></div>
+                        </div>
+
+                        <div class="flex justify-between text-slate-400 mt-1">
+                            <span>PARACONSISTENT BIAS:</span>
+                            <span class="text-neon-amber font-bold">74%</span>
+                        </div>
+                        <div class="w-full bg-slate-900 h-1.5 rounded overflow-hidden">
+                            <div class="bg-neon-amber h-full" style="width: 74%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Stream Feed of Memetic Vectors -->
+                <div class="text-[10px] text-slate-400 font-mono space-y-1">
+                    <div class="flex items-center justify-between text-slate-500">
+                        <span>LIVE SOCIAL WARFARE TELEMETRY LOG:</span>
+                        <span class="text-neon-emerald">● SYNCED</span>
+                    </div>
+                    <div id="telemetry-log" class="h-16 overflow-y-auto space-y-1 bg-obsidian/70 p-1.5 rounded border border-cyan-950 text-slate-400">
+                        <div class="text-[10px]">[14:02] Memetic cluster [GHOST_COMMERCE] triggered 4,200 micro-shares</div>
+                        <div class="text-[10px] text-neon-cyan">[14:03] Archetypal dissonance lowered conversion resistance by 34.2%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             5. WINDOW: AESTHETIC MATRIX & HEXONOMY & SOUND DESIGN
+             ============================================================ -->
+        <div id="win-aesthetic" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-violet/25 window-active shadow-2xl transition-all duration-75"
+             style="top: 15px; left: 1225px; width: 440px; height: 500px; z-index: 21;">
+            <!-- Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-violet-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="palette" class="w-4 h-4 text-neon-violet"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-violet">AESTHETIC_HEXONOMY &amp; SOUND LAB</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="paletteGen.mutate()" class="p-1 hover:text-neon-violet text-slate-400" title="Mutate Palette"><i data-lucide="shuffle" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="minimizeWindow('win-aesthetic')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-aesthetic')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+
+            <div class="p-3.5 bg-void/85 flex-1 flex flex-col space-y-4 font-mono text-xs overflow-y-auto">
+                <!-- Palette Alchemical Synthesis -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <span class="text-[11px] text-slate-300 font-bold flex items-center space-x-1">
+                            <i data-lucide="droplet" class="w-3.5 h-3.5 text-neon-violet"></i>
+                            <span>POLYCHROMATIC HEX MATRIX:</span>
+                        </span>
+                        <button onclick="paletteGen.copyActive()" class="text-[10px] text-neon-cyan hover:underline">COPY CSS VARS</button>
+                    </div>
+                    <div id="palette-swatches" class="grid grid-cols-5 gap-1.5">
+                        <!-- Swatches injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Acoustic Psycho-Frequency Synthesizer -->
+                <div class="p-2.5 rounded bg-surface/50 border border-cyan-950 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] font-bold text-neon-cyan flex items-center space-x-1.5">
+                            <i data-lucide="radio" class="w-3.5 h-3.5 text-neon-cyan"></i>
+                            <span>PSYCHOACOUSTIC FREQ RESONATOR</span>
+                        </span>
+                        <span id="tone-freq-display" class="text-[10px] text-neon-amber font-mono">432.00 Hz (SOLFEGGIO)</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        <button onclick="soundLab.playTone('subliminal')" class="flex-1 py-1 px-2 rounded bg-cyan-950/60 border border-cyan-700/50 hover:bg-neon-cyan hover:text-void font-bold transition text-[10px]">
+                            ▶ 432Hz HARMONIC
+                        </button>
+                        <button onclick="soundLab.playTone('binaural')" class="flex-1 py-1 px-2 rounded bg-violet-950/60 border border-violet-700/50 hover:bg-neon-violet hover:text-white font-bold transition text-[10px]">
+                            ▶ 528Hz DNA REPAIR
+                        </button>
+                        <button onclick="soundLab.playTone('gamma')" class="flex-1 py-1 px-2 rounded bg-crimson-950/60 border border-crimson-700/50 hover:bg-neon-crimson hover:text-white font-bold transition text-[10px]">
+                            ▶ 40Hz GAMMA FOCUS
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visionary Sensory Synthesizer / Hex Codes Ideas -->
+                <div class="flex-1 space-y-2">
+                    <span class="text-[11px] font-bold text-slate-300">AVANT-GARDE COPY &amp; COLOR COMBOS:</span>
+                    <div id="aesthetic-cards" class="space-y-2 max-h-44 overflow-y-auto pr-1">
+                        <div class="p-2 rounded bg-surface/40 border border-slate-800 text-[11px]">
+                            <div class="flex justify-between text-neon-cyan font-bold">
+                                <span>#03071E × #FF0055 [BLOOD-TERMINAL]</span>
+                                <span class="text-[9px] text-slate-500">ACCIDENTAL COUTURE</span>
+                            </div>
+                            <p class="text-slate-400 text-[10px] mt-0.5 leading-relaxed">
+                                Use for sovereign fund landing page headers. Evokes post-human luxury and cryptographic finality.
+                            </p>
+                        </div>
+                        <div class="p-2 rounded bg-surface/40 border border-slate-800 text-[11px]">
+                            <div class="flex justify-between text-neon-amber font-bold">
+                                <span>#000000 × #CCFF00 [ACID-CYBERNETIC]</span>
+                                <span class="text-[9px] text-slate-500">NEO-BRUTALISM</span>
+                            </div>
+                            <p class="text-slate-400 text-[10px] mt-0.5 leading-relaxed">
+                                Ideal for high-ticket memetic hedge fund launches. High optic retention, maximum cognitive friction.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             6. WINDOW: GRIMOIRE OF OBSCURITY (SEARCHABLE NOTES & FRAGMENTS)
+             ============================================================ -->
+        <div id="win-notes" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-cyan-900/40 window-active shadow-2xl transition-all duration-75"
+             style="top: 530px; left: 925px; width: 440px; height: 350px; z-index: 18;">
+            <!-- Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-cyan-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="book-marked" class="w-4 h-4 text-neon-cyan"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-cyan">GRIMOIRE // 240+ APHORISTIC FRAGMENTS</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="minimizeWindow('win-notes')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-notes')" class="p-1 hover:text-emerald-400 text-slate-400"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+
+            <!-- Search Filter Bar -->
+            <div class="bg-obsidian px-2.5 py-1.5 border-b border-cyan-950 flex items-center space-x-2">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-500"></i>
+                <input id="grimoire-search" type="text" placeholder="Search obscure concepts, Baudrillard, Deleuze, memes..."
+                       class="w-full bg-transparent border-none text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none"
+                       oninput="grimoire.filter(this.value)" />
+            </div>
+
+            <!-- Notes List -->
+            <div id="grimoire-container" class="p-3 bg-void/85 flex-1 overflow-y-auto space-y-2 font-mono text-xs">
+                <!-- Dynamic cards populated by script -->
+            </div>
+        </div>
+
+        <!-- ============================================================
+             7. WINDOW: VISIONARY TRANSMITTER / IDEA SYNTHESIZER
+             ============================================================ -->
+        <div id="win-synthesizer" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-emerald/30 window-active shadow-2xl transition-all duration-75"
+             style="top: 530px; left: 1380px; width: 380px; height: 350px; z-index: 19;">
+            <!-- Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-emerald-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="dread" class="w-4 h-4 text-neon-emerald"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-emerald">HYPER-IDEA COMBINATOR</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="minimizeWindow('win-synthesizer')" class="p-1 hover:text-amber-400 text-slate-400"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                </div>
+            </div>
+
+            <div class="p-3 bg-void/85 flex-1 flex flex-col space-y-3 font-mono text-xs justify-between">
+                <div class="space-y-2">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block font-bold">Breed Dialectical Antagonisms:</span>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="synth-domain-1" class="bg-surface border border-cyan-900 text-slate-200 text-[11px] p-1.5 rounded outline-none">
+                            <option value="Occult Cybernetics">Occult Cybernetics</option>
+                            <option value="Post-Structuralist Memetics">Post-Structuralist Memetics</option>
+                            <option value="Psychoacoustic Marketing">Psychoacoustic Marketing</option>
+                            <option value="Hyperstitional Arbitrage">Hyperstitional Arbitrage</option>
+                            <option value="Algorithmic Hegemony">Algorithmic Hegemony</option>
+                        </select>
+                        <select id="synth-domain-2" class="bg-surface border border-cyan-900 text-slate-200 text-[11px] p-1.5 rounded outline-none">
+                            <option value="Luxury Sensory Warfare">Luxury Sensory Warfare</option>
+                            <option value="Gnostic Funnel Mechanics">Gnostic Funnel Mechanics</option>
+                            <option value="Quantum Baudrillardism">Quantum Baudrillardism</option>
+                            <option value="Bio-Digital Monopolies">Bio-Digital Monopolies</option>
+                            <option value="Subconscious Semiotics">Subconscious Semiotics</option>
+                        </select>
+                    </div>
+
+                    <button onclick="ideaCombinator.synthesize()" class="w-full py-2 rounded bg-neon-emerald/20 hover:bg-neon-emerald/30 border border-neon-emerald text-neon-emerald font-bold text-xs tracking-wider transition flex items-center justify-center space-x-2">
+                        <i data-lucide="zap" class="w-3.5 h-3.5"></i>
+                        <span>MUTATE &amp; DISCOVER AXIOM</span>
+                    </button>
+                </div>
+
+                <!-- Result Box -->
+                <div id="synth-output-box" class="flex-1 bg-surface/40 border border-emerald-950 p-2.5 rounded overflow-y-auto text-[11px] text-slate-300">
+                    <span class="text-neon-emerald font-bold block mb-1">AXIOM #782 // READY</span>
+                    <p class="text-slate-400 italic">"Select two opposing philosophical domains and synthesize a weaponized go-to-market narrative."</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- BOTTOM TASKBAR / DOCK -->
+    <footer class="h-10 border-t border-cyan-950 bg-obsidian/95 backdrop-blur-md px-4 flex items-center justify-between text-xs font-mono z-50 fixed bottom-0 left-0 right-0">
+        <!-- Dock Icons -->
+        <div class="flex items-center space-x-2">
+            <button onclick="restoreOrFocus('win-graph')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-cyan-900/60 text-neon-cyan">
+                <i data-lucide="network" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Graph Vault</span>
+            </button>
+            <button onclick="restoreOrFocus('win-terminal')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-emerald-900/60 text-neon-emerald">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Synapse LLM</span>
+            </button>
+            <button onclick="restoreOrFocus('win-uploader')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-amber-900/60 text-neon-amber">
+                <i data-lucide="file-up" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Ingestion</span>
+            </button>
+            <button onclick="restoreOrFocus('win-analytics')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-crimson-900/60 text-neon-crimson">
+                <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Warfare</span>
+            </button>
+            <button onclick="restoreOrFocus('win-aesthetic')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-violet-900/60 text-neon-violet">
+                <i data-lucide="palette" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Hexonomy</span>
+            </button>
+            <button onclick="restoreOrFocus('win-notes')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-cyan-900/60 text-cyan-300">
+                <i data-lucide="book-marked" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">Grimoire</span>
+            </button>
+        </div>
+
+        <!-- System Stats / Live Audio Visualizer Mini Bar -->
+        <div class="flex items-center space-x-3 text-[11px] text-slate-400">
+            <div class="hidden lg:flex items-center space-x-1">
+                <span class="text-slate-600">NEURAL LOAD:</span>
+                <span class="text-neon-cyan font-bold">99.8%</span>
+            </div>
+            <!-- Mini visualizer bars -->
+            <div class="flex items-end space-x-0.5 h-4 w-16">
+                <div class="w-1 bg-neon-cyan/80 h-2 animate-pulse"></div>
+                <div class="w-1 bg-neon-emerald/80 h-3 animate-pulse" style="animation-delay: 150ms"></div>
+                <div class="w-1 bg-neon-amber/80 h-1.5 animate-pulse" style="animation-delay: 300ms"></div>
+                <div class="w-1 bg-neon-crimson/80 h-4 animate-pulse" style="animation-delay: 75ms"></div>
+                <div class="w-1 bg-neon-violet/80 h-2.5 animate-pulse" style="animation-delay: 200ms"></div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL: QUICK IDEA INJECTION -->
+    <div id="quick-inject-modal" class="fixed inset-0 bg-void/80 backdrop-blur-md z-[100] hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-xl p-5 border border-neon-cyan/50 space-y-4 shadow-neon-cyan">
+            <div class="flex justify-between items-center border-b border-cyan-900 pb-3">
+                <div class="flex items-center space-x-2 text-neon-cyan font-mono font-bold">
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    <span>INJECT CUSTOM INTELLECTUAL NODE</span>
+                </div>
+                <button onclick="closeInjectModal()" class="text-slate-400 hover:text-neon-crimson"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-400 mb-1">CONCEPT / AXIOM TITLE:</label>
+                    <input id="custom-node-title" type="text" placeholder="e.g. Non-Euclidean Funnel Dynamics" class="w-full bg-surface border border-cyan-900 p-2 rounded text-slate-100 focus:border-neon-cyan outline-none" />
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">DOMAIN CLUSTER:</label>
+                    <select id="custom-node-domain" class="w-full bg-surface border border-cyan-900 p-2 rounded text-slate-100 outline-none">
+                        <option value="memetics">MEMETICS &amp; CONTAGION</option>
+                        <option value="semiotics">SEMIOTICS &amp; WARFARE</option>
+                        <option value="psychoacoustics">PSYCHOACOUSTICS</option>
+                        <option value="hyperstition">HYPERSTITION &amp; GNOSTICISM</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-400 mb-1">ESOTERIC ANALYSIS / MANIFESTO FRAGMENT:</label>
+                    <textarea id="custom-node-desc" rows="3" placeholder="Elaborate on the obscure cognitive resonance and commercial applications..." class="w-full bg-surface border border-cyan-900 p-2 rounded text-slate-100 focus:border-neon-cyan outline-none"></textarea>
+                </div>
+                <button onclick="injectCustomNodeAction()" class="w-full py-2.5 rounded bg-neon-cyan/20 border border-neon-cyan text-neon-cyan hover:bg-neon-cyan hover:text-void font-bold transition">
+                    PROPAGATE INTO NEURAL SWARM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         CORE SCRIPTS & HIGH-TECH OS ENGINES
+         ============================================================ -->
+    <script>
+        // -------------------------------------------------------------
+        // 1. SOUND SYNTHESIS ENGINE (Web Audio API)
+        // -------------------------------------------------------------
+        let audioCtx = null;
+        let audioEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playBeep(freq = 880, type = 'sine', duration = 0.08, vol = 0.04) {
+            if (!audioEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function toggleAudio() {
+            audioEnabled = !audioEnabled;
+            const btn = document.getElementById('audio-toggle-btn');
+            const icon = document.getElementById('audio-icon');
+            if (audioEnabled) {
+                btn.innerHTML = `<i data-lucide="volume-2" class="w-3.5 h-3.5"></i><span class="text-[10px]">ACOUSTICS: ON</span>`;
+                playBeep(1200, 'sine', 0.1);
+            } else {
+                btn.innerHTML = `<i data-lucide="volume-x" class="w-3.5 h-3.5"></i><span class="text-[10px]">ACOUSTICS: OFF</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        const soundLab = {
+            playTone(mode) {
+                initAudio();
+                playBeep(mode === 'subliminal' ? 432 : (mode === 'binaural' ? 528 : 40), 'triangle', 0.8, 0.08);
+                document.getElementById('tone-freq-display').innerText = 
+                    mode === 'subliminal' ? '432.00 Hz (SOLFEGGIO ACTIVE)' : 
+                    mode === 'binaural' ? '528.00 Hz (BIO-RESONANCE ACTIVE)' : '40.00 Hz (GAMMA BRAINWAVE ACTIVE)';
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 2. WINDOW MANAGER (DRAGGING, Z-INDEX, MINIMIZE, RESTORE)
+        // -------------------------------------------------------------
+        let highestZ = 50;
+
+        function bringToFront(win) {
+            highestZ += 2;
+            win.style.zIndex = highestZ;
+            document.querySelectorAll('.glass-panel').forEach(w => w.classList.remove('window-active'));
+            win.classList.add('window-active');
+            playBeep(950, 'sine', 0.03, 0.02);
+        }
+
+        function makeDraggable(win) {
+            const header = win.querySelector('.win-header');
+            if (!header) return;
+
+            let isDragging = false;
+            let startX, startY, initialLeft, initialTop;
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('button')) return; // Allow button clicks
+                isDragging = true;
+                bringToFront(win);
+                startX = e.clientX;
+                startY = e.clientY;
+                initialLeft = win.offsetLeft;
+                initialTop = win.offsetTop;
+                document.body.classList.add('no-select');
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                win.style.left = `${Math.max(0, initialLeft + dx)}px`;
+                win.style.top = `${Math.max(0, initialTop + dy)}px`;
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    document.body.classList.remove('no-select');
+                }
+            });
+
+            win.addEventListener('mousedown', () => bringToFront(win));
+        }
+
+        document.querySelectorAll('.glass-panel').forEach(makeDraggable);
+
+        function minimizeWindow(id) {
+            const win = document.getElementById(id);
+            win.style.display = 'none';
+            playBeep(440, 'triangle', 0.06);
+        }
+
+        function restoreOrFocus(id) {
+            const win = document.getElementById(id);
+            if (win.style.display === 'none') {
+                win.style.display = 'flex';
+            }
+            bringToFront(win);
+        }
+
+        function maximizeWindow(id) {
+            const win = document.getElementById(id);
+            if (win.dataset.maximized === 'true') {
+                win.style.width = win.dataset.origW;
+                win.style.height = win.dataset.origH;
+                win.style.top = win.dataset.origT;
+                win.style.left = win.dataset.origL;
+                win.dataset.maximized = 'false';
+            } else {
+                win.dataset.origW = win.style.width;
+                win.dataset.origH = win.style.height;
+                win.dataset.origT = win.style.top;
+                win.dataset.origL = win.style.left;
+                win.style.top = '10px';
+                win.style.left = '10px';
+                win.style.width = 'calc(100% - 20px)';
+                win.style.height = 'calc(100% - 70px)';
+                win.dataset.maximized = 'true';
+            }
+            bringToFront(win);
+        }
+
+        function resetWindowPositions() {
+            const defaults = [
+                { id: 'win-graph', top: 15, left: 15, w: 620, h: 500 },
+                { id: 'win-terminal', top: 15, left: 650, w: 560, h: 500 },
+                { id: 'win-aesthetic', top: 15, left: 1225, w: 440, h: 500 },
+                { id: 'win-uploader', top: 530, left: 15, w: 440, h: 350 },
+                { id: 'win-analytics', top: 530, left: 470, w: 440, h: 350 },
+                { id: 'win-notes', top: 530, left: 925, w: 440, h: 350 },
+                { id: 'win-synthesizer', top: 530, left: 1380, w: 380, h: 350 }
+            ];
+            defaults.forEach(d => {
+                const el = document.getElementById(d.id);
+                if (el) {
+                    el.style.display = 'flex';
+                    el.style.top = `${d.top}px`;
+                    el.style.left = `${d.left}px`;
+                    el.style.width = `${d.w}px`;
+                    el.style.height = `${d.h}px`;
+                    el.dataset.maximized = 'false';
+                }
+            });
+            playBeep(700, 'sine', 0.15);
+        }
+
+        // -------------------------------------------------------------
+        // 3. FORCE-DIRECTED NEURAL GRAPH ATLAS ENGINE (Canvas 60fps)
+        // -------------------------------------------------------------
+        const canvas = document.getElementById('neural-canvas');
+        const ctx = canvas.getContext('2d');
+
+        const DOMAINS = {
+            memetics: { name: 'Memetics', color: '#ff0055' },
+            semiotics: { name: 'Semiotics', color: '#a855f7' },
+            psychoacoustics: { name: 'Psychoacoustics', color: '#ffaa00' },
+            hyperstition: { name: 'Hyperstition', color: '#00ff9d' },
+            alchemy: { name: 'Alchemical OS', color: '#00f7ff' }
+        };
+
+        // Seeded polymath knowledge base (120+ nodes dynamic network)
+        let graphNodes = [];
+        let graphEdges = [];
+        let showLabels = true;
+        let activeDomainFilter = 'all';
+
+        const rawSeedThemes = [
+            { id: 1, title: 'Baudrillardian Simulacra', domain: 'semiotics', desc: 'Phase 4 sign-order simulation. The product precedes reality.', valence: '99.4%' },
+            { id: 2, title: 'Hyperstitional Feedback Loops', domain: 'hyperstition', desc: 'Fictions that make themselves real via financialized belief networks.', valence: '98.1%' },
+            { id: 3, title: 'Psychoacoustic Infrasound Traps', domain: 'psychoacoustics', desc: '18.98Hz panic wave modulation woven into background commercial tracks.', valence: '94.6%' },
+            { id: 4, title: 'Memetic Vector Antagonisms', domain: 'memetics', desc: 'Polarization funnels calibrated to provoke instant identity crystallization.', valence: '97.2%' },
+            { id: 5, title: 'Zero-Point Brand Telemetry', domain: 'alchemy', desc: 'Marketing so opaque it functions as a luxury occult riddle.', valence: '91.8%' },
+            { id: 6, title: 'Deleuzian Rhizome Architectures', domain: 'semiotics', desc: 'Non-hierarchical decentral funnel scaling without centralized authority.', valence: '95.5%' },
+            { id: 7, title: 'Liminal Conversion Thresholds', domain: 'memetics', desc: 'Psychological trance states triggered at the microsecond of checkout.', valence: '89.7%' },
+            { id: 8, title: 'Hermetic Typographic Sigils', domain: 'alchemy', desc: 'Kerning alignments that trigger micro-dopamine releases in high-IQ buyers.', valence: '93.3%' },
+            { id: 9, title: 'Bio-Digital Monopolies', domain: 'hyperstition', desc: 'Algorithmic capture of sensory cortex before the user realizes intent.', valence: '99.0%' },
+            { id: 10, title: 'Solfeggio Frequency Ingestion', domain: 'psychoacoustics', desc: '528Hz cellular resonance embedded into UI sonic feedback pings.', valence: '92.4%' },
+            { id: 11, title: 'Post-Irony Ad Hegemony', domain: 'memetics', desc: 'Subversive anti-marketing that makes cynicism the primary purchase vector.', valence: '96.8%' },
+            { id: 12, title: 'Paraconsistent Social Engineering', domain: 'semiotics', desc: 'Simultaneous contradictory narratives that paralyze competitor PR.', valence: '97.9%' },
+            { id: 13, title: 'Cognitive Friction Arbitrage', domain: 'hyperstition', desc: 'Deliberate UX hostility to filter out non-elite demographic cohorts.', valence: '94.1%' },
+            { id: 14, title: 'Spectral Color Warfare', domain: 'alchemy', desc: 'Chromatic aberration in high-contrast neon to force ocular fatigue & focus.', valence: '90.5%' },
+            { id: 15, title: 'Subconscious Neuro-Acoustics', domain: 'psychoacoustics', desc: 'Gamma wave sync (40Hz) inducing immediate executive compliance.', valence: '96.0%' }
+        ];
+
+        function initGraphEngine() {
+            graphNodes = [];
+            graphEdges = [];
+
+            // Spawn 100+ procedural interconnected nodes
+            for (let i = 0; i < 90; i++) {
+                const domainKeys = Object.keys(DOMAINS);
+                const domainKey = domainKeys[i % domainKeys.length];
+                const seed = rawSeedThemes[i % rawSeedThemes.length];
+
+                graphNodes.push({
+                    id: i,
+                    title: i < rawSeedThemes.length ? seed.title : `${seed.title} [v${(i % 7) + 1}.0]`,
+                    domain: domainKey,
+                    desc: seed.desc,
+                    valence: seed.valence,
+                    x: (Math.random() - 0.5) * 600,
+                    y: (Math.random() - 0.5) * 450,
+                    vx: 0,
+                    vy: 0,
+                    radius: i < rawSeedThemes.length ? 5.5 : 3.2,
+                    color: DOMAINS[domainKey].color
+                });
+            }
+
+            // Create dense web of interconnected edges
+            for (let i = 0; i < graphNodes.length; i++) {
+                const links = 2 + Math.floor(Math.random() * 3);
+                for (let k = 0; k < links; k++) {
+                    const target = (i + 1 + Math.floor(Math.random() * 12)) % graphNodes.length;
+                    if (target !== i) {
+                        graphEdges.push({ source: i, target: target });
+                    }
+                }
+            }
+
+            document.getElementById('synapse-count').innerText = `${graphNodes.length} NODES`;
+        }
+
+        let camera = { x: 0, y: 0, zoom: 1 };
+        let isGraphDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        let hoveredNode = null;
+
+        function resizeCanvas() {
+            if (canvas.parentElement) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function updatePhysics() {
+            const kRepel = 220;
+            const kSpring = 0.003;
+            const centerGravity = 0.0008;
+
+            for (let i = 0; i < graphNodes.length; i++) {
+                const n1 = graphNodes[i];
+                // Repulsion
+                for (let j = i + 1; j < graphNodes.length; j++) {
+                    const n2 = graphNodes[j];
+                    const dx = n2.x - n1.x;
+                    const dy = n2.y - n1.y;
+                    const distSq = dx * dx + dy * dy + 0.01;
+                    const dist = Math.sqrt(distSq);
+                    if (dist < 260) {
+                        const f = kRepel / distSq;
+                        n1.vx -= (dx / dist) * f;
+                        n1.vy -= (dy / dist) * f;
+                        n2.vx += (dx / dist) * f;
+                        n2.vy += (dy / dist) * f;
+                    }
+                }
+                // Center gravity pull
+                n1.vx -= n1.x * centerGravity;
+                n1.vy -= n1.y * centerGravity;
+            }
+
+            // Edge springs
+            for (let e of graphEdges) {
+                const s = graphNodes[e.source];
+                const t = graphNodes[e.target];
+                if (!s || !t) continue;
+                const dx = t.x - s.x;
+                const dy = t.y - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const force = (dist - 75) * kSpring;
+                s.vx += (dx / dist) * force;
+                s.vy += (dy / dist) * force;
+                t.vx -= (dx / dist) * force;
+                t.vy -= (dy / dist) * force;
+            }
+
+            // Damping & Position Update
+            for (let n of graphNodes) {
+                n.vx *= 0.88;
+                n.vy *= 0.88;
+                n.x += n.vx;
+                n.y += n.vy;
+            }
+        }
+
+        function renderGraph() {
+            updatePhysics();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
+            ctx.scale(camera.zoom, camera.zoom);
+
+            // Draw Edges
+            ctx.lineWidth = 0.7;
+            for (let e of graphEdges) {
+                const s = graphNodes[e.source];
+                const t = graphNodes[e.target];
+                if (!s || !t) continue;
+
+                if (activeDomainFilter !== 'all' && s.domain !== activeDomainFilter && t.domain !== activeDomainFilter) {
+                    continue;
+                }
+
+                ctx.strokeStyle = (hoveredNode && (hoveredNode.id === s.id || hoveredNode.id === t.id)) 
+                    ? 'rgba(0, 247, 255, 0.7)' 
+                    : 'rgba(30, 41, 59, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(s.x, s.y);
+                ctx.lineTo(t.x, t.y);
+                ctx.stroke();
+            }
+
+            // Draw Nodes
+            for (let n of graphNodes) {
+                if (activeDomainFilter !== 'all' && n.domain !== activeDomainFilter) continue;
+
+                const isHovered = hoveredNode && hoveredNode.id === n.id;
+                ctx.fillStyle = isHovered ? '#ffffff' : n.color;
+                ctx.shadowColor = n.color;
+                ctx.shadowBlur = isHovered ? 15 : 6;
+
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, isHovered ? n.radius * 2 : n.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Node Labels
+                if (showLabels && (camera.zoom > 0.8 || isHovered || n.radius > 5)) {
+                    ctx.font = `${isHovered ? 'bold 11px' : '9px'} 'JetBrains Mono'`;
+                    ctx.fillStyle = isHovered ? '#00f7ff' : 'rgba(203, 213, 225, 0.75)';
+                    ctx.fillText(n.title, n.x + n.radius + 4, n.y + 3);
+                }
+            }
+
+            ctx.restore();
+            requestAnimationFrame(renderGraph);
+        }
+
+        // Graph Mouse Interactions
+        canvas.addEventListener('mousedown', (e) => {
+            isGraphDragging = true;
+            lastMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                const mouseX = (e.clientX - rect.left - canvas.width / 2 - camera.x) / camera.zoom;
+                const mouseY = (e.clientY - rect.top - canvas.height / 2 - camera.y) / camera.zoom;
+
+                let found = null;
+                for (let n of graphNodes) {
+                    const dx = n.x - mouseX;
+                    const dy = n.y - mouseY;
+                    if (Math.sqrt(dx * dx + dy * dy) < (n.radius * 2 + 5)) {
+                        found = n;
+                        break;
+                    }
+                }
+                hoveredNode = found;
+
+                const hud = document.getElementById('node-inspector-hud');
+                if (hoveredNode) {
+                    hud.classList.remove('opacity-0');
+                    hud.classList.add('opacity-100');
+                    document.getElementById('hud-cluster').innerText = hoveredNode.domain;
+                    document.getElementById('hud-title').innerText = hoveredNode.title;
+                    document.getElementById('hud-desc').innerText = hoveredNode.desc;
+                    document.getElementById('hud-metric').innerText = hoveredNode.valence;
+                } else {
+                    hud.classList.add('opacity-0');
+                    hud.classList.remove('opacity-100');
+                }
+            }
+
+            if (isGraphDragging) {
+                const dx = e.clientX - lastMouse.x;
+                const dy = e.clientY - lastMouse.y;
+                camera.x += dx;
+                camera.y += dy;
+                lastMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        window.addEventListener('mouseup', () => { isGraphDragging = false; });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            camera.zoom = Math.min(Math.max(0.3, camera.zoom * zoomFactor), 3.0);
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (hoveredNode) {
+                playBeep(1100, 'sine', 0.08);
+                polymathLLM.appendChat('system', `Synapse Node Inspected: [${hoveredNode.title}] // Domain: ${hoveredNode.domain.toUpperCase()}`);
+                polymathLLM.runDirective('node-deepdive', hoveredNode);
+            }
+        });
+
+        const graphEngine = {
+            recluster() {
+                for (let n of graphNodes) {
+                    n.x += (Math.random() - 0.5) * 200;
+                    n.y += (Math.random() - 0.5) * 200;
+                }
+                playBeep(500, 'square', 0.1);
+            },
+            toggleLabels() {
+                showLabels = !showLabels;
+                playBeep(800, 'sine', 0.04);
+            },
+            filterDomain(dom) {
+                activeDomainFilter = dom;
+                document.querySelectorAll('.domain-btn').forEach(btn => {
+                    if (btn.dataset.d === dom) {
+                        btn.classList.add('underline', 'font-bold', 'text-neon-cyan');
+                    } else {
+                        btn.classList.remove('underline', 'font-bold', 'text-neon-cyan');
+                    }
+                });
+                playBeep(900, 'sine', 0.04);
+            },
+            injectNode(title, domain, desc) {
+                const id = graphNodes.length;
+                const newNode = {
+                    id: id,
+                    title: title,
+                    domain: domain,
+                    desc: desc,
+                    valence: (92 + Math.random() * 7.9).toFixed(1) + '%',
+                    x: (Math.random() - 0.5) * 100,
+                    y: (Math.random() - 0.5) * 100,
+                    vx: 0, vy: 0,
+                    radius: 6,
+                    color: DOMAINS[domain] ? DOMAINS[domain].color : '#00f7ff'
+                };
+                graphNodes.push(newNode);
+                // Connect to 3 nearby nodes
+                for (let k = 0; k < 3; k++) {
+                    graphEdges.push({ source: id, target: Math.floor(Math.random() * (id - 1)) });
+                }
+                document.getElementById('synapse-count').innerText = `${graphNodes.length} NODES`;
+                playBeep(1400, 'triangle', 0.2);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 4. CLIENT-SIDE RECURSIVE POLYMATH LLM ENGINE (No API Key Required)
+        // -------------------------------------------------------------
+        const VOCAB = {
+            openings: [
+                "Under Baudrillard's fourth order of simulacra,",
+                "Executing dialectical synthesis of post-capitalist brand vectors:",
+                "Deconstructing the subconscious cognitive bias within current conversion topologies:",
+                "Deploying hyperstitional memetic warfare protocol:",
+                "Through the prism of occult cybernetics and non-linear psychoacoustics:"
+            ],
+            tenets: [
+                "The brand must cease to represent an exchange of utility and mutate into a cryptographic status religion.",
+                "Subliminal acoustic friction (18.98Hz infrasound paired with 528Hz healing tones) collapses user buyer-skepticism at the sensory cortex level.",
+                "Paraconsistent marketing deliberately propagates two antagonistic narratives simultaneously, forcing the cultural dialectic to center exclusively on your monopoly.",
+                "True viral contagion does not persuade; it alters the semiotic substrate until dissent becomes linguistically impossible within the target demographic.",
+                "Aesthetic scarcity achieved through high-contrast chromatic brutalism triggers subconscious elitist FOMO that pricing alone cannot simulate."
+            ],
+            actions: [
+                "1. TRANSMUTE COPY: Strip all descriptive adjectives; replace with esoteric axioms that require cognitive decryption.",
+                "2. SONIC ARCHITECTURE: Master all launch assets with 40Hz binaural pulses to synchronize prefrontal focus.",
+                "3. MEMETIC DISTORTION: Seed contradictory hyperstitions across anonymous dark-funnel channels to create organic mythologies.",
+                "4. TOKENIZED CARTOGRAPHY: Transform user onboarding into an initiation rite using non-Euclidean interactive nodes."
+            ]
+        };
+
+        const polymathLLM = {
+            appendChat(role, text) {
+                const container = document.getElementById('terminal-output');
+                const msg = document.createElement('div');
+                msg.className = role === 'user' 
+                    ? 'p-2.5 rounded bg-surface-bright/80 border border-cyan-800 text-slate-100 font-mono' 
+                    : (role === 'system' 
+                        ? 'p-2 rounded bg-cyan-950/40 border border-cyan-900/60 text-neon-cyan text-[11px]' 
+                        : 'p-3 rounded bg-obsidian border border-slate-800 text-slate-300 font-mono space-y-1.5 shadow-lg');
+                
+                if (role === 'user') {
+                    msg.innerHTML = `<span class="text-neon-emerald font-bold mr-1.5">USER@POLYMATH:~#</span> ${text}`;
+                } else if (role === 'system') {
+                    msg.innerHTML = `<span>⚡ ${text}</span>`;
+                } else {
+                    msg.innerHTML = `<div class="text-neon-cyan font-bold flex items-center space-x-1.5 mb-1">
+                        <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                        <span>SYNAPSE-X CORE GENERATION</span>
+                    </div>
+                    <div class="leading-relaxed text-[11px] whitespace-pre-wrap">${text}</div>`;
+                }
+                container.appendChild(msg);
+                container.scrollTop = container.scrollHeight;
+                lucide.createIcons();
+            },
+
+            clearChat() {
+                document.getElementById('terminal-output').innerHTML = '';
+                playBeep(400, 'square', 0.05);
+            },
+
+            submitUserPrompt() {
+                const input = document.getElementById('terminal-input');
+                const val = input.value.trim();
+                if (!val) return;
+                input.value = '';
+                this.appendChat('user', val);
+                playBeep(1000, 'sine', 0.04);
+                this.generatePolymathResponse(val);
+            },
+
+            generatePolymathResponse(prompt) {
+                // Simulate deep esoteric neural generation
+                setTimeout(() => {
+                    const opening = VOCAB.openings[Math.floor(Math.random() * VOCAB.openings.length)];
+                    const tenet1 = VOCAB.tenets[Math.floor(Math.random() * VOCAB.tenets.length)];
+                    const tenet2 = VOCAB.tenets[(Math.floor(Math.random() * VOCAB.tenets.length) + 1) % VOCAB.tenets.length];
+                    const actions = VOCAB.actions.join('\n');
+
+                    const response = `${opening}\n\n◈ AXIOMATIC THESIS:\n"${tenet1}"\n\n◈ NEURAL COGNITION VECTOR:\n${tenet2}\n\n◈ EXECUTION MATRIX:\n${actions}\n\n[MEMETIC CONTAGION CONFIDENCE: ${(97 + Math.random() * 2.9).toFixed(2)}%]`;
+                    
+                    this.appendChat('assistant', response);
+                    playBeep(1200, 'triangle', 0.1);
+                }, 400);
+            },
+
+            runDirective(type, data = null) {
+                playBeep(850, 'sine', 0.05);
+                if (type === 'hyperstition') {
+                    this.appendChat('user', 'INITIATE DIRECTIVE: Hyperstition Blueprint Generation');
+                    this.generatePolymathResponse('hyperstition');
+                } else if (type === 'viral-semiotics') {
+                    this.appendChat('user', 'INITIATE DIRECTIVE: Viral Semiotic Attack Vector');
+                    this.generatePolymathResponse('semiotics');
+                } else if (type === 'psychoacoustic-funnel') {
+                    this.appendChat('user', 'INITIATE DIRECTIVE: Acoustic Indoctrination Architecture');
+                    this.generatePolymathResponse('acoustic');
+                } else if (type === 'esoteric-manifesto') {
+                    this.appendChat('user', 'INITIATE DIRECTIVE: Occult Brand Manifesto Synthesis');
+                    this.generatePolymathResponse('manifesto');
+                } else if (type === 'node-deepdive' && data) {
+                    const analysis = `DEEP DIVE // NODE [${data.title.toUpperCase()}]\nDomain: ${data.domain.toUpperCase()}\nResonance Index: ${data.valence}\n\nTheoretical Synthesis:\nBy weaponizing ${data.desc}, the system creates a cognitive feedback loop wherein the consumer's subconscious assumes the identity posture of the brand before transactional evaluation occurs.`;
+                    this.appendChat('assistant', analysis);
+                }
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 5. HYPER-INGESTION FILE PARSER & REAL-TIME NODE EXTRACTOR
+        // -------------------------------------------------------------
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('border-neon-amber');
+            const files = e.dataTransfer.files;
+            processFiles(files);
+        }
+
+        function handleFileInput(e) {
+            const files = e.target.files;
+            processFiles(files);
+        }
+
+        function processFiles(files) {
+            if (!files || files.length === 0) return;
+            const historyContainer = document.getElementById('ingestion-history');
+            const statusText = document.getElementById('ingest-status-text');
+            statusText.innerText = `INGESTING ${files.length} ARTIFACT(S)...`;
+            statusText.className = 'text-neon-amber animate-pulse';
+
+            Array.from(files).forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result || "";
+                    const words = content.split(/\s+/).filter(w => w.length > 5);
+                    const synthesizedNodeTitle = words.length > 3 ? `${words[0].toUpperCase()}_${words[1].toUpperCase()}` : `${file.name.replace(/\.[^/.]+$/, "").toUpperCase()}`;
+                    
+                    // Add new dynamic node in Force Graph
+                    const randomDomains = ['memetics', 'semiotics', 'psychoacoustics', 'hyperstition'];
+                    const pickedDomain = randomDomains[Math.floor(Math.random() * randomDomains.length)];
+                    graphEngine.injectNode(synthesizedNodeTitle, pickedDomain, `Ingested from ${file.name}. Parsed ${words.length} semantic vectors.`);
+
+                    // Add to UI ingestion feed
+                    const item = document.createElement('div');
+                    item.className = 'p-2 rounded bg-surface/70 border border-amber-500/40 flex items-center justify-between text-slate-200 animate-fadeIn';
+                    item.innerHTML = `
+                        <span class="truncate flex items-center space-x-1.5">
+                            <i data-lucide="file-check" class="w-3 h-3 text-neon-amber"></i>
+                            <span class="font-bold">${file.name}</span>
+                        </span>
+                        <span class="text-[10px] text-neon-emerald font-bold shrink-0">+${Math.floor(3 + Math.random() * 8)} SYNAPSES</span>
+                    `;
+                    historyContainer.prepend(item);
+                    lucide.createIcons();
+
+                    // Inform LLM of the ingestion
+                    polymathLLM.appendChat('system', `Artifact Ingested: [${file.name}] → Neural nodes distilled and linked to force network.`);
+                };
+                reader.readAsText(file);
+            });
+
+            setTimeout(() => {
+                statusText.innerText = `CORPUS SYNCHRONIZED`;
+                statusText.className = 'text-neon-emerald';
+                playBeep(1300, 'sine', 0.15);
+            }, 600);
+        }
+
+        // -------------------------------------------------------------
+        // 6. PALETTE GEN & AESTHETIC HEXONOMY
+        // -------------------------------------------------------------
+        const PALETTES = [
+            ['#030509', '#0e1424', '#00f7ff', '#ff0055', '#a855f7'],
+            ['#08090a', '#17191d', '#ccff00', '#ff007f', '#ffffff'],
+            ['#050811', '#0f172a', '#38bdf8', '#fb7185', '#34d399'],
+            ['#120826', '#2a0845', '#ff007f', '#7928ca', '#00dfd8'],
+            ['#0a0502', '#221105', '#ffaa00', '#ff3300', '#00ffcc']
+        ];
+        let currentPaletteIdx = 0;
+
+        const paletteGen = {
+            render() {
+                const container = document.getElementById('palette-swatches');
+                container.innerHTML = '';
+                const current = PALETTES[currentPaletteIdx];
+                current.forEach(hex => {
+                    const swatch = document.createElement('div');
+                    swatch.className = 'group flex flex-col items-center cursor-pointer';
+                    swatch.innerHTML = `
+                        <div class="w-full h-10 rounded border border-slate-700 shadow transition-transform group-hover:scale-105" style="background: ${hex}"></div>
+                        <span class="text-[9px] font-mono mt-1 text-slate-400 group-hover:text-neon-cyan">${hex}</span>
+                    `;
+                    swatch.onclick = () => {
+                        navigator.clipboard?.writeText(hex);
+                        polymathLLM.appendChat('system', `Hex copied: ${hex}`);
+                        playBeep(1200, 'sine', 0.05);
+                    };
+                    container.appendChild(swatch);
+                });
+            },
+            mutate() {
+                currentPaletteIdx = (currentPaletteIdx + 1) % PALETTES.length;
+                this.render();
+                playBeep(900, 'triangle', 0.08);
+            },
+            copyActive() {
+                const css = PALETTES[currentPaletteIdx].map((c, i) => `--accent-${i+1}: ${c};`).join(' ');
+                navigator.clipboard?.writeText(css);
+                polymathLLM.appendChat('system', `Palette CSS variables copied to clipboard.`);
+                playBeep(1100, 'sine', 0.08);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 7. GRIMOIRE OBSCURITY KNOWLEDGE BASE
+        // -------------------------------------------------------------
+        const GRIMOIRE_DATA = [
+            { title: "Baudrillard's Agony of the Real", tags: "#semiotics #hyperreal", text: "The simulacrum is never what conceals the truth—it is truth that conceals that there is none. In market positioning, do not sell goods; sell the myth that stabilizes identity." },
+            { title: "Hyperstitional Arbitrage", tags: "#finance #memetics", text: "A fictional asset that acquires market cap through collective delirium until its liquidity produces real physical factories and supply chains." },
+            { title: "Infrasound Subliminal Indoctrination", tags: "#psychoacoustics", text: "Utilize resonant standing waves (19Hz) inside brick-and-mortar luxury boutiques to induce mild hyper-vigilance, increasing impulsive status acquisitions." },
+            { title: "Deleuzian Control Societies", tags: "#philosophy #algorithms", text: "Disciplinary societies had enclosures; control societies operate via continuous modulation and passwords. Design UX funnels that modulate infinitely without dead ends." },
+            { title: "Paraconsistent PR Warfare", tags: "#social-eng #memes", text: "When attacked, do not apologize or refute. Release an equally radical opposite claim so the public sphere collapses under cognitive paradox." },
+            { title: "Gnostic Brand Theology", tags: "#branding #occult", text: "Divide your customer base into the Hylic (masses), Psychic (aspirants), and Pneumatic (initiates). Reserve the true product for the top 0.1%." },
+            { title: "Occult Kerning & Typographic Sigils", tags: "#design #subliminal", text: "Tight negative tracking on blackletter headers creates optic compression that forces reader pupil dilation and heightened recall." }
+        ];
+
+        const grimoire = {
+            render(list = GRIMOIRE_DATA) {
+                const container = document.getElementById('grimoire-container');
+                container.innerHTML = '';
+                list.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'p-2.5 rounded bg-surface/50 border border-slate-800 hover:border-neon-cyan/50 transition cursor-pointer space-y-1';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-200 text-[11px]">${item.title}</span>
+                            <span class="text-[9px] text-neon-cyan">${item.tags}</span>
+                        </div>
+                        <p class="text-slate-400 text-[10px] leading-relaxed line-clamp-3">${item.text}</p>
+                    `;
+                    card.onclick = () => {
+                        polymathLLM.appendChat('system', `Grimoire Fragment Loaded: "${item.title}"`);
+                        polymathLLM.generatePolymathResponse(item.title);
+                    };
+                    container.appendChild(card);
+                });
+            },
+            filter(query) {
+                const q = query.toLowerCase();
+                const filtered = GRIMOIRE_DATA.filter(i => i.title.toLowerCase().includes(q) || i.text.toLowerCase().includes(q) || i.tags.toLowerCase().includes(q));
+                this.render(filtered);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 8. IDEA COMBINATOR SYNTHESIZER
+        // -------------------------------------------------------------
+        const ideaCombinator = {
+            synthesize() {
+                const d1 = document.getElementById('synth-domain-1').value;
+                const d2 = document.getElementById('synth-domain-2').value;
+                const box = document.getElementById('synth-output-box');
+
+                playBeep(1300, 'sine', 0.1);
+                box.innerHTML = `<span class="text-neon-amber animate-pulse">BREEDING DIALECTIC: [${d1}] × [${d2}]...</span>`;
+
+                setTimeout(() => {
+                    const mutantTitle = `${d1.split(' ')[0]} ${d2.split(' ')[1] || d2.split(' ')[0]}`;
+                    const mutantAxiom = `By fusing ${d1} with ${d2}, we eliminate consumer price resistance: the product becomes an existential defense against ontological drift.`;
+                    
+                    box.innerHTML = `
+                        <span class="text-neon-emerald font-bold block mb-1">MUTATION: ${mutantTitle.toUpperCase()}</span>
+                        <p class="text-slate-300 leading-relaxed">${mutantAxiom}</p>
+                    `;
+
+                    // Inject to Graph
+                    graphEngine.injectNode(mutantTitle, 'hyperstition', mutantAxiom);
+                }, 500);
+            }
+        };
+
+        // -------------------------------------------------------------
+        // 9. MODAL & CUSTOM NODE CREATOR
+        // -------------------------------------------------------------
+        function quickInjectModal() {
+            document.getElementById('quick-inject-modal').classList.remove('hidden');
+            document.getElementById('quick-inject-modal').classList.add('flex');
+            playBeep(800, 'sine', 0.05);
+        }
+
+        function closeInjectModal() {
+            document.getElementById('quick-inject-modal').classList.add('hidden');
+            document.getElementById('quick-inject-modal').classList.remove('flex');
+        }
+
+        function injectCustomNodeAction() {
+            const title = document.getElementById('custom-node-title').value.trim() || 'Untitled Polymathic Node';
+            const domain = document.getElementById('custom-node-domain').value;
+            const desc = document.getElementById('custom-node-desc').value.trim() || 'Synthetic node synthesized via manual OS override.';
+
+            graphEngine.injectNode(title, domain, desc);
+            polymathLLM.appendChat('system', `Custom Node [${title}] successfully propagated into active neural swarm.`);
+            closeInjectModal();
+        }
+
+        // -------------------------------------------------------------
+        // 10. SYSTEM CLOCK & TELEMETRY DRIFT SIMULATION
+        // -------------------------------------------------------------
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('chrono-clock').innerText = now.toTimeString().split(' ')[0] + ' UTC';
+            
+            // Random micro-drifts for realism
+            if (Math.random() > 0.6) {
+                const r0 = (8.5 + Math.random() * 0.9).toFixed(2);
+                const cog = (95.0 + Math.random() * 3.5).toFixed(1);
+                document.getElementById('stat-r0').innerText = `${r0} Ψ`;
+                document.getElementById('stat-cog').innerText = `${cog} %`;
+            }
+        }, 1000);
+
+        // -------------------------------------------------------------
+        // INITIALIZATION
+        // -------------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            initGraphEngine();
+            resizeCanvas();
+            renderGraph();
+            paletteGen.render();
+            grimoire.render();
+            lucide.createIcons();
+            
+            // Welcome system prompt in LLM
+            setTimeout(() => {
+                polymathLLM.appendChat('system', 'NEURAL_OS initialized with 120+ active cross-domain dialectical nodes. Ready for hyperstitional marketing execution.');
+            }, 500);
+        });
+    </script>
+</body>
+</html>
