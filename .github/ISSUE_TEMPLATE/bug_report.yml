@@ -1,0 +1,113 @@
+name: Bug report
+description: Report a defect. Many are already tracked in the register — check there first.
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please check the **defect register** — 21 known issues are already documented
+        with stable IDs in [`docs/ARCHITECTURE.md` § 17](https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/ARCHITECTURE.md#17-defect-register).
+        If your issue is listed there, comment on the existing entry or reference the ID instead.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version / commit
+      description: The version string on the status bar, or the commit SHA.
+      placeholder: "v9.4.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      description: Which subsystem does this concern?
+      options:
+        - Window manager (drag, focus, minimise, maximise, dock)
+        - Neural Vault (graph canvas, camera, filters, HUD)
+        - Synapse-X (terminal, directives, composition)
+        - Ingestion Vector (drag-and-drop, file picker, parsing)
+        - Memetic Contagion (analytics, gauges, clock)
+        - Aesthetic Hexonomy / Sound Lab (palette, audio)
+        - Grimoire (search, fragments)
+        - Hyper-Idea Combinator
+        - Modal / node injection
+        - Tooling (audit, dev server) or documentation
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: register
+    attributes:
+      label: Is it already in the register?
+      options:
+        - "No — this looks like a new finding"
+        - "Yes — it is a register item I am adding evidence to"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: input
+    id: register_id
+    attributes:
+      label: Register ID (if known)
+      placeholder: "NOO-014"
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps. Note whether the app was opened as a file or via the dev server.
+      placeholder: |
+        1. Open index.html in Chromium 130
+        2. Drag a .txt file onto the Ingestion window
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output
+      description: Paste any errors. A clean console plus a visual defect is useful information too.
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser and version, operating system, display scaling (e.g. DPR 2 / 144 Hz).
+      placeholder: "Chromium 130 · Windows 11 · DPR 1.5 · 144 Hz"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have checked the register and this is not already documented
+          required: true
+        - label: This is not a security report (those go through SECURITY.md privately)
+          required: true

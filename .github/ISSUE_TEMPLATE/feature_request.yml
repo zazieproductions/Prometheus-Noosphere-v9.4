@@ -1,0 +1,85 @@
+name: Feature or improvement
+description: Propose a change. Roadmap items and refusals are documented — check those first.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Two documents will save you a round trip:
+
+        - **[`docs/ROADMAP.md`](https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/ROADMAP.md)** —
+          what is already planned, with acceptance criteria, plus an explicit *not planned* section.
+        - **[`docs/DECISIONS.md`](https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/DECISIONS.md)** —
+          ten recorded architecture decisions. A proposal that contradicts one needs to address it
+          directly, not work around it.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - Correctness fix (defect or inaccuracy)
+        - Accessibility improvement
+        - Performance work
+        - New subsystem or feature
+        - Visual / design-language change
+        - Documentation
+        - Tooling (audit, dev server, CI)
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the problem before the solution. "It would be nice to have" is not a problem statement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: |
+        Be concrete. If it touches a constraint, say how it honours it — one document, no build step,
+        no installed runtime dependencies, no backend, tokens by name.
+    validations:
+      required: true
+
+  - type: input
+    id: roadmap
+    attributes:
+      label: Related roadmap item or register ID (if any)
+      placeholder: "NOO-015 · 10.0.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What else could solve this, and why is your proposal better? Recorded decisions were made this way.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: How would we know it works?
+      description: State an objective acceptance criterion — the kind that could become an audit check.
+      placeholder: "No window requires a viewport wider than 1280 px to be grabbable; the audit's NOO-019 count reaches 0."
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have read the roadmap and the decision records
+          required: true
+        - label: This respects the project's five constraints (CONTRIBUTING.md § Project conventions)
+          required: true
+        - label: I am willing to work on this myself, or to help review it
+          required: false
