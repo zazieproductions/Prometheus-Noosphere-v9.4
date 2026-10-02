@@ -1,0 +1,21 @@
+# Dependencies — the runtime ships none; this only matters if you add tooling.
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated audit output (reproducible from `npm run audit:report`)
+reports/
+
+# Local scratch
+*.local
+*.log
+npm-debug.log*
+
+# Editors & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
