@@ -1,0 +1,70 @@
+name: Audit
+
+# Static integrity audit for a zero-dependency, no-build application.
+# The workflow has one job and no install step: the audit uses the Node standard
+# library only, so verification takes seconds and cannot break for environmental
+# reasons. A regression in the register fails the build.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Static integrity audit
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The runtime targets evergreen browsers; the toolchain supports Node 18+.
+        # Testing the floor and the floor+2 catches accidental use of newer APIs.
+        node-version: [18, 20, 22]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Audit
+        run: node scripts/audit.mjs --write-report
+
+      - name: Fail on regression summary
+        if: failure()
+        run: |
+          echo "### Audit failed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Known debt is permitted; **new** debt is not. See docs/TESTING.md § 2.3.' >> "$GITHUB_STEP_SUMMARY"
+          node scripts/audit.mjs --json | node -e '
+            let raw = "";
+            process.stdin.on("data", d => raw += d).on("end", () => {
+              const r = JSON.parse(raw);
+              const lines = [];
+              for (const f of r.fatal) lines.push(`- FATAL: ${f}`);
+              for (const x of r.regressions) lines.push(`- REGRESSION ${x.id} (${x.severity}): ${x.title} — ${x.allowed} → ${x.seen}`);
+              if (r.budget.status === "fail") lines.push(`- PAYLOAD: ${r.budget.bytes} B exceeds ${r.budget.fail} B`);
+              console.log(lines.join("\n") || "- No details available");
+            });
+          ' >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-report-node-${{ matrix.node-version }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,17 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/security/advisories/new
+    about: Please report vulnerabilities privately — never in a public issue. See SECURITY.md.
+  - name: Defect register — check here first
+    url: https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/ARCHITECTURE.md#17-defect-register
+    about: 21 known issues with stable IDs. Yours may already be tracked, severity-rated and scheduled.
+  - name: Roadmap and planned work
+    url: https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/ROADMAP.md
+    about: Now / next / later horizons with acceptance criteria, plus what is explicitly not planned.
+  - name: Architecture decision records
+    url: https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/docs/DECISIONS.md
+    about: Why single-file, why no build step, why no backend — read before proposing a different approach.
+  - name: Contributing guide
+    url: https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/blob/main/CONTRIBUTING.md
+    about: Setup, conventions, commit format, the review rubric, and recipes for common changes.

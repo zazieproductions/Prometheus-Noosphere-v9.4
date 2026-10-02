@@ -1,0 +1,565 @@
+# API Reference
+
+> Every public surface in NOÖSPHERE // OS: global functions, engine methods, the DOM contract that
+> binds them together, the inline handler map, and the tooling API.
+
+**Version:** 9.4.1 · **Source of truth:** [`index.html`](../index.html) and [`scripts/`](../scripts)
+
+---
+
+## Contents
+
+- [Conventions](#conventions)
+- [Module map](#module-map)
+- [Global functions](#global-functions)
+- [Engine: `graphEngine`](#engine-graphengine)
+- [Engine: `polymathLLM`](#engine-polymathllm--template-composition-engine)
+- [Engine: `soundLab`](#engine-soundlab)
+- [Engine: `paletteGen`](#engine-palettegen)
+- [Engine: `grimoire`](#engine-grimoire)
+- [Engine: `ideaCombinator`](#engine-ideacombinator)
+- [Aggregate state](#aggregate-state)
+- [DOM contract](#dom-contract)
+- [Inline handler map](#inline-handler-map)
+- [Data constants](#data-constants)
+- [Tooling API](#tooling-api)
+- [Extending](#extending)
+
+---
+
+## Conventions
+
+| Symbol | Meaning |
+| --- | --- |
+| `→ T` | Return type (all functions are synchronous unless marked otherwise) |
+| **Side effects** | Anything outside the return value: DOM, state, audio, clipboard |
+| `O(…)` | Cost per call, in terms of the signature's own parameters |
+| *Internal* | Not part of the stable surface; safe to rename without a changelog entry |
+
+**Stability.** The runtime has no versioned module boundary, so this document is the contract. Any
+change to a signature, a return shape or a side effect listed here is a **breaking change** and must
+appear in [`CHANGELOG.md`](../CHANGELOG.md) under *Changed*.
+
+---
+
+## Module map
+
+```
+index.html  ─── globals ──────────── window-manager + ingestion + modal functions
+            ├── graphEngine          graph state, camera, rendering, injection
+            ├── polymathLLM          transcript + composition
+            ├── soundLab             audio presets           (playBeep is global)
+            ├── paletteGen           palette state + clipboard
+            ├── grimoire             fragment corpus + search
+            └── ideaCombinator       dialectical synthesis
+```
+
+Loading order matters: `sound` → `window manager` → `graph` → `polymathLLM` → `ingestion` →
+`paletteGen` → `grimoire` → `ideaCombinator` → `modal` → `telemetry` → initialisation. See
+[`ARCHITECTURE.md` § Boot sequence](ARCHITECTURE.md#5-boot-sequence).
+
+---
+
+## Global functions
+
+### Audio
+
+#### `initAudio() → void`
+Lazily constructs the singleton `AudioContext`. Safe to call repeatedly; subsequent calls are no-ops
+while `audioCtx` is truthy. Called by the first mutation that needs sound, so browser autoplay
+policy is never violated.
+
+#### `playBeep(freq = 880, type = 'sine', duration = 0.08, vol = 0.04) → void`
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `freq` | `number` | `880` | Oscillator frequency in Hz |
+| `type` | `OscillatorType` | `'sine'` | `sine` · `square` · `triangle` · `sawtooth` |
+| `duration` | `number` | `0.08` | Seconds; exponential decay to `0.0001` |
+| `vol` | `number` | `0.04` | Peak gain |
+
+**Side effects:** creates one oscillator + gain node per call; short-circuits and returns silently
+when `audioEnabled` is `false` or Web Audio throws.
+**Cost:** `O(1)`.
+This is the single acoustic primitive: all ten engines emit through it, which is why the interface
+sounds like one instrument.
+
+#### `toggleAudio() → void`
+Flips `audioEnabled`, re-renders `#audio-toggle-btn` (icon + label), hydrates the new icon via
+`lucide.createIcons()` and plays a confirmation tone when re-enabling.
+
+---
+
+### Window manager
+
+#### `bringToFront(win: HTMLElement) → void`
+Raises `win` by `highestZ += 2`, removes `.window-active` from every `.glass-panel`, applies it to
+`win`, and plays a 950 Hz tick. **Cost:** `O(W)` where `W` = window count (7) — dominated by the
+class sweep.
+
+#### `makeDraggable(win: HTMLElement) → void`
+Attaches the full drag behaviour to a window shell. Called once per `.glass-panel` at parse time.
+
+| Handler | Trigger | Behaviour |
+| --- | --- | --- |
+| `mousedown` on `.win-header` | pointer down on the drag handle | Begins the drag; ignores events originating on a `<button>`; adds `body.no-select` |
+| `mousemove` on `document` | drag in progress | Sets `left`/`top` from the pointer delta, clamped to `≥ 0` |
+| `mouseup` on `document` | drag end | Clears the drag flag and `body.no-select` |
+| `mousedown` on the shell | any click into the window | Focus (z-order) |
+
+**Side effects:** two permanent `document` listeners per window (7 × 2 = 14) — tracked as
+`NOO-017`. No-ops when the window has no `.win-header`.
+
+#### `minimizeWindow(id: string) → void`
+Sets `display: none` on the window. State lives in the `display` property alone; there is no
+separate visibility model. Plays a 440 Hz triangle.
+
+#### `restoreOrFocus(id: string) → void`
+Clears `display` if the window was hidden, then calls `bringToFront`. **This is the only function
+the dock calls** — every dock button is a `restoreOrFocus('<win-id>')`.
+
+#### `maximizeWindow(id: string) → void`
+Toggles a maximised state, snapshotting `width`/`height`/`top`/`left` into `dataset.origW/origH/origT/origL`
+on first activation and restoring them verbatim on the second. Maximised geometry is
+`top:10px; left:10px; width:calc(100% − 20px); height:calc(100% − 70px)`.
+**Caveat:** the snapshot is not re-validated on viewport resize — see `NOO-019`.
+
+#### `resetWindowPositions() → void`
+Reapplies the authored 7-window grid (1760 × 880 px), un-hides every window, clears `dataset.maximized`
+and plays a settle tone. Bound to **RE-ALIGN** in the header.
+
+---
+
+### Canvas
+
+#### `resizeCanvas() → void`
+Sizes the backing store to the canvas's parent element (`width`/`height` properties, *not* CSS
+pixels). Bound to `window.resize`.
+**Caveat:** no `devicePixelRatio` scaling — the canvas is CSS-pixel sized, so it is soft on HiDPI
+displays (`NOO-014`).
+
+#### `updatePhysics() → void`
+One integration step: pairwise repulsion, centre gravity, edge springs, damping. **Cost:**
+`O(n²) + O(E)` — 4,005 pair evaluations at boot (`NOO-015`). Documented in
+[`ARCHITECTURE.md` § The force simulation](ARCHITECTURE.md#8-the-force-simulation).
+
+#### `renderGraph() → void`
+Clears, applies the camera transform, draws edges then nodes then labels, then schedules the next
+frame via `requestAnimationFrame(renderGraph)`. **Self-scheduling — call once to start the loop; it
+never stops.** Draw order is edges → nodes → labels, which is what keeps labels unobstructed.
+
+---
+
+### Ingestion
+
+#### `handleFileDrop(e: DragEvent) → void`
+Drop-zone handler: cancels the default, clears the hover highlight and forwards `e.dataTransfer.files`
+to `processFiles`.
+
+#### `handleFileInput(e: Event) → void`
+File-picker equivalent: forwards `e.target.files` to `processFiles`.
+
+#### `processFiles(files: FileList | File[]) → void`
+
+| Stage | Detail |
+| --- | --- |
+| Status | `#ingest-status-text` → amber "INGESTING n ARTIFACT(S)…" |
+| Per file | `FileReader.readAsText`; on load, tokenise on whitespace, keep tokens `> 5` chars |
+| Title | First two long tokens joined by `_`, or the filename uppercased |
+| Domain | Uniform sample over `memetics` · `semiotics` · `psychoacoustics` · `hyperstition` |
+| Graph | `graphEngine.injectNode(title, domain, 'Ingested from <file>. Parsed n semantic vectors.')` |
+| Feed | One row per artefact in `#ingestion-history`, with a synthetic synapse delta |
+| Transcript | `polymathLLM.appendChat('system', 'Artifact Ingested: […]')` |
+| Settle | After 600 ms: status → emerald "CORPUS SYNCHRONIZED" + tone |
+
+**Side effects:** nodes enter the live simulation immediately. **Failure mode:** binary files (PDF)
+produce mojibake; the drop-zone copy advertises PDF support that the tokeniser cannot honour.
+
+---
+
+### Modal
+
+#### `quickInjectModal() → void` / `closeInjectModal() → void`
+Toggle `#quick-inject-modal` between `hidden` and `flex`. Focus is not moved on open — part of
+`NOO-016`.
+
+#### `injectCustomNodeAction() → void`
+Reads `#custom-node-title`, `#custom-node-domain`, `#custom-node-desc`, applies defaults for empty
+title/description, calls `graphEngine.injectNode(...)`, appends a system transcript line and closes
+the modal. Domain options: `memetics` · `semiotics` · `psychoacoustics` · `hyperstition`.
+
+---
+
+## Engine: `graphEngine`
+
+#### `injectNode(title: string, domain: string, desc: string) → void`
+
+Appends a node and three random edges to the live simulation.
+
+```js
+// node created by injectNode
+{
+  id: graphNodes.length,          // append-only; ids are never reused
+  title, domain, desc,
+  valence: (92 + random() * 7.9).toFixed(1) + '%',
+  x: (random() - 0.5) * 100,      // spawned near the origin
+  y: (random() - 0.5) * 100,
+  vx: 0, vy: 0,
+  radius: 6,
+  color: DOMAINS[domain]?.color ?? '#00f7ff'
+}
+```
+
+| Post-condition | Guarantee |
+| --- | --- |
+| `graphNodes.length` increased by 1 | Yes |
+| `id` valid and unique | Yes — assigned from the current length |
+| Edges added | 3, targeting `random(0 … id-2)` |
+| Badge updated | `#synapse-count` → `"<n> NODES"` |
+| Acoustic confirmation | 1400 Hz triangle |
+| Unknown `domain` | Falls back to cyan; node still injects (**no validation error**) |
+
+**Side effects:** mutates the live arrays, the DOM badge, and the audio context.
+**Cost:** `O(1)` amortised — the new node joins the `O(n²)` broad phase on the next frame.
+
+#### `filterDomain(dom: string) → void`
+Sets `activeDomainFilter` and re-styles the `.domain-btn` strip (`underline font-bold text-neon-cyan`
+on the active button). Pass `'all'` to clear.
+**Valid values:** `all` · `memetics` · `semiotics` · `psychoacoustics` · `hyperstition`.
+**Note:** `alchemy` exists in `DOMAINS` but has no button (`NOO-011`), so it cannot be isolated.
+
+#### `recluster() → void`
+Displaces every node by a uniform ±100 px on both axes, re-seeding the layout. Plays a 500 Hz
+square wave. **Cost:** `O(n)`.
+
+#### `toggleLabels() → void`
+Flips `showLabels`, which gates the label pass in `renderGraph`.
+
+---
+
+## Engine: `polymathLLM` — template composition engine
+
+> **Not a language model.** No inference, no network, no prompt consumption. The composition
+> algorithm, its variation space (100 argument structures, ≈29,100 surface variations) and the
+> disclosure that `prompt` is accepted but never read are all documented in
+> [`ARCHITECTURE.md` § The composition engine](ARCHITECTURE.md#12-the-composition-engine-polymath-llm).
+
+#### `appendChat(role: 'user' | 'system' | 'assistant', text: string) → void`
+
+Creates a transcript entry, appends it to `#terminal-output`, scrolls to the bottom and hydrates any
+Lucide icons inside it. Role determines the visual treatment: user prompts get a terminal-prompt
+prefix, system notices a compact cyan treatment, assistant output a full panel.
+
+**Side effects:** DOM append, `scrollTop` set, `lucide.createIcons()` re-run.
+**HTML note:** `text` is interpolated into a template literal assigned to `innerHTML` — the sink
+tracked as `NOO-007`. Callers currently pass authored content, but `handleFileInput` passes user-supplied
+filenames into a sibling sink in the ingestion module.
+
+#### `clearChat() → void`
+Empties `#terminal-output` (including the authored boot banner) and plays a 400 Hz square wave.
+
+#### `submitUserPrompt() → void`
+Reads and trims `#terminal-input`; returns early when empty. Otherwise clears the field, echoes the
+prompt as a `user` entry, plays a 1000 Hz tick and calls `generatePolymathResponse(val)`.
+
+#### `generatePolymathResponse(prompt: string) → void`
+**Asynchronous.** After a fixed 400 ms delay, composes a response and appends it as an `assistant`
+entry. The `prompt` argument is **never read**; output depends solely on the RNG. See §12 of the
+architecture document — this is an intentional, documented property, not an oversight.
+
+Composition: 1 opening (5) + 2 distinct tenets (5 × 4 ordered pairs) + the fixed 4-step execution
+matrix + a confidence figure (97.00–99.90 %, 291 values).
+
+#### `runDirective(type: string, data?: object) → void`
+
+Preset entry point used by the toolbar chips, the grimoire and the graph inspector.
+
+| `type` | Echoed prompt | Behaviour |
+| --- | --- | --- |
+| `'hyperstition'` | "INITIATE DIRECTIVE: Hyperstition Blueprint Generation" | Composed response |
+| `'viral-semiotics'` | "…Viral Semiotic Attack Vector" | Composed response |
+| `'psychoacoustic-funnel'` | "…Acoustic Indoctrination Architecture" | Composed response |
+| `'esoteric-manifesto'` | "…Occult Brand Manifesto Synthesis" | Composed response |
+| `'node-deepdive'` | — | **Deterministic** analysis of `data`, bypassing the composer |
+
+`'node-deepdive'` is the only directive that produces graph-aware content: it interpolates
+`data.title`, `data.domain`, `data.valence` and `data.desc` into a fixed analytical frame. This is
+the call made when a node is clicked in the atlas.
+
+---
+
+## Engine: `soundLab`
+
+#### `playTone(mode: 'subliminal' | 'binaural' | 'gamma') → void`
+
+| `mode` | Frequency | Waveform | Display string |
+| --- | --- | --- | --- |
+| `'subliminal'` | 432 Hz | triangle | `432.00 Hz (SOLFEGGIO ACTIVE)` |
+| `'binaural'` | 528 Hz | triangle | `528.00 Hz (BIO-RESONANCE ACTIVE)` |
+| `'gamma'` | 40 Hz | triangle | `40.00 Hz (GAMMA BRAINWAVE ACTIVE)` |
+| anything else | 40 Hz | triangle | falls through to the gamma branch |
+
+**Side effects:** initialises audio, plays a 0.8 s tone at gain 0.08, writes `#tone-freq-display`.
+**Honest framing:** three oscillator frequencies with a psychoacoustic vocabulary layer. No
+entrainment, binaural beating or solfeggio effect is implemented.
+
+---
+
+## Engine: `paletteGen`
+
+#### `render() → void`
+Builds five swatches from `PALETTES[currentPaletteIdx]` into `#palette-swatches`. Each swatch copies
+its hex to the clipboard on click and appends a system transcript line. Clipboard access is
+optional-chained (`navigator.clipboard?.`), so it degrades silently on insecure origins.
+
+#### `mutate() → void`
+Advances `currentPaletteIdx` modulo 5 and re-renders. Plays a 900 Hz triangle.
+
+#### `copyActive() → void`
+Writes the active palette as CSS custom properties and announces it in the transcript.
+
+```css
+--accent-1: #030509; --accent-2: #0e1424; --accent-3: #00f7ff; --accent-4: #ff0055; --accent-5: #a855f7;
+```
+
+---
+
+## Engine: `grimoire`
+
+#### `render(list = GRIMOIRE_DATA) → void`
+Replaces `#grimoire-container` with one card per fragment (title, tags, three-line clamped body).
+Clicking a card appends a system line and dispatches the fragment title into
+`polymathLLM.generatePolymathResponse(...)`.
+
+#### `filter(query: string) → void`
+Case-insensitive substring match across `title`, `text` and `tags`; delegates to `render`. Bound
+directly to `input` on `#grimoire-search`.
+**Cost:** `O(F × L)` — 7 records, no index required.
+
+---
+
+## Engine: `ideaCombinator`
+
+#### `synthesize() → void`
+Reads two domain vectors from `#synth-domain-1` and `#synth-domain-2`, shows a pending state, then
+after 500 ms composes a "mutation":
+
+```js
+title = `${d1.split(' ')[0]} ${d2.split(' ')[1] ?? d2.split(' ')[0]}`;
+axiom = `By fusing ${d1} with ${d2}, we eliminate consumer price resistance: ` +
+        `the product becomes an existential defense against ontological drift.`;
+```
+
+The mutation is written to `#synth-output-box` **and injected into the graph** as a `hyperstition`
+node — the only path that produces both a text artefact and a persistent node.
+**Combinator space:** 5 × 5 = 25 pairings (ordered; both selectors offer the same five options).
+
+---
+
+## Aggregate state
+
+Module-level bindings are the engine's state model. They are **not** namespaced and share the global
+scope with engine objects.
+
+| Binding | Owner | Type | Lifecycle | Read by |
+| --- | --- | --- | --- | --- |
+| `audioCtx` | sound | `AudioContext \| null` | lazy, never closed | `playBeep` |
+| `audioEnabled` | sound | `boolean` | toggled by user | `playBeep` |
+| `highestZ` | window manager | `number` (starts 50) | monotonic; never reset | `bringToFront` |
+| `canvas` / `ctx` | graph | `HTMLCanvasElement` / `CanvasRenderingContext2D` | captured at parse | render loop |
+| `graphNodes` / `graphEdges` | graph | `Array` | mutated in place | physics, render, HUD, injection |
+| `showLabels` | graph | `boolean` | toggled | render loop |
+| `activeDomainFilter` | graph | `string` | set by toolbar | render loop |
+| `hoveredNode` | graph | `node \| null` | per pointer move | render loop, HUD, click |
+| `camera` | graph | `{x, y, zoom}` | pan/zoom | render loop, hit test |
+| `isGraphDragging` | graph | `boolean` | per pointer gesture | pan |
+| `lastMouse` | graph | `{x, y}` | per pointer gesture | pan |
+| `currentPaletteIdx` | palette | `number` | rotated | `paletteGen` |
+
+**No persistence.** Nothing is written to `localStorage`, cookies, IndexedDB or a server. Reloading
+restores the authored defaults exactly.
+
+---
+
+## DOM contract
+
+42 unique IDs. An element is written by exactly one owner unless stated; the audit's four fatal rules
+enforce uniqueness and referential integrity on every run.
+
+| ID | Element | Owner | Written by | Notes |
+| --- | --- | --- | --- | --- |
+| `workspace` | `<main>` | — | — | Positioning context only |
+| `win-graph` … `win-synthesizer` | `<div>` ×7 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
+| `neural-canvas` | `<canvas>` | graph | `resizeCanvas` | Backing store sized to parent |
+| `node-inspector-hud` | `<div>` | graph | `mousemove` handler | Opacity-toggled, not display-toggled |
+| `hud-cluster` `hud-title` `hud-desc` `hud-metric` | `<span>`/`<h4>`/`<p>` | graph | `mousemove` handler | Fed from `hoveredNode` |
+| `terminal-output` | `<div>` | polymath | `appendChat`, `clearChat` | Append-only log |
+| `terminal-input` | `<input>` | polymath | `submitUserPrompt` | `Enter` bound inline |
+| `synapse-count` | `<span>` | graph | `initGraphEngine`, `injectNode` | Live node count |
+| `chrono-clock` | `<div>` | telemetry | 1 Hz interval | `HH:MM:SS UTC` |
+| `stat-r0` `stat-cog` | `<span>` | telemetry | 1 Hz interval (~40 % of ticks) | Random-walk drift |
+| `stat-sub` | `<span>` | — | **never** | Framed as live — `NOO-013` |
+| `entropy-val` | `<span>` | — | **never** | Framed as live — `NOO-013` |
+| `radar-poly` | `<polygon>` | — | **never** | Static points — `NOO-013` |
+| `telemetry-log` | `<div>` | — | **never** | Two authored rows — `NOO-013` |
+| `audio-toggle-btn` `audio-icon` | `<button>`/`<i>` | sound | `toggleAudio` | Inner HTML replaced |
+| `drop-zone` | `<div>` | ingestion | inline hover handlers | `dragover` highlight |
+| `file-input` | `<input type=file>` | ingestion | `handleFileInput` | `multiple`, hidden |
+| `ingest-status-text` | `<span>` | ingestion | `processFiles` | Class swapped for state colour |
+| `ingestion-history` | `<div>` | ingestion | `processFiles` | Newest first (`prepend`) |
+| `palette-swatches` | `<div>` | palette | `paletteGen.render` | 5 swatches |
+| `tone-freq-display` | `<span>` | sound | `soundLab.playTone` | Frequency readout |
+| `aesthetic-cards` | `<div>` | — | — | Authored colour/type pairings |
+| `grimoire-search` | `<input>` | grimoire | `grimoire.filter` | Bound to `oninput` |
+| `grimoire-container` | `<div>` | grimoire | `grimoire.render` | Replaced wholesale |
+| `synth-domain-1` `synth-domain-2` | `<select>` | combinator | user | 5 options each |
+| `synth-output-box` | `<div>` | combinator | `ideaCombinator.synthesize` | Pending → result |
+| `quick-inject-modal` | `<div>` | modal | `quickInjectModal`/`closeInjectModal` | `hidden` ⇄ `flex` |
+| `custom-node-title` `custom-node-domain` `custom-node-desc` | form fields | modal | user | Read by `injectCustomNodeAction` |
+
+---
+
+## Inline handler map
+
+Markup binds behaviour by attribute. Method calls (`graphEngine.*`) are excluded from the audit's
+"undefined global" rule; bare function names must resolve.
+
+| Attribute | Handler | Effect |
+| --- | --- | --- |
+| `onclick` | `toggleAudio()` | Mute/unmute + re-render the control |
+| `onclick` | `resetWindowPositions()` | Restore the authored grid |
+| `onclick` | `quickInjectModal()` | Open the injection modal |
+| `onclick` | `restoreOrFocus('win-…')` | Dock launcher (6 windows; synthesizer missing — `NOO-012`) |
+| `onclick` | `minimizeWindow('win-…')` | Hide a window |
+| `onclick` | `maximizeWindow('win-…')` | Toggle maximise with snapshot |
+| `onclick` | `graphEngine.recluster()` `toggleLabels()` `filterDomain('…')` | Atlas controls |
+| `onclick` | `polymathLLM.runDirective('…')` `clearChat()` `submitUserPrompt()` | Terminal controls |
+| `onkeydown` | `if (event.key === 'Enter') polymathLLM.submitUserPrompt()` | Prompt submission |
+| `onclick` | `soundLab.playTone('…')` | Frequency presets |
+| `onclick` | `paletteGen.mutate()` `copyActive()` | Palette rotation / CSS export |
+| `onclick` | `ideaCombinator.synthesize()` | Dialectical mutation |
+| `oninput` | `grimoire.filter(this.value)` | Live fragment search |
+| `onclick` | `injectCustomNodeAction()` `closeInjectModal()` | Modal commit/dismiss |
+| `ondragover` / `ondragleave` / `ondrop` | inline | Drop-zone highlight and ingestion |
+| `onchange` | `handleFileInput(event)` | Picker ingestion |
+
+---
+
+## Data constants
+
+| Constant | Line | Shape | Cardinality |
+| --- | --- | --- | --- |
+| `DOMAINS` | 845 | `{ key: { name, color } }` | 5 |
+| `rawSeedThemes` | 859 | `{ id, title, domain, desc, valence }[]` | 15 |
+| `VOCAB` | 1146 | `{ openings[5], tenets[5], actions[4] }` | 14 strings |
+| `PALETTES` | 1309 | `string[5][5]` | 5 states × 5 hex |
+| `GRIMOIRE_DATA` | 1354 | `{ title, tags, text }[]` | 7 |
+
+Boot graph: **90 nodes** (15 seed archetypes × 6 procedural generations), **≈270 edges**
+(2–4 per node). Procedural titles are suffixed `[v1.0 … v7.0]`.
+
+---
+
+## Tooling API
+
+### `scripts/audit.mjs`
+
+Static integrity audit. Dependency-free; requires Node.js ≥ 18.
+
+```bash
+node scripts/audit.mjs                    # human-readable report; exit 1 on regression
+node scripts/audit.mjs --json             # machine-readable report to stdout
+node scripts/audit.mjs --write-report     # also emit reports/audit.json (+ markdown surface)
+node scripts/audit.mjs --refresh-baseline # rewrite scripts/audit-baseline.json
+```
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | No fatal violations, no regression, payload within the hard budget |
+| `1` | Regression, fatal DOM-contract violation, or payload over 128,000 B |
+| `2` | The audit could not run (missing `index.html`, unparseable baseline) |
+
+**Report schema** (`--json`):
+
+```jsonc
+{
+  "generatedAt": "ISO-8601",
+  "source": "index.html",
+  "budget":   { "bytes": 88649, "lines": 1477, "warn": 96000, "fail": 128000, "status": "ok" },
+  "fatal":    [],                 // always-fatal DOM contract violations
+  "regressions": [ { "id": "NOO-001", "severity": "high", "title": "…",
+                     "seen": 6, "allowed": 6, "evidence": ["border-crimson-900"] } ],
+  "improvements": [],             // counts below baseline — tighten the baseline
+  "tracked":      [],             // known debt, exactly at baseline
+  "counts":       { "NOO-001": 6, "…": 0 },
+  "pass": true
+}
+```
+
+**Always-fatal rules** (never baselined): duplicate DOM ids · dangling `getElementById` ·
+`restoreOrFocus` targeting a missing window · inline handler calling an undefined global.
+
+**Ratchet semantics.** Each register ID carries an accepted count in
+`scripts/audit-baseline.json`. Findings may not exceed it; improvements are reported but do not
+fail. The baseline is updated only inside the pull request that caused the change, which is what
+makes "known debt" auditable rather than rhetorical.
+
+### `scripts/serve.mjs`
+
+Zero-dependency static server.
+
+```bash
+node scripts/serve.mjs [--port 4173] [--host 0.0.0.0]
+# environment fallbacks: PORT, HOST
+```
+
+| Property | Behaviour |
+| --- | --- |
+| Default bind | `0.0.0.0:4173` — reachable from containers and remote sandboxes |
+| Directory index | `/` → `index.html` |
+| MIME map | html · js · mjs · css · json · svg · png/jpeg/webp · ico · woff2 · txt · md |
+| Traversal | Resolved paths must stay inside the project root; dotfile segments are refused (`403`) |
+| Caching | `cache-control: no-store` — the server is a development tool |
+| Headers | No `X-Frame-Options` and no `frame-ancestors` directive, so embedding works |
+| Shutdown | `SIGINT` / `SIGTERM` close the listener cleanly |
+
+### npm scripts
+
+| Command | Equivalent |
+| --- | --- |
+| `npm start` / `npm run serve` | `node scripts/serve.mjs` |
+| `npm test` | `node scripts/audit.mjs` |
+| `npm run audit:json` | `node scripts/audit.mjs --json` |
+| `npm run audit:report` | `node scripts/audit.mjs --write-report` |
+| `npm run audit:baseline` | `node scripts/audit.mjs --refresh-baseline` |
+| `npm run ci` | `node scripts/audit.mjs --write-report` |
+
+---
+
+## Extending
+
+Three recipes, each a two-file change at most. Full seam table in
+[`ARCHITECTURE.md` § Extension seams](ARCHITECTURE.md#15-extension-seams).
+
+```js
+// 1 · New domain — add to DOMAINS, the toolbar, and the modal selector
+alchemy: { name: 'Alchemical OS', color: '#00f7ff' },
+// <button onclick="graphEngine.filterDomain('alchemy')" class="domain-btn" data-d="alchemy">ALCHEMY</button>
+
+// 2 · New directive — add a VOCAB slice, a runDirective branch, and a toolbar chip
+runDirective(type, data = null) { /* … */ if (type === 'my-directive') { … } }
+
+// 3 · New engine — an object literal inside the runtime script, invoked from DOMContentLoaded
+const myEngine = { init() { /* … */ } };
+window.addEventListener('DOMContentLoaded', () => { /* … */ myEngine.init(); });
+```
+
+**Contribution requirements:** `npm test` exits 0, new findings are baselined deliberately or fixed,
+and any change to a documented signature is recorded in [`CHANGELOG.md`](../CHANGELOG.md). See
+[`CONTRIBUTING.md`](../CONTRIBUTING.md).
+
+---
+
+<div align="center">
+<sub>Next: <a href="DESIGN.md">Design system →</a></sub>
+</div>

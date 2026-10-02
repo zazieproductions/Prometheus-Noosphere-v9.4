@@ -1,0 +1,41 @@
+{
+  "name": "noosphere-os",
+  "version": "9.4.1",
+  "private": true,
+  "description": "NOÖSPHERE // OS — a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis.",
+  "keywords": [
+    "creative-coding",
+    "canvas",
+    "force-directed-graph",
+    "web-audio",
+    "tailwindcss",
+    "zero-build",
+    "single-file",
+    "portfolio"
+  ],
+  "homepage": "https://zazieproductions.github.io/Prometheus-Noosphere-v9.4/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zazieproductions/Prometheus-Noosphere-v9.4.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/issues"
+  },
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
+    "audit": "node scripts/audit.mjs",
+    "audit:json": "node scripts/audit.mjs --json",
+    "audit:report": "node scripts/audit.mjs --write-report",
+    "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
+    "test": "node scripts/audit.mjs",
+    "ci": "node scripts/audit.mjs --write-report"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
