@@ -7,6 +7,9 @@ pnpm-lock.yaml
 # Generated audit output (reproducible from `npm run audit:report`)
 reports/
 
+# Bounded local web uplink cache & managed browser profile
+.noosphere-cache/
+
 # Local scratch
 *.local
 *.log

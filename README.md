@@ -401,3 +401,15 @@ of ingested local text are sent to the local Ollama process. Do not expose the d
 server or Ollama to the internet. Opening `index.html` directly or using GitHub Pages remains
 simulation-only: a static host cannot run Ollama or the local proxy. No cloud inference or
 API keys are used.
+
+### Local-First Web Uplink & Research Workstation (`WEB_UPLINK`)
+
+When running via `npm start`, NOÖSPHERE includes a 10-level **Local Web Research Orchestrator** (`win-uplink` + terminal slash commands) while keeping all LLM reasoning strictly on local `llama3.1:8b` via Ollama:
+
+- **Commands**: `/web <query>`, `/read <URL>`, `/crawl <URL>`, `/site <domain> <query>`, `/research <query>`, `/news <query>`, `/browser <URL>`, `/sources`, `/ingest <n>`, `/clear-cache`.
+- **Progressive Capability Detection**:
+  - `SEARCH // ONLINE`: Prefers local **SearXNG** (`SEARXNG_URL`, default `http://127.0.0.1:8080`) and automatically falls back to zero-key public metasearch (DuckDuckGo, Wikipedia, Crossref, arXiv, HN Algolia, Wikimedia).
+  - `CRAWLER // ONLINE`: Uses optional local **Crawl4AI** (`CRAWL4AI_URL`, default `http://127.0.0.1:11235`) or the built-in relevance-guided bounded BFS crawler.
+  - `BROWSER // ONLINE/OFFLINE`: Uses local **Chromium / Playwright / CDP** with an isolated managed profile (`.noosphere-cache/browser-profile`, never your personal profile) when installed, or the built-in interactive DOM Reader fallback.
+  - `OLLAMA // ONLINE/OFFLINE`: Uses `llama3.1:8b` at `http://127.0.0.1:11434` for search planning, multi-hop follow-up generation, and citation synthesis, or non-fabricated extractive synthesis when offline.
+- **Full setup & security documentation**: **[`docs/WEB_UPLINK.md`](docs/WEB_UPLINK.md)**.

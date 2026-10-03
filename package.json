@@ -33,8 +33,9 @@
     "audit:json": "node scripts/audit.mjs --json",
     "audit:report": "node scripts/audit.mjs --write-report",
     "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
-    "test": "node scripts/audit.mjs",
-    "ci": "node scripts/audit.mjs --write-report"
+    "test:uplink": "node scripts/test-uplink.mjs",
+    "test": "node scripts/audit.mjs && node scripts/test-uplink.mjs",
+    "ci": "node scripts/audit.mjs --write-report && node scripts/test-uplink.mjs"
   },
   "dependencies": {},
   "devDependencies": {}
