@@ -24,25 +24,53 @@ rather than enumerated. Everything from `9.4.1` forward is tracked here and enfo
 
 ## [Unreleased]
 
+Nothing yet.
+
+---
+
+## [9.5.0] — 2026-10-03
+
+The merged release combines the source-backed Zaziopath corpus with the optional SYNAPSE SHELL
+workstation extension. The application remains zero-build and statically hostable; host-shell access
+is an opt-in local capability, not a requirement for the corpus UI.
+
 ### Added
 
-- **Committed Zaziopath source snapshot** (`data/zaziopath-graph.js`): 8 strata, 86 source-derived nodes, 117 cited relationships, and 15 searchable Grimoire fragments at source revision `63d99e311c852b9d57ddc29418455f9bb4ba80b1`.
-- **Source/provenance validator** (`scripts/validate-zaziopath-graph.mjs`) for duplicate IDs/names, missing endpoints/provenance/excerpts, invalid strata/statuses, and broken fragment references.
-- **Runtime smoke harness** (`scripts/test-runtime.mjs`) covering graph boot, deterministic fallback, bounded Ollama context/failure, Grimoire selection, session ingestion, local-only behavior, and deduplication.
-- **Corpus documentation** for data refresh, committed-vs-session data, epistemic labels, privacy boundaries, optional local inference, and static fallback.
+- **Committed Zaziopath source snapshot** (`data/zaziopath-graph.js`): 8 strata, 86 source-derived
+  nodes, 117 cited relationships, and 15 searchable Grimoire fragments at source revision
+  `63d99e311c852b9d57ddc29418455f9bb4ba80b1`.
+- **Source/provenance validator** (`scripts/validate-zaziopath-graph.mjs`) and **runtime smoke harness**
+  (`scripts/test-runtime.mjs`) for graph integrity, fallback, Ollama context/failure, Grimoire
+  selection, local ingestion, and duplicate prevention.
+- **SYNAPSE SHELL** — a real local PTY in an eighth draggable window (`xterm.js ⇄ WebSocket ⇄ node-pty
+  ⇄ $SHELL`), with independent sessions, process/port controls, explicit session saving, and a
+  bounded local-model agent. AI SHELL provides OFF / ASSIST / AUTONOMOUS modes and starts OFF.
+- Shell modules (`server/`, `shell/`), pinned optional terminal/WebSocket dependencies, shell/DOM
+  test suites, and documentation for provenance, deployment, testing, and the shell trust boundary.
 
 ### Changed
 
-- Replaced the procedural boot graph and placeholder Grimoire with the stable cited corpus; retained the Canvas renderer, force simulation, draggable desktop windows, CRT visual language, and zero-build app structure.
-- Reframed Polymath around selected graph/source/provenance/history context, optional local `llama3.1:8b`, and deterministic lexical retrieval when Ollama is unavailable.
-- Reworked local ingestion to read text with `FileReader`, extract at most three high-signal candidates, deduplicate normalized names, create source-backed file records, and visibly mark SYNTHESIS/INFERENCE links. Session additions disappear on reload and are never uploaded or persisted.
-- Replaced procedural “idea mutation” with a session-local OPEN QUESTION that does not claim an undocumented cross-stratum relationship.
-- Corrected source/stratum analytics and removed unsupported tone-effect language.
-- Updated the static audit for the current data-driven runtime, committed graph size, and live status/count elements; adjusted the HTML audit budget for the larger source-aware runtime.
+- Replaced the procedural boot graph and placeholder Grimoire with the reproducible cited corpus;
+  retained the Canvas renderer, force simulation, draggable desktop, CRT language, and zero-build core.
+- Reframed Polymath around bounded graph/source/provenance/history context, optional local
+  `llama3.1:8b`, and deterministic cited lexical retrieval when Ollama is unavailable.
+- Kept file ingestion in the browser: text is read locally, candidate counts are bounded, normalized
+  names are deduplicated, and generated links remain visibly SYNTHESIS/INFERENCE. Corpus additions are
+  session-only and are never auto-uploaded or committed.
+- `scripts/serve.mjs` now optionally adds the local Ollama proxy and gated PTY/agent routes while
+  retaining a dependency-free static-server path. Missing shell packages leave the corpus UI usable.
+- Updated source/stratum analytics, accessibility/security documentation, and the static audit for the
+  data-driven runtime and shell window.
 
-### Privacy and fallback
+### Privacy and security
 
-- Local inference routes are optional, use only `llama3.1:8b`, and are restricted to loopback use by the bundled Node server. GitHub Pages/direct-file use remains static and uses the offline graph/Grimoire/retrieval path.
+- Inference supports only `llama3.1:8b` over HTTP loopback; remote Ollama URLs and cloud inference are
+  rejected. Static Pages/direct-file use retains the committed graph and offline fallback.
+- Ingestion, graph notes, and Polymath history remain in page memory. Shell scrollback is also
+  ephemeral unless SAVE SESSION is explicitly used.
+- SYNAPSE SHELL is a real, unsandboxed login shell with the launching user's OS permissions. Its routes
+  are loopback-gated by default; the remote-token bypass is explicit and high-risk. The agent is
+  bounded, starts OFF, and is not a security sandbox.
 
 ## [9.4.1] — 2026-10-02
 

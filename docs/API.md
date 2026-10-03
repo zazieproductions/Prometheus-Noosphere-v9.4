@@ -1,8 +1,8 @@
 # Runtime API reference
 
-> Current public browser surfaces for the single-document NOÖSPHERE/Zaziopath application.
+> Current browser/runtime surfaces for the single-document-core NOÖSPHERE/Zaziopath application and its optional workstation shell.
 
-**Source of truth:** [`index.html`](../index.html), [`data/zaziopath-graph.js`](../data/zaziopath-graph.js), and [`scripts/`](../scripts). See [Architecture](ARCHITECTURE.md) and [Corpus provenance](ZAZIOPATH-CORPUS.md) for design semantics.
+**Source of truth:** [`index.html`](../index.html), [`data/zaziopath-graph.js`](../data/zaziopath-graph.js), `shell/`, `server/`, and [`scripts/`](../scripts). See [Architecture](ARCHITECTURE.md), [Corpus provenance](ZAZIOPATH-CORPUS.md), and [SYNAPSE SHELL](SHELL.md).
 
 ## Runtime map
 
@@ -15,13 +15,16 @@ index.html
   ├─ ideaCombinator    session-only cross-stratum OPEN QUESTION
   ├─ paletteGen       existing palette / clipboard UI
   ├─ soundLab         plain Web Audio tone controls
-  └─ window manager    draggable windows, z-order, minimize/maximize/reset
+  ├─ window manager    draggable windows, z-order, minimize/maximize/reset
+  └─ synapseShell      optional xterm client for a local PTY
 
 data/zaziopath-graph.js → window.ZAZIOPATH_GRAPH
-scripts/serve.mjs       → optional static server + loopback Ollama proxy
+shell/                  → optional SYNAPSE SHELL client assets
+server/                 → local PTY, gate, agent and Ollama modules
+scripts/serve.mjs       → static server + loopback Ollama + gated shell routes
 ```
 
-The browser app has no build step, package dependency, cloud API, or persistence. The generated dataset is committed and available to GitHub Pages/direct `index.html` use. Local inference is optional and only uses `llama3.1:8b`.
+The corpus UI has no build step or npm runtime dependency. The generated dataset is committed and available to GitHub Pages/direct `index.html` use. Local inference is optional, loopback-only, and uses only `llama3.1:8b`. SYNAPSE SHELL is a separate workstation capability with pinned packages; its PTY runs with the launching user's permissions and is not sandboxed.
 
 ## Core browser methods
 
@@ -143,7 +146,7 @@ The source builder/validator are documented in [`ZAZIOPATH-CORPUS.md`](ZAZIOPATH
 
 ## Optional local API (`scripts/serve.mjs`)
 
-The zero-dependency Node server serves the application and implements two routes for localhost use:
+The local Node server serves the application and implements two loopback-only inference routes; the static corpus path also runs without installed packages:
 
 | Route | Request | Response |
 | --- | --- | --- |
@@ -152,11 +155,26 @@ The zero-dependency Node server serves the application and implements two routes
 
 It checks that the exact model is already installed via Ollama `/api/tags`, then proxies to `http://127.0.0.1:11434/api/chat`. Routes are restricted to loopback client/Host/Origin and return JSON errors if the model is unavailable. Static hosting has no local API, but all offline/fallback functionality continues to work.
 
+## SYNAPSE SHELL transport API
+
+SYNAPSE SHELL is available only when served by the optional local workstation bridge. Its PTY routes and WebSocket are guarded by the local request gate; the default trust boundary requires a loopback peer, localhost Host, matching Origin, no forwarding headers, and same-origin fetch metadata. The operator-supplied remote token is a dangerous explicit bypass. Full route/frame schemas and control semantics are in [SHELL.md](SHELL.md).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/shell/status` | Host, PTY availability, sessions, model availability, and AI mode |
+| `GET` / `POST` | `/api/shell/sessions` | List or create PTY sessions |
+| `POST` | `/api/shell/ai` | Read/change AI SHELL mode and bounded agent limits |
+| `POST` | `/api/noosphere/agent/run` | Start a bounded SSE-streamed local agent run; unavailable in OFF mode |
+| `POST` | `/api/noosphere/agent/stop` | Stop an active run and interrupt its session |
+| WebSocket | `/ws/shell` | Attach terminal input/output to a local PTY session |
+
+These routes grant access to a real, unsandboxed shell as the server's user; the default is local-only and AI SHELL starts OFF. Use `npm run start:no-shell` to prevent PTY creation. Static hosts have no bridge and continue to use the corpus UI only.
+
 ## Commands
 
 ```bash
 npm start                         # http://localhost:4173; Node.js >= 18
-npm test                         # graph validation + runtime smoke + static integrity audit
+npm test                         # graph validation + runtime smoke + static audit + optional shell/UI tests
 npm run validate:graph            # validate only the committed graph
 npm run audit:json                # static-audit JSON
 node scripts/build-zaziopath-graph.mjs --source /path/to/Zaziopath

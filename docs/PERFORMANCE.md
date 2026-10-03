@@ -6,11 +6,12 @@
 
 | Metric | Value | Source |
 | --- | --- | --- |
-| `index.html` payload | 140,094 B · 2,179 lines | `scripts/audit.mjs` |
+| `index.html` payload | 142,656 B · 2,208 lines | `scripts/audit.mjs` |
 | `data/zaziopath-graph.js` payload | 250,159 B | committed source-derived snapshot |
 | Committed graph | 86 nodes · 117 edges | `data/zaziopath-graph.js` |
 | Grimoire | 15 source fragments | committed snapshot |
-| Installed npm dependencies | 0 | `package.json` |
+| Static corpus-path npm dependencies | 0 | `package.json` (shell packages are optional for this path) |
+| Optional shell packages | 3 direct + optional `node-pty` + dev-only `jsdom` | `package.json` |
 | Build step | none | browser runtime uses the committed data JS |
 | Frame-rate measurement | not measured here | use the browser sampler below |
 
@@ -63,7 +64,7 @@ To compare boot runs, reload the same commit and use the same viewport, browser,
 
 ## 5. Guardrails
 
-- `npm test` validates committed graph references, runs a DOM/canvas-stub runtime smoke, and performs the static HTML audit.
+- `npm test` validates committed graph references, runs a DOM/canvas-stub runtime smoke and static audit, then runs PTY/UI suites when optional packages are installed (otherwise those suites skip).
 - The audit derives `NOO-015`'s pair-count evidence from the committed graph rather than a hard-coded spawn loop.
 - `scripts/test-runtime.mjs` smoke-tests graph boot, offline retrieval, Ollama context/failure fallback, Grimoire selection, local ingestion, and duplicate prevention. It is not a frame benchmark.
 - There are no production telemetry beacons or performance scores in the UI.

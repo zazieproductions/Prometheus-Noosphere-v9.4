@@ -1,8 +1,8 @@
 {
   "name": "noosphere-os",
-  "version": "9.4.1",
+  "version": "9.5.0",
   "private": true,
-  "description": "NOÖSPHERE // OS — a zero-build browser operating system for the source-derived Zaziopath corpus, with optional local Ollama inference.",
+  "description": "NOÖSPHERE // OS — a zero-build visual desktop for the source-derived Zaziopath corpus, with optional local llama3.1:8b inference and SYNAPSE SHELL.",
   "keywords": [
     "creative-coding",
     "canvas",
@@ -11,6 +11,8 @@
     "tailwindcss",
     "zero-build",
     "single-file",
+    "terminal",
+    "pty",
     "portfolio"
   ],
   "homepage": "https://zazieproductions.github.io/Prometheus-Noosphere-v9.4/",
@@ -29,14 +31,27 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
+    "start:no-shell": "node scripts/serve.mjs --no-shell",
     "audit": "node scripts/audit.mjs",
     "audit:json": "node scripts/audit.mjs --json",
     "audit:report": "node scripts/audit.mjs --write-report",
     "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
     "validate:graph": "node scripts/validate-zaziopath-graph.mjs",
-    "test": "node scripts/validate-zaziopath-graph.mjs && node scripts/test-runtime.mjs && node scripts/audit.mjs",
-    "ci": "node scripts/validate-zaziopath-graph.mjs && node scripts/test-runtime.mjs && node scripts/audit.mjs --write-report"
+    "test": "node scripts/validate-zaziopath-graph.mjs && node scripts/test-runtime.mjs && node scripts/audit.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs",
+    "test:audit": "node scripts/audit.mjs",
+    "test:shell": "node scripts/test-shell.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
+    "ci": "node scripts/validate-zaziopath-graph.mjs && node scripts/test-runtime.mjs && node scripts/audit.mjs --write-report && node scripts/test-shell.mjs && node scripts/test-ui.mjs"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "ws": "8.22.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "1.1.0"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
 }

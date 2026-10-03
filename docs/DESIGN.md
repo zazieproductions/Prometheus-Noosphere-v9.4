@@ -117,7 +117,7 @@ Three families, three registers. Mixing them is meaningful, never incidental.
 ### Rules
 
 - **Monospace is the default, not a garnish.** The interface is an instrument; it sets like one.
-- **Cinzel is rationed to a single element** (`NOÖSPHERE // OS v9.4.1` in the status bar). The moment
+- **Cinzel is rationed to a single element** (`NOÖSPHERE // OS v9.5.0` in the status bar). The moment
   a third register appears twice, the hierarchy collapses — the rule is one use, forever.
 - **Small is the base case.** Body copy sits at 9–12 px with `tracking-wider`/`tracking-widest` on
   labels. This is a deliberate instrument aesthetic and it is the primary accessibility debt
@@ -174,10 +174,10 @@ Motion is functional, short, and never the only carrier of meaning.
    sub-second loops, and both are 1–4 px elements.
 3. **Nothing animates layout that the user is not dragging.** Windows use `transition-all
    duration-75` for programmatic moves only.
-4. **`prefers-reduced-motion` is not yet honoured** — scoped to `9.5.0` alongside `NOO-014`/`NOO-018`
-   and recorded in [`ROADMAP.md`](ROADMAP.md). Until then the CRT overlay and ambient loops are
-   unconditional, and the two scanline/pulse animations sit unused, which removes two of the three
-   worst offenders by accident rather than design.
+4. **`prefers-reduced-motion` is not yet honoured** — deferred in [`ROADMAP.md`](ROADMAP.md) for a
+   separate accessibility change. Until then the CRT overlay and ambient loops are unconditional, and
+   the two scanline/pulse animations sit unused, which removes two of the three worst offenders by
+   accident rather than design.
 
 ### Frame-rate coupling (a motion concern, not just a physics one)
 

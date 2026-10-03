@@ -1,4 +1,4 @@
-# Dependencies — the runtime ships none; this only matters if you add tooling.
+# Dependencies — the static corpus path ships none; optional workstation shell/tooling packages only.
 node_modules/
 package-lock.json
 yarn.lock
@@ -11,6 +11,9 @@ reports/
 *.local
 *.log
 npm-debug.log*
+
+# SYNAPSE SHELL — sessions saved on explicit request (SAVE SESSION), never automatic
+logs/
 
 # Editors & OS
 .DS_Store

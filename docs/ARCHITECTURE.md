@@ -4,7 +4,7 @@
 
 ## 1. Purpose and constraints
 
-NOÖSPHERE remains a browser-resident, CRT-styled desktop built around a single application document. `index.html` owns the markup, styles, and vanilla JavaScript runtime; the committed `data/zaziopath-graph.js` file is the generated source-data sidecar required to keep the initial graph stable and auditable. There is no build step, framework, package dependency, database, or vector service.
+NOÖSPHERE remains a browser-resident, CRT-styled desktop with a single-document core. `index.html` owns the main markup and vanilla runtime; `data/zaziopath-graph.js` is the committed source-data sidecar. SYNAPSE SHELL's optional browser module and CSS live under `shell/`, with its local server bridge under `server/`. There is no build step or framework. Static corpus exploration has no npm dependency; host-terminal mode uses the separately documented pinned shell packages. There is no database or vector service.
 
 The existing draggable windows, Canvas 2D force renderer, terminal, file-ingestion UI, searchable Grimoire, sound controls, and visual language are retained. The graph and corpus work in a browser without Ollama. `scripts/serve.mjs` is optional: it serves static files and, when run on the developer's machine, exposes a loopback-only proxy to local Ollama.
 
@@ -16,6 +16,8 @@ Zaziopath is framed as a non-clinical self-analysis archive, creative research i
 index.html
   ├─ existing CDN presentation assets (Tailwind Play, Lucide, fonts)
   ├─ data/zaziopath-graph.js  → window.ZAZIOPATH_GRAPH (committed snapshot)
+  ├─ shell/synapse-shell.css  → optional local terminal styling
+  ├─ shell/synapse-shell.js   → optional PTY browser client (degrades offline)
   └─ inline vanilla runtime
        ├─ window manager / sound
        ├─ graphEngine      → Canvas simulation + session-only graph extension
@@ -23,14 +25,17 @@ index.html
        ├─ ingestion        → FileReader + dedupe + session-only candidate nodes
        ├─ paletteGen       → existing palette/swatch controls
        ├─ grimoire         → committed source-fragment search and selection
-       └─ ideaCombinator   → explicit session-local OPEN QUESTION generation
+       ├─ ideaCombinator   → explicit session-local OPEN QUESTION generation
+       └─ window.synapseShell → optional xterm/WebSocket PTY client
 
 scripts/build-zaziopath-graph.mjs → generated data/zaziopath-graph.js
 scripts/validate-zaziopath-graph.mjs → committed graph integrity checks
-scripts/serve.mjs                 → static server + optional loopback-only Ollama proxy
+scripts/serve.mjs                 → static server + loopback Ollama + gated shell bridge
+server/                           → PTY hub, routes, request gate, local agent/client
+shell/                            → optional terminal UI modules
 ```
 
-No browser-side repository crawl occurs. GitHub Pages only serves the committed snapshot; it does not contact Zaziopath at runtime. The app makes a best-effort same-origin status request for the optional local API, catches failure, and stays in simulation mode. Dropped file contents are not sent to a server. When local inference is explicitly available, bounded prompt/context text is sent only through the local server to Ollama on `127.0.0.1:11434`.
+No browser-side repository crawl occurs. GitHub Pages only serves the committed snapshot; it does not contact Zaziopath at runtime. The app makes a best-effort same-origin status request for optional local inference, catches failure, and stays in simulation mode. Dropped file contents are not sent to a server for ingestion. When local inference is explicitly available, bounded prompt/context text is sent only through the local server to an HTTP loopback Ollama endpoint. SYNAPSE SHELL is unavailable on static hosts; with optional dependencies installed, `scripts/serve.mjs` gates its PTY/agent routes to loopback by default. The PTY runs with the launching user's permissions and is not sandboxed; details are in [SHELL.md](SHELL.md).
 
 ## 3. Corpus snapshot and strata
 
@@ -79,8 +84,9 @@ A source-authored interpretation stays attributed to its authoring record. F-05 
 2. The runtime builds `graphNodeById`, copies the committed nodes into simulation records, and converts edge IDs to numeric array indices for force calculations.
 3. Node positions are deterministically seeded from stable IDs and stratum/group order. No `Math.random()` is used for the boot graph.
 4. Counts and analytics derive from committed records; the canvas is sized and the animation loop begins on `DOMContentLoaded`.
-5. Grimoire cards render from `CORPUS.fragments`; the terminal begins in simulation mode and checks the optional local inference endpoint.
-6. If no endpoint/model exists—or an inference request fails—the status remains or returns to local lexical retrieval.
+5. Grimoire cards render from `CORPUS.fragments`; Polymath begins in simulation mode and checks the optional local inference endpoint.
+6. The external shell client probes `/api/shell/status`; static, dependency-free, and remote-preview use degrades to a visible shell-unavailable state without blocking the corpus UI.
+7. If no Ollama/model exists—or an inference request fails—Polymath remains or returns to local lexical retrieval.
 
 The force simulation remains dynamic after boot; deterministic means a stable initial layout/graph state, not a frozen screenshot.
 
@@ -119,7 +125,15 @@ The UI tells the user that selected graph/fragment/history context and short ing
 
 The synthesis panel chooses source-backed records from two selected strata and creates a session-local OPEN QUESTION asking what evidence would establish or falsify a link. It adds explicitly labeled unresolved/question edges to the two records; it does not claim that a relationship exists. Manual notes are session-local SYNTHESIS or OPEN QUESTION records, marked by the same green ring and linked only to the user-selected stratum as a synthesis placement.
 
-## 10. Validation and extension points
+## 10. SYNAPSE SHELL workstation extension
+
+SYNAPSE SHELL is an optional local workstation subsystem, not part of the static corpus runtime. `shell/synapse-shell.js` and its stylesheet provide a terminal client; `scripts/serve.mjs` routes the client to `server/shell.mjs` (PTY hub), `server/routes.mjs` (HTTP/WebSocket/SSE), and the shared `server/gate.mjs` trust boundary. Pinned xterm/WebSocket packages and optional `node-pty` are needed only for the host terminal; without them the static UI and local corpus fallback continue to work.
+
+The PTY is a real login shell executing as the account that launched Node. It is **not sandboxed**. Shell and agent routes require loopback peer/Host, matching Origin, no forwarding headers, and same-origin fetch metadata by default. A separate explicit remote token can bypass that gate and must be treated as a remote shell credential. AI SHELL begins OFF; ASSIST and AUTONOMOUS are in-memory authorizations, not security sandboxes. The agent is restricted to its validated tool surface and bounded by steps/time, but model judgment is not guaranteed. See [SYNAPSE SHELL](SHELL.md) and [Security](../SECURITY.md).
+
+Scrollback is memory-only by default. SAVE SESSION explicitly writes a transcript under `logs/sessions/`; shell transcripts do not automatically enter the committed corpus or ingestion graph.
+
+## 11. Validation and extension points
 
 ```bash
 npm test                         # graph validator + runtime smoke + static audit

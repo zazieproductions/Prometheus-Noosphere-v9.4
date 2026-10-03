@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { runInContext, createContext } from 'node:vm';
+import { baseUrl } from '../server/ollama.mjs';
 
 class FakeClassList {
   constructor() { this.values = new Set(); }
@@ -259,4 +260,28 @@ function normalizeText(value) {
   return String(value).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
 }
 
-console.log('runtime smoke tests: PASS · graph boot · deterministic fallback · Ollama context/failure · Grimoire selection · session ingestion/dedupe');
+// Ollama endpoint configuration accepts only plain HTTP loopback origins.
+const priorOllamaUrl = process.env.NOOSPHERE_OLLAMA_URL;
+try {
+  delete process.env.NOOSPHERE_OLLAMA_URL;
+  assert.equal(baseUrl(), 'http://127.0.0.1:11434');
+  for (const url of ['http://127.0.0.1:11434', 'http://localhost:11435', 'http://[::1]:11436']) {
+    process.env.NOOSPHERE_OLLAMA_URL = url;
+    assert.equal(baseUrl(), url);
+  }
+  for (const url of [
+    'https://example.com',
+    'http://8.8.8.8:11434',
+    'http://user:secret@localhost:11434',
+    'http://localhost:11434/api',
+    'http://localhost:11434/?token=secret',
+  ]) {
+    process.env.NOOSPHERE_OLLAMA_URL = url;
+    assert.throws(() => baseUrl(), /loopback|local-only/i, `remote/credential/path URL accepted: ${url}`);
+  }
+} finally {
+  if (priorOllamaUrl === undefined) delete process.env.NOOSPHERE_OLLAMA_URL;
+  else process.env.NOOSPHERE_OLLAMA_URL = priorOllamaUrl;
+}
+
+console.log('runtime smoke tests: PASS · graph boot · deterministic fallback · loopback-only Ollama URLs · context/failure · Grimoire selection · session ingestion/dedupe');

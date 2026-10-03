@@ -1,18 +1,20 @@
 # Testing and verification
 
-> Automated checks validate the committed graph and exercise the real inline runtime in a dependency-free VM harness. Browser rendering and local Ollama remain manual checks.
+> Automated checks validate the committed graph, exercise the inline runtime in a dependency-free VM harness, and optionally integration-test SYNAPSE SHELL. Pixel/browser rendering and local Ollama remain manual checks.
 
 ## 1. Commands
 
 ```bash
-npm test                         # data validator + runtime smoke + static audit
+npm test                         # graph validator + runtime smoke + audit + optional shell/UI suites
 npm run validate:graph           # committed source graph only
 node scripts/validate-zaziopath-graph.mjs --json
 node scripts/test-runtime.mjs    # actual inline app code with DOM/canvas stubs
+npm run test:shell               # real PTY, gate, routes, agent controls (needs optional deps)
+npm run test:ui                  # shell-client degradation/browser-state tests (needs jsdom)
 npm run audit:json               # static audit findings/evidence
 ```
 
-Requirements: Node.js 18 or newer; no npm dependencies or build step. `npm test` is intended to work offline and does not contact Ollama or the Zaziopath repository.
+Requirements: Node.js 18 or newer; no build step. Graph validation, runtime smoke, and static audit need no npm packages. Shell/UI suites use the pinned optional packages (`npm install`) and skip with a clear reason when absent. `npm test` does not contact Ollama or the Zaziopath repository.
 
 ## 2. Automated coverage
 
@@ -32,7 +34,11 @@ The build script additionally resolves every source file and anchor before writi
 
 ### `scripts/test-runtime.mjs`
 
-Executes the actual application inline JavaScript with a small fake DOM/canvas and no browser package. It checks committed count parity, graph boot and initial status, deterministic offline retrieval, bounded/selected Ollama context and inference-failure fallback, Grimoire search/selection/highlighting, local FileReader ingestion, session graph edges, no network fetch during simulation ingestion, filename/concept deduplication, and duplicate-safe session injection. This is a smoke harness—not a substitute for visual browser checks.
+Executes the actual application inline JavaScript with a small fake DOM/canvas and no browser package. It checks committed count parity, graph boot and initial status, deterministic offline retrieval, bounded/selected Ollama context and inference-failure fallback, rejection of remote/credential/path Ollama URLs, Grimoire search/selection/highlighting, local FileReader ingestion, session graph edges, no network fetch during simulation ingestion, filename/concept deduplication, and duplicate-safe session injection. This is a smoke harness—not a substitute for visual browser checks.
+
+### `scripts/test-shell.mjs` and `scripts/test-ui.mjs`
+
+When their optional dependencies are installed, the shell suite starts the real server and PTYs, then tests session lifecycle, gate refusals, WebSocket behavior, command execution/observation, OFF/ASSIST/AUTONOMOUS contracts, limits, agent stop behavior, process ownership, explicit session saving, and shutdown cleanup. It uses a deterministic local model stub and does not require Ollama. The jsdom UI suite verifies reachable, unavailable, library-missing, and disabled-shell states so the corpus desktop continues to boot when the bridge is absent. If `node-pty`, `ws`, xterm packages, or `jsdom` are unavailable, the scripts report a skip rather than blocking the static/core suite.
 
 ### `scripts/audit.mjs`
 
@@ -55,7 +61,7 @@ Run `npm start` and open `http://localhost:4173`. A browser is not installed in 
 
 | Area | Check | Expected |
 | --- | --- | --- |
-| Boot | Load with no Ollama process | All seven original desktop windows appear; graph shows the committed Zaziopath snapshot; terminal says SIMULATION MODE; no uncaught errors |
+| Boot | Load with no Ollama or shell dependencies | All core desktop windows and the optional shell window appear; graph shows the committed Zaziopath snapshot; Polymath says SIMULATION MODE; shell degrades with a clear unavailable state; no uncaught errors |
 | Stable graph | Reload several times | Same committed IDs, strata, source relationships, and deterministic initial node arrangement; simulation settles normally |
 | Strata | Click each filter and ALL | Only the selected stratum and connected visible edges remain; each button updates its active styling |
 | Provenance | Hover representative source, inference, open-question, and source-document nodes | HUD shows status, stratum, source locator/excerpt where available, summary, and relationship labels |
@@ -74,6 +80,10 @@ Run `npm start` and open `http://localhost:4173`. A browser is not installed in 
 | Local inference | With `llama3.1:8b` installed and `ollama serve` running | Terminal uses local model with selected node, nearby graph, cited summaries, fragment, history, and bounded ingestion snippets |
 | Local inference failure | Stop Ollama while the page is open, then query | Request failure switches back to simulation/retrieval; committed graph is unchanged |
 | Desktop | Drag, minimize/restore, maximize/restore, reset windows | Original draggable window interaction remains usable |
+| Shell disabled | Run `npm run start:no-shell`; click SYNAPSE SHELL | Clear PTY-disabled state; all corpus windows and fallback remain usable |
+| Shell local | Install optional dependencies, run `npm start`, open `http://localhost:4173` | Local PTY opens; terminal input/output, resize, session switching, interrupt, and close work |
+| Shell remote preview | Open the UI through a remote preview or static host | Shell window reports unavailable; no PTY endpoint becomes reachable; rest of UI works |
+| AI SHELL | Start in OFF; switch through ASSIST/AUTONOMOUS, then STOP | OFF exposes no agent tools; ASSIST only stages a command; AUTONOMOUS honors the configured limits and human stop |
 | Audio | Toggle mute; test tone controls | Toggle updates; plain tones play only after user gesture; no unsupported bio/brain effect is claimed |
 
 ## 4. Local Ollama check
@@ -94,6 +104,6 @@ Then confirm the status badge reads local inference online. The server routes ar
 - Lexical ranking is not semantic search, fact checking, or an embedding system.
 - A citation establishes what a source records, not that a source-authored interpretation is objectively true.
 - A model response can still be wrong. Local inference is optional; keep generated text/links visibly marked and verify against source excerpts.
-- Session-local means page memory only. Closing/reloading the tab discards ingestion and notes; the current product deliberately has no persistence/export feature for private additions.
+- Corpus session-local means page memory only. Closing/reloading the tab discards ingestion and notes; browser persistence/export is deliberately absent. SYNAPSE SHELL is separate and saves scrollback only after the explicit SAVE SESSION action.
 
 The committed-data refresh procedure is documented in [Corpus data and provenance](ZAZIOPATH-CORPUS.md).

@@ -5,7 +5,7 @@
 
 **Format:** lightweight ADR (context → decision → consequences → alternatives).
 **Status values:** Accepted · Superseded · Deprecated.
-**Note:** ADR-001–010 document the original v9.4 prototype and its historical trade-offs; ADR-011–013 record the Zaziopath corpus implementation. Superseded prototype choices are labeled rather than silently presented as current behavior.
+**Note:** ADR-001–010 document the original v9.4 prototype and its trade-offs; ADR-011–013 record the Zaziopath corpus integration; ADR-014–017 record SYNAPSE SHELL. Superseded prototype choices are labeled rather than silently presented as current behavior.
 
 | ID | Decision | Status |
 | --- | --- | --- |
@@ -22,6 +22,10 @@
 | [ADR-011](#adr-011--committed-source-derived-zaziopath-snapshot) | Committed source-derived Zaziopath snapshot | Accepted |
 | [ADR-012](#adr-012--optional-loopback-only-ollama-inference) | Optional loopback-only Ollama inference | Accepted |
 | [ADR-013](#adr-013--epistemic-labels-and-non-clinical-framing) | Epistemic labels and non-clinical framing | Accepted |
+| [ADR-014](#adr-014--the-shell-client-lives-outside-the-core-document) | Shell client lives outside the core document | Accepted |
+| [ADR-015](#adr-015--optional-workstation-dependencies-with-a-degraded-mode) | Optional workstation dependencies with a degraded mode | Accepted |
+| [ADR-016](#adr-016--the-shell-is-unsandboxed-and-gated-at-the-network-boundary) | Unsandboxed shell, gated at the network boundary | Accepted |
+| [ADR-017](#adr-017--ai-shell-mode-is-the-authorization) | AI SHELL mode is the authorization | Accepted |
 
 ---
 
@@ -36,16 +40,16 @@ cost of "how do I run this?" — and a README that says `npm install && npm run 
 appears on screen has already spent that budget.
 
 ### Decision
-Keep the application markup, styles, and vanilla runtime in **one `index.html`**. The source-derived graph is a separate committed data sidecar at `data/zaziopath-graph.js` so the stable corpus remains inspectable and can be refreshed without turning the app into a build product.
+Keep the core application markup, styles, and vanilla runtime in **one `index.html`**. The source-derived graph is a separate committed data sidecar at `data/zaziopath-graph.js`; SYNAPSE SHELL's optional client assets live in `shell/` so static visitors can use the corpus without downloading or executing a PTY bridge.
 
 ### Consequences
 
 **Positive**
 - `git clone` → open the file → it runs. There is no step where the artefact is not working.
-- Application logic remains in one reviewable HTML document; the only generated runtime sidecar is the committed, source-auditable corpus JS.
+- Core browser logic remains in one reviewable HTML document; the generated runtime data sidecar is committed and source-auditable. The optional shell UI is an isolated, source-controlled exception.
 - Constraint-driven design: because everything is visible at once, there is nowhere to hide
   unnecessary abstraction, and every engine was written to fit the same metaphor.
-- Deployment is a static file copy of `index.html` plus `data/zaziopath-graph.js` — Pages, Netlify, an S3 bucket, or a USB stick.
+- Static deployment is a file copy of `index.html`, `data/`, and the source-controlled `shell/` degradation assets — Pages, Netlify, an S3 bucket, or a USB stick.
 
 **Negative**
 - No module boundaries: the engines share one global scope, and the ordering of the runtime script is
@@ -106,7 +110,7 @@ that utilities cannot express (CRT overlay, backdrop-filter glass, glow, hatchin
 **Status:** Accepted
 
 ### Context
-Seven windows and a shared canvas run in the browser without a required application backend. An optional local Node proxy exists only for loopback Ollama inference. The instinct on a project this size is to reach for React or Svelte — but the coordination problem here is *local* (drag, zoom, append), not *synchronisation* of shared derived state.
+Eight windows and a shared canvas run in the browser without a required application backend. A local Node server optionally adds loopback Ollama inference and a separately gated PTY bridge for SYNAPSE SHELL. The instinct on a project this size is to reach for React or Svelte — but the core coordination problem is *local* (drag, zoom, append), not *synchronisation* of shared derived state.
 
 ### Decision
 Write the runtime in plain ES2020: object literals for engines, direct DOM manipulation with text-safe rendering of user/source strings, and one `requestAnimationFrame` canvas loop.
@@ -127,7 +131,7 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
 ### Alternatives considered
 - **A component framework.** Rejected: the framework would model the windows, but the interesting
   part of the system (canvas physics, audio, ingestion) has no state to reconcile.
-- **Web components.** Rejected as over-engineering for seven windows sharing one behaviour module.
+- **Web components.** Rejected as over-engineering for the eight-window core; SYNAPSE SHELL remains an isolated optional module rather than a framework-driven rewrite.
 
 ---
 
@@ -206,10 +210,10 @@ simulate deliberation. Document its actual mechanism prominently.
 **Status:** Accepted
 
 ### Context
-The system accumulates graph selection, terminal history, local file ingestion, and user-authored notes. Persisting private additions would change the privacy model and require storage/export guarantees. Optional text inference is useful, but cloud APIs or a general network backend would violate the local-first/static deployment requirement.
+The corpus UI accumulates graph selection, Polymath history, local file ingestion, and user-authored notes. Persisting these private additions would change the privacy model and require storage/export guarantees. Optional local inference and a workstation PTY are useful, but neither may make the static corpus depend on cloud services.
 
 ### Decision
-Keep user-added graph nodes, ingested text, synthesis questions, and terminal context in page memory only. Do not use `localStorage`, cookies, IndexedDB, a database, or cloud inference. Offer an optional zero-dependency Node proxy only for local `llama3.1:8b`; restrict its inference routes to loopback clients/Host/Origin. The committed graph and deterministic lexical retrieval must continue to work without it.
+Keep user-added graph nodes, ingested text, synthesis questions, and Polymath context in page memory only. Do not use `localStorage`, cookies, IndexedDB, a database, or cloud inference. Serve static files and the `llama3.1:8b` inference proxy with Node's standard library; restrict Ollama to HTTP loopback URLs and proxy routes to the strict local gate. SYNAPSE SHELL is a separate optional extension with pinned npm/native packages; it does not change corpus persistence or static-host behavior. The committed graph and deterministic lexical retrieval must work without installing those packages.
 
 ### Consequences
 
@@ -252,7 +256,7 @@ tiers:
 ### Consequences
 
 **Positive**
-- `npm test` runs graph validation, a dependency-free runtime smoke harness, and the static audit with no install step.
+- Graph validation, the runtime smoke harness, and static audit use Node's standard library and run without installing packages; `npm test` also runs the shell/UI suites when their optional dependencies are present, otherwise they report skips.
 - Known debt is **explicit and bounded**: it is a number in a file, reviewable in a diff, rather than
   a claim in a doc.
 - The gate is one-directional: debt can only shrink, and shipping new debt requires deliberately
@@ -353,7 +357,7 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 **Status:** Accepted
 
 ### Context
-Several interacting browser modules, one document, and seven windows. The textbook answer is an event bus and a central orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
+Several interacting browser modules, one core document, and eight windows. The textbook answer is an event bus and a central orchestrator; the honest question is whether the core coupling actually needs decoupling at this size. The optional shell client remains a separate module.
 
 ### Decision
 Initialise in a fixed order inside a single `DOMContentLoaded` handler. Couple engines **directly**
@@ -386,10 +390,6 @@ DOM. No event bus, no store, no pub/sub.
 
 ---
 
-<div align="center">
-<sub>Next: <a href="ACCESSIBILITY.md">Accessibility audit →</a></sub>
-</div>
-
 ## ADR-011 · Committed source-derived Zaziopath snapshot
 
 **Status:** Accepted
@@ -414,7 +414,7 @@ Curate a stable graph from the public Zaziopath source and commit the generated 
 The Polymath Terminal benefits from bounded source/selection/history context, but the product must remain useful when offline and must not require cloud inference, API credentials, models other than `llama3.1:8b`, embeddings, or a hosted backend.
 
 ### Decision
-Use a small Node-standard-library local proxy in `scripts/serve.mjs` for optional access to an already-installed `llama3.1:8b` Ollama process at `127.0.0.1:11434`. Restrict inference routes to loopback clients/Host/Origin. On static hosts or request failure, use deterministic local lexical retrieval and extraction.
+Use a Node-standard-library local proxy in `scripts/serve.mjs` for optional access to an already-installed `llama3.1:8b` Ollama process over HTTP loopback (default `127.0.0.1:11434`). A custom endpoint may select another loopback host/port, but credentials, paths, and remote hosts are rejected. Restrict inference routes to loopback clients/Host/Origin. On static hosts or request failure, use deterministic local lexical retrieval and extraction.
 
 ### Consequences
 - Static graphs, Grimoire, simulation, and fallback do not require Node/Ollama.
@@ -435,3 +435,75 @@ Present Zaziopath as a non-clinical self-analysis archive, creative research ins
 - Source and model claims remain attributable; unresolved matters can remain unresolved.
 - Session-generated bridges are research questions, not assertions.
 - Stratum color is navigation only and does not encode confidence or evidence quality.
+
+---
+
+## ADR-014 · The shell client lives outside the core document
+
+**Status:** Accepted · **Amends:** ADR-001
+
+### Context
+SYNAPSE SHELL needs a terminal emulator, session controls, panels, WebSocket behavior, and its own styling. Most static visitors cannot execute a host PTY at all. Inlining all of that in the already data-aware core document would increase the payload and couple a workstation-only feature to the static corpus path.
+
+### Decision
+Keep the shell window's small chrome contract in `index.html`, but load its runtime and styling from `shell/synapse-shell.js` and `shell/synapse-shell.css`. The committed corpus remains a separate data file. Static hosts display a shell-unavailable state while the atlas, Grimoire, fallback, and other windows continue working.
+
+### Consequences
+- The core remains zero-build and reviewable; the shell client is isolated and can degrade independently.
+- Static deployments must include the source-controlled `shell/` assets as well as `index.html` and `data/`.
+- A third-party JS terminal renderer is served locally rather than fetched from another CDN.
+
+---
+
+## ADR-015 · Optional workstation dependencies with a degraded mode
+
+**Status:** Accepted
+
+### Context
+A real PTY requires a native binding, and xterm requires browser/server packages. Those requirements must not become a prerequisite for static corpus use or break `npm start` on a bare checkout.
+
+### Decision
+Pin `@xterm/xterm`, `@xterm/addon-fit`, and `ws` for workstation mode; make native `node-pty` optional and keep `jsdom` development-only. Load WebSocket support dynamically so the zero-dependency static server still starts without installing packages. If the packages or PTY are unavailable, the server reports the reason and the shell window degrades instead of blocking the rest of the desktop.
+
+### Consequences
+- No package install or build is required to open/deploy the corpus UI or run graph validation/runtime smoke tests.
+- `npm install` is required for full shell integration tests and the best-effort PTY experience; native compilation may fail on unsupported hosts.
+- Static browser behavior and fallback remain independent of the shell dependencies.
+
+---
+
+## ADR-016 · The shell is unsandboxed and gated at the network boundary
+
+**Status:** Accepted
+
+### Context
+A PTY runs with the launching account's filesystem and process permissions. A command allowlist or a per-command confirmation prompt cannot make a general shell safe; implying sandboxing would create false confidence.
+
+### Decision
+Do not sandbox or filter human terminal input. By default, shell/agent routes require a loopback TCP peer, a loopback Host, a matching Origin, no forwarding headers, and same-origin fetch metadata. `--no-shell` disables PTY creation. `--shell-remote-token` is an explicit operator opt-in that bypasses the local gate and is treated as a remote-shell credential, never as the default.
+
+### Consequences
+- Local workstation use is a real shell, not a simulated command runner.
+- The gate controls who can reach the PTY; it does not restrict what the local user can do once connected.
+- The remote-token escape hatch is high risk and is documented as such; use a VM/container when a capability boundary is required.
+
+---
+
+## ADR-017 · AI SHELL mode is the authorization
+
+**Status:** Accepted
+
+### Context
+The local model can optionally use a real PTY. No model-facing tool should be exposed by default, but ordinary user terminal input should not be interrupted by per-command prompts.
+
+### Decision
+AI SHELL starts in in-memory `OFF`. In `ASSIST`, the local model may put a command in the input buffer but newline execution bytes are stripped. In `AUTONOMOUS`, the bounded agent may execute validated tools and iterate within user-configured step/runtime limits. The model cannot enable its own mode; STOP/INTERRUPT/KILL controls remain human-operated.
+
+### Consequences
+- Model access is explicitly granted by the human and is reset to OFF when the server restarts.
+- Limits constrain the agent loop, not shell command authority or model correctness.
+- Local inference uses the fixed `llama3.1:8b` model and a loopback Ollama URL; no cloud model endpoint is supported.
+
+<div align="center">
+<sub>Next: <a href="ACCESSIBILITY.md">Accessibility audit →</a></sub>
+</div>

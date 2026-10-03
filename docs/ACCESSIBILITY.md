@@ -49,7 +49,7 @@ Ratios below are measured against the four dark surface tokens with the WCAG rel
 - Window dragging and graph pan/zoom are pointer-driven. There is no keyboard equivalent for moving windows or traversing graph nodes.
 - Grimoire cards and palette swatches are created as custom clickable elements; they need button semantics, focus visibility, and keyboard activation.
 - The modal does not currently implement a complete focus lifecycle (initial focus, Escape handling, focus containment, and return to the trigger).
-- Each desktop window should have a named region and a logical heading. The document's single heading element is insufficient to navigate the seven windows as sections.
+- Each desktop window should have a named region and a logical heading. The document's single heading element is insufficient to navigate the eight windows as sections.
 - Icon-only controls, including window actions, need an explicit screen-reader name. A native `title` alone is not a substitute for consistent accessible naming.
 - The terminal transcript, ingestion status, and changing graph counts are not announced through live regions/status semantics.
 

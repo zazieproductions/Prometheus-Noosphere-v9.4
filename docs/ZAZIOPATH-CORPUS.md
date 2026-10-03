@@ -43,14 +43,14 @@ The graph uses shape, line style, color, HUD text, and explicit provenance locat
 
 With no local model, the terminal remains useful: a deterministic lexical ranker searches graph summaries, tags, source excerpts, and Grimoire fragments. Responses show matching source paths/excerpts and status labels. It does not use embeddings, invent answers, or silently change source data. Selecting a graph node supplies its bounded neighborhood; selecting a Grimoire fragment loads the fragment and highlights its related nodes.
 
-Optional local inference uses **only `llama3.1:8b`** through the zero-dependency Node server and a local Ollama process. The request context is bounded and includes selected node/fragment, nearby graph nodes, relevant cited summaries, current stratum, recent terminal history, and short excerpts of up to three ingested files. Inference is optional; API failure switches the terminal and ingestion back to deterministic local retrieval/extraction. The server's inference routes are loopback-only; do not expose Ollama or the local server to a network.
+Optional local inference uses **only `llama3.1:8b`** through the Node-standard-library inference proxy and a local Ollama process. Its URL must be HTTP loopback; remote/cloud endpoints are rejected. The request context is bounded and includes selected node/fragment, nearby graph nodes, relevant cited summaries, current stratum, recent terminal history, and short excerpts of up to three ingested files. Inference is optional; API failure switches the terminal and ingestion back to deterministic local retrieval/extraction. The inference routes are loopback-only; do not expose Ollama or the local server to a network. The separate SYNAPSE SHELL workstation bridge uses optional pinned packages and is not needed for corpus browsing.
 
-GitHub Pages and a direct `index.html` open need no Node server and remain static/offline-capable for the committed graph, simulation, Grimoire, and fallback retrieval. A static host cannot provide local Ollama inference. The CDN-delivered existing UI libraries/fonts still need a network connection for full styling/icon typography; they are not required for corpus integrity or the source data itself.
+GitHub Pages and a direct `index.html` open need no Node server or npm packages and remain static/offline-capable for the committed graph, simulation, Grimoire, and fallback retrieval. A static host cannot provide local Ollama inference or the host PTY; the optional shell window reports unavailable without blocking the corpus UI. The CDN-delivered existing UI libraries/fonts still need a network connection for full styling/icon typography; they are not required for corpus integrity or the source data itself.
 
 ## Verify
 
 ```bash
-npm test                      # committed graph validation + static UI audit
+npm test                      # graph validation + runtime smoke + static audit + optional shell/UI suites
 npm run validate:graph        # graph validation only
 node scripts/validate-zaziopath-graph.mjs --json
 ```

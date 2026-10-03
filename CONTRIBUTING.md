@@ -3,9 +3,9 @@
 > Conventions, verification, and the review rubric — everything a contributor needs to land a change
 > without a round trip.
 
-Thanks for considering a contribution. This project has an unusual shape (one file, no build, no
-dependencies), so the conventions below matter more than usual: they are what keeps a single
-1,477-line document reviewable by other people.
+Thanks for considering a contribution. This project has a zero-build, single-document core and an
+optional workstation shell split into small modules. The conventions below protect the Canvas/CRT
+experience, static corpus path, provenance rules, and the shell's separate trust boundary.
 
 ---
 
@@ -29,10 +29,11 @@ dependencies), so the conventions below matter more than usual: they are what ke
 
 | Contribution | Where to start |
 | --- | --- |
-| **Fix a register item** | [`ROADMAP.md` § Now](docs/ROADMAP.md#now--942--correctness) — all `XS` items except `NOO-019` are scoped for first-time contributors |
-| **Improve accessibility** | [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan) — P0 items are minutes of work and high impact |
-| **Tune the artefact** | [`MAINTAINABILITY.md` § 4](docs/MAINTAINABILITY.md#4-tunable-surface) — every constant that changes behaviour, in one table |
-| **Add content** | A fragment, palette, seed theme or directive: one array, no code |
+| **Fix a tracked issue** | [`ROADMAP.md`](docs/ROADMAP.md) — current usability, accessibility, and performance work |
+| **Improve accessibility** | [`ACCESSIBILITY.md`](docs/ACCESSIBILITY.md) — review the documented findings and remediation plan |
+| **Change runtime ownership** | [`MAINTAINABILITY.md` § 2](docs/MAINTAINABILITY.md#2-change-ownership) — edit the named source and run its verification |
+| **Curate source content** | [`ZAZIOPATH-CORPUS.md`](docs/ZAZIOPATH-CORPUS.md) — builder definitions, provenance, and cited source revision |
+| **Improve shell behavior or security** | [`SHELL.md`](docs/SHELL.md), `server/`, and `shell/` — preserve the local-only gate and unsandboxed-shell disclosure |
 | **Correct the documentation** | Docs are a deliverable, not a by-product — factual corrections are welcome and treated as code changes |
 | **Report a defect** | Use the issue forms; if it is not in the register, it will be added with an ID |
 
@@ -44,29 +45,32 @@ dependencies), so the conventions below matter more than usual: they are what ke
 git clone https://github.com/zazieproductions/Prometheus-Noosphere-v9.4.git
 cd Prometheus-Noosphere-v9.4
 
-npm start          # → http://localhost:4173   (no install step)
-npm test           # static integrity audit — must exit 0
+npm start          # → http://localhost:4173; starts without installed packages
+npm test           # graph + runtime checks + static audit + optional shell/UI suites
 ```
 
-**There is nothing to install.** Node.js ≥ 18 is required only for the audit and dev server; both use
-the standard library. If you find yourself reaching for a package manager to work on this project,
-stop and read [ADR-007](docs/DECISIONS.md#adr-007--zero-dependency-tooling-with-a-ratcheted-audit).
+Node.js ≥ 18 is required. Graph validation, runtime smoke, static hosting, and the offline corpus path
+use the standard library. To exercise the workstation shell and jsdom UI suites, run `npm install`;
+the shell can still degrade if the optional native `node-pty` binding is unavailable. See
+[ADR-007](docs/DECISIONS.md#adr-007--zero-dependency-tooling-with-a-ratcheted-audit) and
+[ADR-015](docs/DECISIONS.md#adr-015--optional-workstation-dependencies-with-a-degraded-mode).
 
 ---
 
 ## Project conventions
 
-### The five constraints
+### The project boundaries
 
-Every change must respect these. They are the project's thesis, not preferences
+Every change must respect these product and trust constraints
 ([`DECISIONS.md`](docs/DECISIONS.md)).
 
-1. **One document.** `index.html` is the only artefact required to run the application.
-2. **No build step.** `git clone` → open → it works.
-3. **No installed runtime dependencies.** Tooling may use the Node standard library only.
-4. **No backend.** No `fetch`, `XMLHttpRequest`, `WebSocket`, storage or cookies in the runtime.
-5. **Tokens by name.** Never a raw hex value in the workspace markup; colour arrives as a semantic
-   token from the inline `tailwind.config`.
+1. **Preserve the core.** Keep the Canvas 2D renderer, vanilla JS, draggable desktop, CRT visual language, and zero-build structure; do not replace them with a framework or graph library.
+2. **Keep static use complete.** The committed graph, Grimoire, simulation, and deterministic fallback work on GitHub Pages/offline without npm packages, a database, embeddings, or a cloud service.
+3. **Treat Zaziopath as source material.** Keep the reproducible graph snapshot, stratum identity, excerpts, source provenance, and explicitly documented wires. Omit unsupported links or visibly label them as inference/synthesis/open questions.
+4. **Preserve epistemic boundaries.** Source-backed records and model-generated interpretations remain distinguishable. Never present the archive as a clinical/personality diagnosis engine.
+5. **Keep ingestion local and ephemeral.** Read files in the browser, never upload them for ingestion, deduplicate names, bound candidate creation, and discard private additions on reload.
+6. **Keep SYNAPSE SHELL optional and isolated.** The PTY is a real, unsandboxed shell with the launching user's permissions. Local route gating is not a filesystem sandbox; AI SHELL starts OFF. Do not expose the remote-token bypass as a default.
+7. **Use design tokens.** Never add a raw display hex value to workspace markup; use the established semantic `tailwind.config` tokens.
 
 ### Code style
 
@@ -75,7 +79,7 @@ Every change must respect these. They are the project's thesis, not preferences
 | Indentation | 4 spaces in `index.html`, 2 spaces in `scripts/` and config (see `.editorconfig`) |
 | Line endings | LF, final newline, no trailing whitespace |
 | JavaScript | ES2020, no semicolon-less style, `const`/`let`, no classes unless a data structure demands one |
-| Naming | Engine objects `camelCase` (`graphEngine`); methods are verbs (`injectNode`, `filterDomain`); DOM ids `kebab-case` |
+| Naming | Engine objects `camelCase` (`graphEngine`); methods are verbs (`injectNode`, `filterStratum`); DOM ids `kebab-case` |
 | Comments | Engine banners use the existing numbered format; explain *why*, never *what* |
 | Dependencies | Adding one requires an ADR. This is not a formality. |
 
@@ -100,9 +104,12 @@ global. The global scope is the scarcest resource in a single-document runtime.
 ## Verification
 
 ```bash
-npm test                # the audit — must exit 0
-npm run audit:json      # full findings with evidence, if it does not
-npm start               # then walk the relevant tasks in docs/TESTING.md § 3
+npm test                         # graph validation + runtime smoke + static audit + shell/UI suites
+npm run validate:graph           # graph/provenance checks only
+npm run audit:json               # full findings with evidence, if it does not
+npm run test:shell               # real PTY/gate/agent tests (optional dependencies)
+npm run test:ui                  # shell-client degradation tests (jsdom)
+npm start                        # then follow docs/TESTING.md and docs/SHELL.md
 ```
 
 ### If the audit fails
@@ -200,12 +207,12 @@ Reviewers apply the same list the author used. A change is ready when all nine h
 | 1 | `npm test` exits 0, and any count change is explained in the description |
 | 2 | The change is visible and correct in a browser, verified against the manual matrix |
 | 3 | The console is clean — no errors, no warnings introduced |
-| 4 | No new runtime dependency, no build step, no network call added to the runtime |
-| 5 | Raw hex values do not appear in markup; new colours are tokens, documented in `DESIGN.md` |
-| 6 | `index.html` remains the only artefact required to run the app |
-| 7 | A new register ID (if any) is added to `scripts/audit.mjs`, the register table, and the roadmap |
+| 4 | No framework/build step; any optional dependency is pinned, ADR-reviewed, and does not block static corpus use |
+| 5 | Raw hex values do not appear in workspace markup; new design colours use documented tokens |
+| 6 | Static app files remain directly hostable; shell assets degrade cleanly without the local bridge |
+| 7 | A new audit register ID is added to `scripts/audit.mjs`, its documentation, and the roadmap |
 | 8 | Documentation that would become stale is updated in the same PR |
-| 9 | The change honours the satire framing: nothing may present the corpus as advice |
+| 9 | The corpus stays non-clinical, and source facts, interpretations, synthesis, and open questions remain distinct |
 
 **Severity discipline.** If your change adds a defect, classify it honestly. `NOO-001` was rated
 *high* because a missing border is visible on first load; a mis-ordered preference would be *low*.
@@ -215,15 +222,13 @@ Severity decides whether the roadmap interrupts the current horizon, so inflatin
 
 ## Recipes
 
-### Add a knowledge fragment
+### Curate a source concept, relationship, or fragment
 
-```js
-// GRIMOIRE_DATA — one entry, no code changes
-{ title: "…", tags: "#domain #domain", text: "…" }
-```
+1. Edit the appropriate definition in `scripts/build-zaziopath-graph.mjs` (`sourceNodes`, `concepts`, `wireRows`, `authoredRelationships`, or `fragmentDefinitions`).
+2. Include a source path, stable locator/anchor, bounded excerpt when available, and the correct stratum/epistemic status. Reuse README-indexed wires before adding any other edge; unsupported links are omitted or explicitly marked non-source.
+3. Build against a named local Zaziopath revision, inspect the generated diff, then run `npm test` and `npm run validate:graph`.
 
-Keep the register honest: if the window advertises "240+ fragments", either ship the corpus or correct
-the copy (`NOO-009`).
+Grimoire is rendered from committed `data/zaziopath-graph.js`, not from a runtime-discovered placeholder array.
 
 ### Add a palette
 
@@ -234,20 +239,15 @@ the copy (`NOO-009`).
 
 Swatches are generated, click-to-copy and CSS-exportable automatically.
 
-### Add a domain (three sites — this is `NOO-011`'s root cause)
+### Change stratum filtering
 
-1. `DOMAINS` — key, display name, colour.
-2. The toolbar — `<button onclick="graphEngine.filterDomain('mykey')" class="domain-btn" data-d="mykey">…</button>`.
-3. The modal selector — an `<option value="mykey">`.
+The eight source-defined Zaziopath strata are fixed by the corpus contract. If a label or filter control changes, update the committed stratum metadata, toolbar, graph filter, and relevant provenance/UI documentation together. Do not invent a replacement domain taxonomy or treat color as evidence strength.
 
-Then `npm run audit:baseline` if `NOO-011`'s count changes, and update
-[`DESIGN.md`](docs/DESIGN.md) if the new domain claims an accent hue.
+### Add a Polymath directive
 
-### Add a directive
-
-1. A `VOCAB` slice (or reuse an existing one).
-2. A branch in `runDirective(type, data)`.
-3. A chip in the terminal toolbar.
+1. Add a bounded behavior to `polymathLLM.runDirective(type, data)` in `index.html`.
+2. Expose it through the existing terminal controls only if it adds a useful, source-aware action.
+3. Keep any output cited/epistemically labeled; cover selection and fallback behavior with `scripts/test-runtime.mjs`.
 
 ### Fix an accessibility issue
 
@@ -262,8 +262,7 @@ recomputed ratio — the formula used is documented in § 3.
 Documentation is held to the same standard as code:
 
 - **Every number must be reproducible** — run `npm test` and cite the audit, or show the command.
-- **Never claim a mechanism that does not exist.** This is the reason `ARCHITECTURE.md` § 18
-  translates the interface's vocabulary into engineering terms.
+- **Never claim a mechanism that does not exist.** Verify runtime details against `index.html`, `server/`, and `shell/`; `ARCHITECTURE.md` § 10 documents the workstation extension.
 - **Prefer tables and diagrams to paragraphs** for structural information.
 - **Update the spine.** The 21 register IDs are shared across the audit, the architecture document,
   the accessibility audit, the roadmap and the changelog. If you change an ID or its title, update
@@ -277,22 +276,20 @@ Stated up front to save everyone a review cycle. Each refusal maps to a recorded
 
 | Rejected | Reason |
 | --- | --- |
-| A framework, bundler or CSS preprocessor in the default path | [ADR-001](docs/DECISIONS.md#adr-001--single-file-delivery), [ADR-002](docs/DECISIONS.md#adr-002--no-build-step-tailwind-play-cdn) |
-| A backend, database, auth or analytics | [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend) |
-| A real LLM integration | [ADR-005](docs/DECISIONS.md#adr-005--deterministic-procedural-content) |
-| Persisting state to `localStorage` or cookies | [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend) |
-| Mobile-responsive re-layout of the desktop metaphor | [`ROADMAP.md` § Not planned](docs/ROADMAP.md#explicitly-not-planned) — reachability is fixed instead (`NOO-019`) |
-| New accent colours or a second display face | [`DESIGN.md` § 10](docs/DESIGN.md#10-anti-patterns) |
-| Changes that present the satirical corpus as real technique | [`SECURITY.md`](SECURITY.md), [ADR-008](docs/DECISIONS.md#adr-008--satirical-corpus-with-explicit-disclosure) |
-| Dependencies added without an ADR | [`MAINTAINABILITY.md` § 2](docs/MAINTAINABILITY.md#2-dependency-policy) |
+| Replacing Canvas/draggable windows with a framework or graph library | [ADR-001](docs/DECISIONS.md#adr-001--single-file-delivery), [ADR-003](docs/DECISIONS.md#adr-003--vanilla-javascript-no-framework), [ADR-004](docs/DECISIONS.md#adr-004--canvas-2d-for-the-graph) |
+| Making static corpus use depend on a service, database, auth, analytics, or cloud inference | [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-optional-local-inference), [ADR-012](docs/DECISIONS.md#adr-012--optional-loopback-only-ollama-inference) |
+| Additional models, embeddings, vector databases, or remote inference providers | Preserve the exact local `llama3.1:8b` boundary; [ADR-012](docs/DECISIONS.md#adr-012--optional-loopback-only-ollama-inference) |
+| Persisting browser ingestion/notes to `localStorage`, cookies, or an unreviewed service | [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-optional-local-inference) |
+| Exposing the real host PTY without the explicit high-risk token opt-in, or describing it as sandboxed | [ADR-016](docs/DECISIONS.md#adr-016--the-shell-is-unsandboxed-and-gated-at-the-network-boundary), [`SECURITY.md`](SECURITY.md) |
+| Clinical/personality diagnosis claims or unsupported graph relationships | [ADR-013](docs/DECISIONS.md#adr-013--epistemic-labels-and-non-clinical-framing), [`ZAZIOPATH-CORPUS.md`](docs/ZAZIOPATH-CORPUS.md) |
+| Dependencies added without an ADR or without preserving the degraded static path | [ADR-015](docs/DECISIONS.md#adr-015--optional-workstation-dependencies-with-a-degraded-mode), [`MAINTAINABILITY.md`](docs/MAINTAINABILITY.md) |
 
 ---
 
 ## Getting help
 
 - **Questions about a change** → open a discussion or comment on the issue for that register ID.
-- **Unsure where to start** → pick any `XS` item in the `9.4.2` horizon; they are designed as
-  onboarding.
+- **Unsure where to start** → choose a focused usability, accessibility, test, or documentation item from [`ROADMAP.md`](docs/ROADMAP.md).
 - **Security concerns** → do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
 
 By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md). Contributions are
@@ -301,5 +298,5 @@ accepted under the [MIT License](LICENSE).
 ---
 
 <div align="center">
-<sub>Every rule above exists because a single-file artefact is only as maintainable as its conventions.</sub>
+<sub>Every rule above protects the zero-build corpus core and its optional, separately gated workstation shell.</sub>
 </div>
