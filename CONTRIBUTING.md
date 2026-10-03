@@ -5,7 +5,7 @@
 
 Thanks for considering a contribution. This project has an unusual shape (one file, no build, no
 dependencies), so the conventions below matter more than usual: they are what keeps a single
-1,477-line document reviewable by other people.
+3,050-line document reviewable by other people.
 
 ---
 
@@ -291,8 +291,7 @@ Stated up front to save everyone a review cycle. Each refusal maps to a recorded
 ## Getting help
 
 - **Questions about a change** → open a discussion or comment on the issue for that register ID.
-- **Unsure where to start** → pick any `XS` item in the `9.5.1` horizon; they are designed as
-  onboarding.
+- **Unsure where to start** → pick any `XS` item in the `9.5.1` horizon; they are designed as  onboarding.
 - **Security concerns** → do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
 
 By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md). Contributions are

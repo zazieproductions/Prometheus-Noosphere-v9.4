@@ -13,7 +13,8 @@ frame budget · [`DECISIONS.md`](DECISIONS.md) for why any of this is the way it
 ## 1. Purpose and scope
 
 NOÖSPHERE // OS is a **single-document, zero-dependency, zero-build browser operating system**: a
-simulated desktop hosting seven windowed subsystems over ten cooperating client-side engines.
+simulated desktop hosting nine windowed subsystems over eleven cooperating client-side engines,
+plus two external modules (`window.synapseShell`, `window.webUplink`).
 
 This document describes the system as it is implemented in `index.html` at `HEAD`. Every line
 reference, count and complexity figure below is reproducible: line anchors were taken from the
@@ -54,24 +55,25 @@ Three layers, one document. Nothing crosses a layer boundary without an explicit
 │ WORKSPACE                                     <main id="workspace">                   │
 │   absolutely positioned, overlapping, z-ordered window shells — all share one class:  │
 │                                                                                      │
-│   .glass-panel  (×8)                                                                  │
+│   .glass-panel  (×9)                                                                  │
 │     ├── .win-header     drag handle, title glyph, window controls                     │
 │     ├── toolbar         per-window controls (filters, directives, search)             │
 │     └── .content        engine-owned viewport or canvas                               │
 │                                                                                      │
-│   the eighth window (`win-shell`) is a real host terminal: its interior is built by   │
-│   `shell/synapse-shell.js` against the local bridge — see § 19                        │
+│   the eighth window (`win-shell`) is a real host terminal and the ninth                  │
+│   (`win-uplink`) is the local research workstation — see § 19 and `WEB_UPLINK.md`       │
 ├──────────────────────────────────────────────────────────────────────────────────────┤
-│ RUNTIME                                   one <script>, ten engines, in order        │
+│ RUNTIME                                 one <script>, eleven engines, in order       │
 │                                                                                      │
 │   ┌── sound ──────────┐  event vocabulary consumed by every interactive engine         │
 │   │   Web Audio       │                                                              │
 │   └─────────┬─────────┘                                                              │
 │   ┌── window manager ┐  owns z-order, geometry, drag, minimise/maximise/realign        │
 │   └─────────┬─────────┘                                                              │
-│   ┌── graph ─────────┐  owns 90 nodes · ≈270 edges · camera · HUD                    │
-│   │   Canvas 2D      │◄──────────────┐                                               │
-│   └─────────┬─────────┘               │ injectNode()                                  │
+│   ┌── graph ─────────┐  owns 90 nodes · 265 edges · camera · HUD · provenance       │
+│   │   Canvas 2D      │◄──────────────┐    ┌── ultra field ──┐  same arrays, second   │
+│   └─────────┬─────────┘               │    │  additive Canvas │  renderer (RENDER:)  │
+│             │ analysed in            │    └──────────────────┘                       │
 │             │ analysed in            │                                               │
 │   ┌── polymathLLM ───┐  vocabulary →  │  ┌── ingestion ──┐  ┌── combinator ──┐        │
 │   │   transcript     │  composition   │  │  FileReader   │  │  cross-product │        │
@@ -82,16 +84,20 @@ Three layers, one document. Nothing crosses a layer boundary without an explicit
 │   └────────────┘                     └────────────────┘                               │
 │   ┌── palette / soundLab ─┐   ┌── telemetry ─┐   (5 palettes · 3 tones · 1 Hz drift)    │
 │   └───────────────────────┘   └──────────────┘                                        │
+│   ┌── graphMetrics ───┐  derived pass: degree · mass · strata · weather · focus reach  │
+│   └───────────────────┘                                                               │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Coupling rule.** Engines reach each other through exactly three surfaces:
+**Coupling rule.** Engines reach each other through exactly four surfaces:
 
 1. **Direct method calls** across module object literals (`polymathLLM.appendChat`, `graphEngine.injectNode`).
 2. **Shared live state** — the `graphNodes` / `graphEdges` arrays and the `camera` record.
-3. **DOM as a message log** — the terminal transcript, which is appended to and never read from.
+3. **Derived state** — `graphMetrics`, a pure function of (2) recomputed on a cadence and on topology
+   change; both renderers read it, neither writes to it.
+4. **DOM as a message log** — the terminal transcript, which is appended to and never read from.
 
-There is deliberately **no event bus and no global store.** With ten engines the indirection would
+There is deliberately **no event bus and no global store.** With eleven engines the indirection would
 cost more than it buys, and the resulting coupling graph stays shallow and acyclic — which is what
 makes the single-file constraint survivable.
 
@@ -99,31 +105,27 @@ makes the single-file constraint survivable.
 
 ## 4. Document anatomy
 
-Verified line anchors from `HEAD` (`index.html`, 1,571 lines):
+Verified line anchors from `HEAD` (`index.html`, 3,050 lines at 9.5.0):
 
 | Range | Region | Contents |
 | --- | --- | --- |
-| 1–19 | Document head | Metadata, title, three CDN tags, the two SYNAPSE SHELL assets |
+| 1–19 | Document head | Metadata, title, three CDN tags, the external shell and uplink assets |
 | 20–67 | `tailwind.config` | Design tokens: colours, font stacks, shadows, animations, keyframes |
-| 68–116 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars |
-| 121–167 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
-| 169 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
-| 174–228 | `#win-graph` | Neural Vault — toolbar, `<canvas>`, inspector HUD |
-| 231–281 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
-| 285–340 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
-| 343–427 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
-| 431–510 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
-| 514–541 | `#win-notes` | Grimoire — search field, fragment list |
-| 545–590 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
-| 594–610 | `#win-shell` | SYNAPSE SHELL — chrome plus one host element; the console itself is built by `shell/synapse-shell.js` (§ 19) |
-| 613–663 | `<footer>` | Dock (7 launchers, including the shell), neural load, decorative equaliser |
-| 666–697 | Modal | Quick idea injection — title, cluster, analysis, commit |
-| 701–1569 | Runtime `<script>` | Ten engines plus initialisation (see §6) |
-
-The shell is the only subsystem whose runtime is **not** in `index.html`: ~700 lines of browser
-JavaScript plus ~380 lines of CSS, which would have broken the payload budget for every visitor,
-including those on a static host where none of it can run (§ 19.2).
-
+| 69–165 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars, ultra deck |
+| 171–215 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
+| 218 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
+| 223–338 | `#win-graph` | Neural Vault — filter/sort toolbar, render switch, ultra deck, two `<canvas>` elements, weather readout, legend, inspector HUD |
+| 339–392 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
+| 393–450 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
+| 451–538 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
+| 539–621 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
+| 622–652 | `#win-notes` | Grimoire — search field, fragment list |
+| 653–701 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
+| 702–720 | `#win-shell` | SYNAPSE SHELL — chrome plus one host element; the console itself is built by `shell/synapse-shell.js` (§ 19) |
+| 721–738 | `#win-uplink` | WEB UPLINK — chrome plus one workspace host; the workstation is built by `uplink-client.js` |
+| 739–792 | `<footer>` | Dock (8 launchers, including the shell and the uplink), neural load, decorative equaliser |
+| 795–827 | Modal | Quick idea injection — title, cluster, analysis, commit |
+| 832–3050 | Runtime `<script>` | Eleven in-document engines plus initialisation (see §6) |
 ---
 
 ## 5. Boot sequence
@@ -141,9 +143,12 @@ sequenceDiagram
     D->>R: Execute runtime script
     Note over R: makeDraggable() attached to every .glass-panel (before DOMContentLoaded)
     B->>R: DOMContentLoaded
-    R->>R: initGraphEngine() — 90 nodes, ≈270 edges, badge update
-    R->>R: resizeCanvas() — size to parent element
-    R->>R: renderGraph() — first frame, starts rAF loop
+    R->>R: initGraphEngine() — 90 nodes, 265 seeded edges, badge update
+    R->>R: graphMetrics.rebuild() — degree, mass, strata, weather
+    R->>R: ultra.init() — glow sprites, particle pool, legend, controls
+    R->>R: resizeCanvas() — size both canvases, cap DPR at 2
+    R->>R: renderGraph() — first frame, starts rAF loop (yields while ULTRA is on)
+    Note over R: entering ULTRA on demand — seedZaziopath() + separate field loop
     R->>R: paletteGen.render() · grimoire.render()
     R->>R: lucide.createIcons() — hydrate 48 icon references
     R->>R: +500 ms — terminal welcome banner
@@ -154,8 +159,11 @@ Two ordering facts matter:
 
 - **`makeDraggable` is bound at parse time**, before any engine initialises. Every window is
   draggable from first paint, independently of engine readiness.
-- **`renderGraph` self-schedules.** The loop is started once and never stopped; visibility is not
-  currently considered (see `NOO-015` and the optimisation ladder in `PERFORMANCE.md`).
+- **`renderGraph` self-schedules.** The loop is started once and never stopped; while the ultra field
+  is enabled it yields every frame without simulating or drawing (see `NOO-015` and the optimisation
+  ladder in `PERFORMANCE.md`).
+- **The ultra field seeds the Zaziopath lattice on first entry**, inside `enter()`, before the first
+  field frame — so both renderers see the same 128-node graph from that moment on.
 
 ---
 
@@ -163,23 +171,29 @@ Two ordering facts matter:
 
 | # | Engine | Line | Owns | Consumes | Emits |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `sound` / `soundLab` | 677 | `audioCtx`, `audioEnabled` | user gestures | oscillator tones; `playBeep()` is the global event sound |
-| 2 | window manager | 729 | `highestZ`, drag state, geometry | pointer events | focus/z-order mutation, beeps |
-| 3 | graph engine | 840 | `graphNodes`, `graphEdges`, `camera`, `showLabels`, `activeDomainFilter`, `hoveredNode` | pointer + wheel, filters, injections | frame rendering, inspector HUD |
-| 4 | `polymathLLM` | 1144 | transcript DOM, `VOCAB` | prompts, directives, grimoire fragments, ingestion events | role-typed transcript entries |
-| 5 | ingestion | 1247 | `FileReader` lifecycle | drop/picker events | graph nodes, artefact feed rows, transcript notices |
-| 6 | `paletteGen` | 1307 | `currentPaletteIdx`, `PALETTES` | user clicks | swatch DOM, clipboard writes |
-| 7 | `grimoire` | 1352 | `GRIMOIRE_DATA` | search input | fragment cards, terminal dispatch |
-| 8 | `ideaCombinator` | 1393 | selection values | two domain vectors | synthesised axiom, graph node |
-| 9 | modal | 1420 | modal visibility | user authoring | graph node |
-| 10 | telemetry | 1444 | clock text, drift values | 1 Hz interval | clock, two gauge strings |
+| 1 | `sound` / `soundLab` | 875 | `audioCtx`, `audioEnabled` | user gestures | oscillator tones; `playBeep()` is the global event sound |
+| 2 | window manager | 888 | `highestZ`, drag state, geometry | pointer events | focus/z-order mutation, beeps |
+| 3a | graph model + Zaziopath structure | 1004 | `DOMAINS`, `ZAZIOPATH_STRATA`, `NODE_CLASSES`, `ZAZIOPATH_WIRES`, `annotateNode()`, `addEdge()`, `mulberry32()` | seed tables | annotated node/edge records |
+| 3b | graph engine | 1558 | `graphNodes`, `graphEdges`, `camera`, `showLabels`, `activeDomainFilter`, `hoveredNode`, display mode | pointer + wheel, filters, injections | standard frame rendering, inspector HUD, `seedZaziopath()` |
+| 3c | `graphMetrics` | 1438 | degree, mass, stratum centroids/intensity, weather channels, focus relevance | node + edge arrays | derived metrics for both renderers |
+| 3d | `ultra` | 1761 | field state, params, particle pool, glow sprites, nebula, LOD tier | the same node + edge arrays, `graphMetrics`, camera, focus | field frames, weather HUD, birth events |
+| 4 | `polymathLLM` | 2666 | transcript DOM, `VOCAB`, `selectedNode` | prompts, directives, grimoire fragments, ingestion events | role-typed transcript entries |
+| 5 | ingestion | 2821 | `FileReader` lifecycle | drop/picker events | graph nodes (with provenance), artefact feed rows, transcript notices |
+| 6 | `paletteGen` | 2883 | `currentPaletteIdx`, `PALETTES` | user clicks | swatch DOM, clipboard writes |
+| 7 | `grimoire` | 2929 | `GRIMOIRE_DATA` | search input | fragment cards, terminal dispatch |
+| 8 | `ideaCombinator` | 2961 | selection values | two domain vectors | synthesised axiom (class `inferred`), graph node |
+| 9 | modal | 2990 | modal visibility | user authoring | graph node (provenance `OPERATOR//MANUAL`) |
+| 10 | telemetry | 3016 | clock text, drift values | 1 Hz interval | clock, two gauge strings |
 | 11 | `window.synapseShell` — external, `shell/synapse-shell.js` | — | session records, xterm instances, sockets, AI-mode mirror, agent log | `/api/shell/*`, `/ws/shell`, agent SSE | terminal output to xterm, chrome text, agent step log |
+| 12 | `window.webUplink` — external, `uplink-client.js` + `scripts/uplink/*` | — | research sessions, result sets, caches, capability state | `/api/uplink/*`, the terminal's slash commands, local Ollama | search/crawl/read results, ingestion candidates, status pill |
 
+A full treatment of the second renderer — data contract, mappings, submodes, weather, LOD — is
+[`ULTRA-VISUALIZATION.md`](ULTRA-VISUALIZATION.md).
 Every engine in the document is a **plain object literal or a small set of functions** with an
 explicit public surface, documented in [`API.md`](API.md). No prototypes, no classes, no
 inheritance — the surface area of the system is small enough that composition by convention is
-sufficient and cheaper to read. Row 11 is the exception that proves the pattern: the shell is one
-IIFE in `shell/`, listed here because § 15 and § 19 treat it as a peer of the engines, not as part
+sufficient and cheaper to read. Rows 11–12 are the exception that proves the pattern: the shell and the uplink are
+external modules, listed here because § 15 and § 19 treat them as peers of the engines, not as part
 of the document (ADR-011).
 
 ---
@@ -198,7 +212,21 @@ of the document (ADR-011).
   x: 0, y: 0,                  // Number — world coordinates, centred on the origin
   vx: 0, vy: 0,                // Number — velocity, damped each frame
   radius: 5.5,                 // 5.5 for seed archetypes, 3.2 for procedural variants
-  color: '#a855f7'             // denormalised copy of DOMAINS[domain].color (see NOO-021 note)
+  color: '#a855f7',            // denormalised copy of DOMAINS[domain].color
+  // --- 9.5.0 additions: read by the ultra renderer, harmless to the standard one ---
+  stratum: 'myth',             // key into ZAZIOPATH_STRATA (see § 7.8)
+  klass: 'concept',            // 'source' | 'concept' | 'inferred' | 'ingested' | 'question'
+  provenance: {                // where the claim came from, and whether it cites anything
+    origin: 'seed',            // 'seed' | 'zaziopath' | 'ingestion' | 'synthesis' | 'manual'
+    ref: 'THEME//Baudrillardia', // human-readable citation: file, wire, theme, directive
+    recorded: true,            // true when `ref` names an artifact
+  },
+  uncertainty: 0.1,            // 0–1 — inferred claims and unresolved questions are unstable
+  activation: 0.45,            // 0–1 — recency/activity; decays, rekindled by traffic and focus
+  mass: 0.62,                  // derived — degree centrality shaded by valence
+  phase: 1.7, warp: 1.1,       // derived — per-node pulse and motion signature (seeded)
+  birthAt: 1000,               // performance.now() at insertion; drives the birth halo
+  degree: 7,                   // derived — edge count
 }
 ```
 
@@ -208,7 +236,15 @@ indices. `injectNode` maintains this by construction.
 ### 7.2 Graph edge
 
 ```js
-{ source: 12, target: 15 }     // directed record, rendered and integrated as undirected
+{
+  source: 12, target: 15,      // directed record, rendered and integrated as undirected
+  strength: 0.42,              // 0–1 — spring weight and, in ULTRA, stroke width
+  kind: 'support',             // 'support' | 'containment' | 'wire' | 'derived'
+  inferred: false,             // true when no source asserts the relationship
+  activation: 0.3,             // 0–1 — traffic speed in ULTRA
+  ref: '', mechanism: '',      // provenance: e.g. '§00c wire 04' + the published mechanism
+  birthAt: 1000,
+}
 ```
 
 Edges are **not deduplicated** and are permitted to be reciprocal: the generator samples
@@ -260,6 +296,26 @@ PALETTES[5][5] = ['#030509', '#0e1424', '#00f7ff', '#ff0055', '#a855f7']
 Five curated five-colour states, rotated by `paletteGen.mutate()`, exportable as CSS custom
 properties (`--accent-1` … `--accent-5`).
 
+### 7.8 Stratum, claim class and provenance
+
+The 9.5.0 model additions, read by the ultra renderer and ignored by the standard one. They are
+stored on the node, not in a side table, so there is exactly one place a node's meaning can live.
+
+```js
+ZAZIOPATH_STRATA[8] = { k, g, label, hex, home, i }   // the vault's § 00a colour code
+STRATUM_OF          = { memetics:'shadow', semiotics:'myth', psychoacoustics:'evidence',
+                        hyperstition:'recursion', alchemy:'stewardship' }
+NODE_CLASSES[5]     = { g, label, hue, shape }        // source · concept · inferred · ingested · question
+ZAZIOPATH_WIRES[17] = [ from, mechanism, to ]         // the published § 00c wire register
+```
+
+`graphEngine.seedZaziopath()` turns the wire register into graph structure: eight anchor nodes (one
+per stratum), twenty-nine entity nodes derived from the wire endpoints, one `question` node carrying
+the vault's premise question, seventeen `wire` edges carrying their mechanisms, and thirty
+`containment` edges binding each entity (and the question) to its stratum anchor — 38 nodes and 47
+edges in total, taking the boot graph from 90/265 to **128 nodes / 312 edges**. `annotateNode()` and `addEdge()` are the only
+constructors for these records, which is what keeps the invariants below true by construction.
+
 ---
 
 ## 8. The force simulation
@@ -277,12 +333,28 @@ properties (`--accent-1` … `--accent-5`).
 | Damping | `v ← v · 0.88` | per frame | all nodes |
 
 ```js
-// paraphrase of updatePhysics(), index.html:929–978
+// paraphrase of updatePhysics() — the STANDARD integrator
 for each pair (i < j) within 260px:  v ← v ± (dx/d) · (k_repel / d²)
 for each node:                        v ← v − p · k_gravity
 for each edge:                        v ← v ± (dx/d) · ((d − 75) · k_spring)
 for each node:                        v ← v · 0.88 ; p ← p + v
 ```
+
+**The ultra field runs a different integrator over the same nodes** (it is a renderer choice, not a
+second graph). It is delta-time scaled, uses a uniform grid so pair work is `O(n·k)` instead of
+`O(n²)`, and adds three semantically meaningful terms the standard view has no use for:
+
+| Term | Formula | Purpose |
+| --- | --- | --- |
+| Stratum gravity | `v ← v + (centroid(stratum) − p) · 0.00022 · grav · dt` | regions self-assemble from membership |
+| Same-stratum cohesion | `v ← v ± (d − 26)/190 · cohesion · 0.0022 · dt` within 190 px | swarm behaviour inside a region |
+| Focus convergence | attract when relevance > 0.4, push out otherwise | unrelated matter clears the thought-cluster |
+| Uncertainty jitter | `v ← v + rand(−½,½) · uncertainty · turbulence · 0.055 · dt` | inferred claims are visibly unstable |
+| Curl drift | `sin/cos` wander seeded per node, amplified by the dream state | idle motion that never repeats |
+
+Both integrators move the same `x`/`y` fields, so switching modes is a change of perspective: the
+layout you were looking at is the layout you continue from. Constants, tiers and budgets:
+[`ULTRA-VISUALIZATION.md` § 10](ULTRA-VISUALIZATION.md#10-performance-lod-and-fallbacks).
 
 ### 8.2 Reading the constants
 
@@ -365,7 +437,7 @@ view-preserving, viewport-aware layout algorithm (clamp-and-flow on boot and on 
 a responsive rewrite — the desktop metaphor is intentional, but unreachable windows are a defect.
 
 **Listener note.** `makeDraggable` binds its `mousemove` and `mouseup` handlers to `document` once
-per window (8 × 2 = 16 permanent listeners) rather than to a single delegated set. Correct, but
+per window (9 × 2 = 18 permanent listeners) rather than to a single delegated set. Correct, but
 quadratic in window count; tracked as `NOO-017`.
 
 ---
@@ -391,7 +463,6 @@ drop | pick  →  FileReader.readAsText  →  tokenise (\s+)  →  filter (len >
 **Verdict on the drop-zone copy.** The UI advertises `.PDF`. `readAsText` on a binary PDF yields
 mojibake, so the practical input is plain text and Markdown. This is a copy-accuracy defect rather
 than a code defect; it is tracked in the accuracy register as `NOO-009` and corrected in `9.5.1`.
-
 ---
 
 ## 12. The composition engine (Polymath LLM)
@@ -502,11 +573,15 @@ Each extension point is a single, well-bounded edit. None requires touching more
 | Add a palette | Append to `PALETTES` | 1 array | XS |
 | Add a fragment | Append to `GRIMOIRE_DATA` | 1 array | XS |
 | Change the acoustic grammar | `playBeep` call sites or `soundLab` presets | 1 module | S |
+| Add a node claim class | Append to `NODE_CLASSES` with a `shape` + `hue`; `drawClassGrammar` picks it up; the legend regenerates itself | 1 table | XS |
+| Add a stratum | Append to `ZAZIOPATH_STRATA`; `annotateNode` resolves it, the aura/gravity/legend follow; give it an anchor in `seedZaziopath` if it needs one | 1–2 places | S |
+| Add an ultra field | Append to `ULTRA_FIELDS` with a force profile + particle mix; the deck chips are data-driven from the same table | 1 table + 1 chip | XS |
+| Add a weather channel | Compute it in `graphMetrics.computeWeather()`, read it in `ultra.drawWeather()`/`drawNebula()`, add a meter to the readout | 3 places | S |
+| Change the field's cost envelope | `ULTRA_TIERS` (what each LOD drops) and `ULTRA_MAX_PARTS` (the pool ceiling) | 2 tables | XS |
 | Add a shell quick action | `buildQuickActions()` + a `case` in `onClick()` | 1 module (`shell/synapse-shell.js`) | XS |
 | Add an agent tool | `TOOLS` + `executeTool()` in `server/agent.mjs` + the system-prompt description | 2 places | S |
 | Add a shell HTTP route | `server/routes.mjs` (+ a hub method if it touches the PTY) | 1–2 files | S |
-
-**Extraction seam (future).** The ten engines are already isolated by comment banner and by
+**Extraction seam (future).** The eleven engines are already isolated by comment banner and by
 identifier; they correspond 1:1 with the proposed ES modules in
 [`MAINTAINABILITY.md` § Extraction plan](MAINTAINABILITY.md#7-extraction-plan). The single-file
 constraint is a delivery decision, not a structural one — the code is extraction-ready, which is
@@ -522,9 +597,18 @@ violation fails CI regardless of baseline.
 | Invariant | Rule |
 | --- | --- |
 | Every `id` is unique | Duplicate ID detection |
-| Every `getElementById('x')` resolves | Dangling-reference detection (46 declared IDs, 28 lookup sites, 0 dangling) |
+| Every `getElementById('x')` resolves | Dangling-reference detection (71 declared IDs, 51 lookup sites, 0 dangling) |
 | Every `restoreOrFocus('win-x')` target exists | Dock integrity check |
 | Every inline handler calls a defined global | Handler resolution (properties excluded) |
+
+Four more invariants are asserted behaviourally by `npm run smoke` rather than statically:
+
+| Invariant | Assertion |
+| --- | --- |
+| Both renderers read one graph | the ultra field moves the same node objects the atlas owns |
+| Node ids are array indices | `graphNodes.every((n, i) => n.id === i)` at boot and after injection |
+| Injection is additive and linked | exactly one node added, at least one edge added, in either renderer |
+| The field degrades instead of failing | five submodes, resize while live, and return to STANDARD all complete |
 
 The remaining 21 register checks are **ratcheted** rather than gated: findings may not exceed their
 baseline, and improvements are surfaced for the baseline to be tightened. See
@@ -545,21 +629,27 @@ roadmap, the changelog and `scripts/audit.mjs` titles.
 | `NOO-004` | Low | Project class never defined | `.no-scrollbar` used on the directive strip | Add the utility rule |
 | `NOO-005` | Info | Dead animation config | `pulse-glow`, `scanline` declared, zero call sites | Apply or delete |
 | `NOO-006` | Med | Unresolvable icon | `data-lucide="dread"` is not a Lucide icon | Choose a real name (e.g. `brain-circuit`) |
-| `NOO-007` | High | Unescaped `innerHTML` sinks | 2 sites interpolate prompt text and dropped filenames (was 4 at `9.4.1`) | Route through `textContent` / `escapeHtml()` |
+| `NOO-007` | High | Unescaped `innerHTML` sinks | **2 of 4 remain** (9.5.0 refactor moved the transcript and ingestion rows to `textContent`) | Route the remaining two through `textContent` |
 | `NOO-008` | Med | Unpinned runtime dependency | `cdn.tailwindcss.com`, `unpkg.com/lucide@latest` | Pin versions; self-host for offline parity |
 | `NOO-009` | Low | Advertised volume ≠ shipped | "240+ fragments", 7 shipped | Correct the copy, or ship the corpus |
-| `NOO-010` | Low | Counter parity drift | Badge 142 / banner "120+" / engine spawns 90 | Derive all three from `graphNodes.length` |
-| `NOO-011` | Low | Domain has no filter | `alchemy` is in `DOMAINS` but absent from the toolbar | Add the filter button |
+| `NOO-010` | ~~Low~~ | ~~Counter parity drift~~ | **Retired in 9.5.0** — badge and banner are derived from `graphNodes.length` | — |
+| `NOO-011` | ~~Low~~ | ~~Domain has no filter~~ | **Retired in 9.5.0** — `ALCHEMY` added to the toolbar | — |
 | `NOO-012` | Low | Window absent from dock | `win-synthesizer` has no `restoreOrFocus` entry | Add a dock button |
 | `NOO-013` | Low | "Live" readouts are static | `entropy-val`, `stat-sub`, `radar-poly`, `telemetry-log` — 0 runtime writes | Drive from state, or relabel as static |
-| `NOO-014` | Med | Canvas not HiDPI-scaled | No `devicePixelRatio` handling | Scale backing store; store DPR in the resize path |
+| `NOO-014` | ~~Med~~ | ~~Canvas not HiDPI-scaled~~ | **Retired in 9.5.0** — both canvases scale by `devicePixelRatio` (cap 2×), transform kept in CSS px | — |
 | `NOO-015` | Med | `O(n²)` broad phase | 4,005 pairs/frame, no spatial index | Uniform grid / Barnes–Hut; optionally a worker |
-| `NOO-016` | High | No accessibility semantics | 0 `aria-*`, 0 `role`, 0 `tabindex`; 7 `outline-none` | Keyboard model + roles + live regions |
-| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 8 windows = 16 permanent | Delegate once, or bind during drag only |
+| `NOO-016` | High | Accessibility semantics | **Cleared from the automated count in 9.5.0** — 17 `aria-*` on the graph and ultra controls; real debt remains (14 icon-only buttons app-wide unlabelled, 0 `role`, 0 `tabindex`, no live regions) | Finish [`ACCESSIBILITY.md` § 8](ACCESSIBILITY.md#8-remediation-plan) P0/P1 |
+| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 9 windows = 18 permanent | Delegate once, or bind during drag only |
 | `NOO-018` | Med | No link-preview metadata | No description, favicon or OG tags | Add meta set + favicon |
 | `NOO-019` | High | Unreachable default geometry | Layout spans 1760 × 880; `win-synthesizer` needs ≥1500 px and is undocked | Viewport-aware layout on boot and resize |
 | `NOO-020` | Med | Frame-rate-dependent physics | No `deltaTime` in `updatePhysics` | Fixed-timestep accumulator at 60 Hz |
-| `NOO-021` | Low | Initial state is not reproducible | 19 unseeded `Math.random()` call sites, no seeded PRNG | Seed a local PRNG (e.g. `mulberry32`) for spawn, injection and drift |
+| `NOO-021` | ~~Low~~ | ~~Initial state is not reproducible~~ | **Retired in 9.5.0** — graph spawn, injection and the Zaziopath lattice use a seeded `mulberry32`; 90 nodes / 265 edges reproduce exactly | — |
+
+> **Budget note.** The 9.5.0 changes leave the document at **183,533 B (3,050 lines)**, of which the
+> ultra renderer is the largest subsystem (~46 kB). The payload budget was re-baselined from
+> `96,000 / 128,000` to `188,000 / 224,000` in the same change, anchored to the measured payload with
+> ~5 % warn and ~25 % fail headroom. The reason is recorded in
+> [`PERFORMANCE.md` § 8](PERFORMANCE.md#8-guardrails) and [`ULTRA-VISUALIZATION.md` § 11](ULTRA-VISUALIZATION.md#payload).
 
 > **Implementation note — denormalised colour cache.** Not a defect, recorded here so it is not
 > "fixed" by mistake: `node.color` copies `DOMAINS[domain].color` at creation. The render loop reads

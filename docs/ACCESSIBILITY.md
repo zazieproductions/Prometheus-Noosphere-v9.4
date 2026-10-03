@@ -6,9 +6,9 @@
 **Status:** ❌ **Not conformant.** Tracked as [`NOO-016`](ARCHITECTURE.md#17-defect-register) (high).
 **Target:** WCAG 2.2 Level AA for the interface chrome; a defined-but-exempt status for the graph
 canvas (see [§ 7](#7-the-canvas-problem)).
-**Method:** static analysis of `HEAD` (44 buttons, 42 IDs, 0 `aria-*`, 0 `role`, 0 `tabindex`) plus
-formula-measured contrast ratios. No automated accessibility tool has been run — and saying so is the
-point of this document.
+**Method:** static analysis of `HEAD` (64 buttons, 74 declared IDs, **17 `aria-*`** — all on the graph
+and ultra controls — 0 `role`, 0 `tabindex`) plus formula-measured contrast ratios. No automated
+accessibility tool has been run — and saying so is the point of this document.
 
 ---
 
@@ -37,7 +37,8 @@ Honesty cuts both ways. These properties are real, verified, and worth protectin
 | --- | --- | --- |
 | Language declared | `<html lang="en">` | 3.1.1 Language of Page ✅ |
 | Semantic landmarks | `<header>` · `<main>` · `<footer>` | 1.3.1, 2.4.1 (partial) ✅ |
-| Real controls, not div-soup | 44 `<button>`, 3 `<select>`, 4 `<input>` | 4.1.2 (partial) ✅ |
+| Real controls, not div-soup | 58 `<button>`, 3 `<select>`, 4 `<input>` | 4.1.2 (partial) ✅ |
+| Named ultra controls | 13 graph/ultra buttons + 4 sliders carry explicit `aria-label` (9.5.0) | 4.1.2 (partial) ✅ |
 | Text zoom survives | Tailwind sizes are `rem`-based | 1.4.4 Resize Text ✅ |
 | No audio autoplay | Audio context is constructed on first gesture | 1.4.2 ✅ |
 | No timing traps | No session limits, no auto-advance, no CAPTCHA | 2.2.1 ✅ |
@@ -85,8 +86,9 @@ claim.
 
 | Interaction | Keyboard | Pointer alternative | Status |
 | --- | --- | --- | --- |
-| 26 labelled buttons | ✅ Native, tabbable | — | Pass |
-| 3 `<select>`, 4 `<input>` | ✅ Native | — | Pass |
+| 40 buttons with visible text | ✅ Native, tabbable | — | Pass |
+| 13 ultra/graph controls + 4 sliders with `aria-label` | ✅ Native, tabbable | — | Pass |
+| 4 icon-only controls named only by `title` | ✅ Focusable, ⚠️ tooltip-only name | — | ⚠️ 4.1.2 |
 | **14 icon-only buttons** | ✅ Focusable, ❌ **no accessible name** | — | ❌ 4.1.2 |
 | **Window drag** | ❌ Mouse-only | ❌ None | ❌ 2.1.1, 2.5.7 |
 | **Window minimise/maximise** | ✅ Buttons are reachable | — | Pass (once labelled) |
@@ -109,7 +111,7 @@ change — but the substitution is applied inconsistently, so this is *partially
 
 | Element | Accessible exposure | Status |
 | --- | --- | --- |
-| Graph canvas | Opaque. No text alternative, no node list, no summary | ❌ 1.1.1, 1.3.1 |
+| Graph + ultra canvases | Opaque. No text alternative, no node list, no summary; the ultra deck's controls are labelled but the field itself is invisible to AT | ❌ 1.1.1, 1.3.1 |
 | Inspector HUD | Exists in the DOM and updates on hover — hover has no AT equivalent | ❌ 1.3.1 |
 | Transcript (`#terminal-output`) | Appends content; not a live region, so nothing is announced | ❌ 4.1.3 |
 | Ingestion status (`#ingest-status-text`) | Swaps colour and text; not announced | ❌ 4.1.3 |
@@ -118,7 +120,7 @@ change — but the substitution is applied inconsistently, so this is *partially
 | Gauge/radar values | Visual only; no table, no text summary | ⚠️ 1.1.1 |
 
 **Headings.** The instrument aesthetic means almost no text is marked as a heading. Visually this is
-correct; programmatically it leaves an AT user with no document outline for seven windowed regions.
+correct; programmatically it leaves an AT user with no document outline for nine windowed regions.
 
 **Suggested remediation shape:** each window becomes a labelled `role="region"` (or `<section>` with
 `aria-labelledby` pointing at its title), the transcript becomes `aria-live="polite"`,
@@ -132,24 +134,28 @@ state — which is both a text alternative and a genuinely useful feature.
 
 | Animated element | Duration | Pausable | Status |
 | --- | --- | --- | --- |
-| Graph render loop | continuous, rAF | ❌ | ❌ 2.2.2 |
+| Graph render loop (STANDARD) | continuous, rAF | ❌ | ❌ 2.2.2 |
+| Ultra field (ULTRA) | continuous, rAF | ✅ entry preset under `prefers-reduced-motion` (LOD 1 · CONSTELLATION · no dream) | ⚠️ 2.2.2 (standard loop only) |
 | Status dot (`animate-ping`) | 1 s loop | ❌ | ❌ 2.2.2 |
 | Equaliser bars (`animate-pulse`) | 1 s loop | ❌ | ❌ 2.2.2 |
 | Identity atom (`animate-spin`) | 12 s loop | ❌ | ❌ 2.2.2 |
 | CRT scanline overlay | static texture | — | ✅ |
 | Telemetry drift | 1 Hz, text updates | ❌ | ❌ 2.2.2 |
 
-There is **no `prefers-reduced-motion` support**. The continuous canvas animation is the substantive
-issue: an auto-updating, non-pausable region of moving content, which is both a 2.2.2 concern and a
-vestibular trigger. Two declared animations (`pulse-glow`, `scanline`) are currently unused, which
-reduces the surface by accident rather than by design (`NOO-005`).
+**`prefers-reduced-motion` is partially honoured.** Entering ULTRA with the media query set forces LOD
+1, turbulence 15, the CONSTELLATION field and dream off — announced in the transcript — but the
+standard atlas, the ambient CSS loops and the telemetry drift remain unconditional. The continuous
+canvas animation is the substantive issue: an auto-updating, non-pausable region of moving content,
+which is both a 2.2.2 concern and a vestibular trigger. Two declared animations (`pulse-glow`,
+`scanline`) are currently unused, which reduces the surface by accident rather than by design
+(`NOO-005`).
 
-**Minimum viable fix**, in one place, before any engine initialises:
+**Remaining fix**, in one place, before any engine initialises:
 
 ```js
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// → skip the rAF loop (render one static frame), freeze ambient loops, and
-//   let telemetry updates apply without transition.
+// → render one static atlas frame, freeze ambient loops, and let telemetry
+//   updates apply without transition. The ultra field already does its part.
 ```
 
 A fuller fix adds an in-UI motion toggle, which is preferable to relying on an OS setting the user
@@ -184,7 +190,7 @@ Ordered by value per unit of effort. Every item is also a roadmap entry in
 | --- | --- | --- | --- | --- |
 | **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.5.1 |
 | **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.5.1 |
-| **P1** | `prefers-reduced-motion`: static first frame, frozen ambient loops | 2.2.2, 2.3.3 | S | 9.6.0 |
+| **P1** | `prefers-reduced-motion`: standard atlas + ambient loops (the ultra field honours it on entry) | 2.2.2, 2.3.3 | S | 9.5.0 ⚠️ partial · 9.6.0 rest |
 | **P1** | `aria-live` on the transcript, ingestion status and node counter | 4.1.3 | S | 9.6.0 |
 | **P1** | Region semantics per window (`section` + `aria-labelledby`) and a real heading per window | 1.3.1, 2.4.1 | S | 9.6.0 |
 | **P1** | Modal: initial focus, `Escape` to close, focus containment, restore focus to trigger | 2.4.3, 2.1.2 | S | 9.6.0 |
@@ -192,6 +198,10 @@ Ordered by value per unit of effort. Every item is also a roadmap entry in
 | **P2** | Keyboard alternative for window movement (arrow-key nudge on the focused window) | 2.1.1, 2.5.7 | M | 10.0.0 |
 | **P2** | Turn `<div onclick>` surfaces (swatches, cards) into real buttons | 2.1.1, 4.1.2 | S | 10.0.0 |
 | **P2** | Raise accent contrast on `surface-bright`; verify non-text contrast for window borders | 1.4.3, 1.4.11 | S | 10.0.0 |
+
+**Progress at 9.5.0.** The automated `NOO-016` count is clear (17 `aria-*` exist), but that is not
+conformance: 14 controls still have no accessible name, there are still 0 `role` and 0 `tabindex`
+attributes, and no live region exists. The rows above are the honest remainder.
 
 **Exit criteria for "AA conformant":** P0 and P1 complete, P2 canvas item complete or explicitly
 exempted with a documented text-alternative path, and a repeat manual audit recorded in this
@@ -201,9 +211,8 @@ document.
 
 ## 9. Verification plan
 
-Until a headless-browser harness lands in `9.6.0`, verification is a manual matrix performed on each
-release candidate.
-
+Until a headless-browser harness lands in `9.6.0` (the 9.5.0 smoke harness is behavioural and does
+not test accessibility), verification is a manual matrix performed on each release candidate.
 | Check | Method | Pass condition |
 | --- | --- | --- |
 | Keyboard-only traversal | Unplug the mouse; complete every task | All controls reachable, focus order matches visual order, focus always visible |
@@ -215,8 +224,9 @@ release candidate.
 
 **Automation, when it lands:** the audit script will assert static invariants (every icon-only
 button carries an accessible name; every interactive `<div>` is focusable with a role; a
-`prefers-reduced-motion` block exists), which converts most of this document into ratcheted checks in
-the same style as [`NOO-016`](ARCHITECTURE.md#17-defect-register).
+`prefers-reduced-motion` path exists) and the headless harness will assert real accessible names,
+which converts most of this document into ratcheted checks in the same style as
+[`NOO-016`](ARCHITECTURE.md#17-defect-register).
 
 ---
 

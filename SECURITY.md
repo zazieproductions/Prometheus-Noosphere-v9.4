@@ -12,8 +12,8 @@
 | Version | Supported |
 | --- | --- |
 | `9.5.x` (current) | ✅ Security fixes and corrections |
+| `9.4.x` | ⚠️ Superseded by 9.5.0; corrections only |
 | < `9.5.0` | ❌ Superseded; re-copy the file to upgrade |
-
 The deployable artefact is a single `index.html`. There is no package published to a registry and no
 update mechanism — a deployment is a file, and a fix is a new commit.
 
@@ -82,8 +82,7 @@ Four template-literal assignments interpolate human-origin values without escapi
 server. The meaningful vectors are (a) a victim socially engineered into dropping an attacker-supplied
 filename, and (b) content-driven injection if the corpus ever becomes user-editable. Both are real but
 narrow — which is exactly why this is rated *high* in the register rather than *critical*, and why the
-fix is a scheduled `9.5.1` item rather than an emergency.
-
+remaining two sinks are scheduled for `9.5.1` (9.5.0 escaped two of the four).
 **Mitigation until the fix lands:** do not drop files with untrusted names into the ingestion window,
 and do not paste untrusted markup into the terminal. Hosting behind a CSP does **not** mitigate this
 — the current architecture requires `'unsafe-inline'`

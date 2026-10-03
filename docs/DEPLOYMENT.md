@@ -3,8 +3,7 @@
 > Shipping a one-file application — locally, to GitHub Pages, and to any static host — including the
 > Content-Security-Policy the current architecture actually requires.
 
-**Deployable artefact:** `index.html` — one file, 95,308 B, no build step.
-**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
+**Deployable artefact:** `index.html` — one file, 183,533 B, no build step.**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
 
 ---
 
@@ -221,8 +220,7 @@ upgrade-insecure-requests
 **Prefer a response header over a `<meta http-equiv>` tag.** A meta policy cannot express
 `frame-ancestors`, and header-delivered policies are applied before the document starts parsing.
 
-### 5.3 Hardened policy (after the `9.6.0` refactor)
-
+### 5.3 Hardened policy (after the vendor-pinning refactor, `9.6.0`)
 Removing the three constraints above is a bounded piece of work, not a rewrite:
 
 | Step | Change | Removes |
@@ -279,7 +277,8 @@ Run top to bottom. Every line is either automated or takes under a minute.
 
 ```bash
 # 1 · Verify
-npm test                       # must be PASS (exit 0)
+npm test                       # audit: must be PASS (exit 0)
+npm run smoke                  # behavioural harness: must be PASS (exit 0)
 npm run audit:json             # confirm the finding count matches the baseline
 
 # 2 · Version
@@ -297,14 +296,14 @@ git push origin main --follow-tags
 # 5 · Verify live
 #    - hard-reload the deployed URL (bypass cache)
 #    - console: zero errors, zero unexpected network calls
-#    - all eight windows present (SYNAPSE SHELL included); RE-ALIGN restores the grid
+#    - all nine windows present (SYNAPSE SHELL + WEB UPLINK included); RE-ALIGN restores the grid
 #    - header shows the expected version string
 ```
 
 | Check | Expected |
 | --- | --- |
 | `npm test` | `✔ PASS`, findings ≤ baseline |
-| Payload | < 96,000 B (warn threshold) |
+| Payload | < 188,000 B (warn threshold) |
 | Console | Clean |
 | Windows | 8 · dock 7 · modal 1 |
 | Tag | `v<version>` pushed and visible in Releases |
@@ -332,9 +331,9 @@ pipeline and no server state.
 
 | Host | Cost | Notes |
 | --- | --- | --- |
-| GitHub Pages / Cloudflare Pages / Netlify free tier | **$0** | A single 88 KB file with no functions |
+| GitHub Pages / Cloudflare Pages / Netlify free tier | **$0** | A single 175 KB file with no functions |
 | Bandwidth | negligible | One document per visit plus CDN dependencies |
-| Build minutes | **zero** | `npm test` (~0.3 s) is the only CI work |
+| Build minutes | **zero** | `npm test` (~0.4 s) plus `npm run smoke` (~3 s) is the only CI work |
 | Runtime | $0 | No backend, no database, no serverless function |
 
 The only recurring cost this project could incur is a domain name.

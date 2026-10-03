@@ -16,7 +16,8 @@ Two claims are worth defending, and one is worth retracting.
 
 | Claim | Status | Evidence |
 | --- | --- | --- |
-| The application payload is small and auditable | ✅ **Measured** — 95,308 B, 1,571 lines, 0 vendored assets | `npm test` |
+| The application payload is small and auditable | ✅ **Measured** — 183,533 B, 3,050 lines, 0 vendored assets | `npm test` |
+| The ultra field's cost is bounded by construction | ⚠️ **Modelled** — pool (900), LOD tiers (4) and grid (`O(n·k)`) bound it; per-frame ms **unverified** without a browser ([§ 3.3](#33-the-ultra-field-cost-model-modelled)) | source |
 | The total delivery cost is small | ⚠️ **Unverified** — third-party CDN cost not measured here ([§ 7](#7-load-cost-and-its-measurement-gap)) | Requires network |
 | "Canvas 60 fps" (window badge) | ⚠️ **Aspirational** — the badge is authored copy, and several costs below are frame-budget-relevant | [§ 3](#3-frame-budget-model) |
 
@@ -29,25 +30,31 @@ design statement, not a measurement, and this document is where that distinction
 
 | Metric | Value | Source |
 | --- | --- | --- |
-| Application payload | **95,308 B** (93.1 KiB) | `scripts/audit.mjs` |
-| Lines | **1,571** | `scripts/audit.mjs` |
+| Application payload | **183,533 B** (179 KiB) | `scripts/audit.mjs` |
+| Lines | **3,050** | `scripts/audit.mjs` |
 | Runtime dependencies installed | **0** | `package.json` |
 | Vendored assets (images/fonts/audio) | **0 B** | Repository contains one data-free PNG in `docs/` |
 | Network calls from the runtime | **0** | No `fetch` / `XMLHttpRequest` / `WebSocket` in the source |
 | Third-party runtime dependencies | **3** (Tailwind CDN, Lucide CDN, Google Fonts) | `<head>` |
 | Font families requested | **3** (Cinzel 3 weights, JetBrains Mono variable + italic variable, Syne 4 weights) | `<head>` |
-| Audit runtime | **~0.3 s**, no install | `time npm test` |
+| Ultra particle pool ceiling | **900 slots** (`ULTRA_MAX_PARTS`), scaled by density × tier — SURVIVAL uses **0** | `index.html` |
+| Ultra LOD tiers | **4** named tiers, self-selected from measured frame ms | `ULTRA_TIERS`, `ultra.adapt` |
+| Ultra physics grid | **78 px** uniform cells over a 260 px cutoff | `ultra.physics` |
+| Audit runtime | **~0.4 s**, no install | `time npm test` |
 
 **Payload budget, enforced in CI** (`scripts/audit.mjs`):
 
 | Threshold | Bytes | Current | Headroom |
 | --- | --- | --- | --- |
-| Warn | 96,000 | 95,308 | +692 B |
-| Fail | 128,000 | 95,308 | +32,692 B |
-
-The budget exists because an 88 KB single file is a *design asset*: it stays reviewable in one
-sitting. Growth past the warn threshold is a signal to reconsider the single-file decision, not
-merely to raise a number.
+| Warn | 188,000 | 183,533 | +4,467 B |
+| Fail | 224,000 | 183,533 | +40,467 B |
+The budget exists because a single-file application is a *design asset*: it stays reviewable in one
+sitting. The band was re-baselined in 9.5.0 from `96,000 / 128,000` in the same change that added the
+ultra renderer — the largest single addition the file has taken. The new numbers are anchored to the
+measured payload rather than to round figures: **warn at ≈ +5 %**, **fail at ≈ +25 %**. Past the warn
+threshold the question is unchanged — whether the single-file delivery decision still pays for
+itself — and it is a signal to reconsider that decision, not merely to raise a number. See
+[`DECISIONS.md` ADR-015](DECISIONS.md).
 
 ---
 
@@ -78,9 +85,33 @@ it is the first thing to fix if the graph grows (`NOO-015`).
 **(b) `shadowBlur` per node.** Canvas 2D shadows are not free: each blurred draw typically costs an
 offscreen pass. Ninety shadowed arcs per frame is, in practice, the most expensive *rendering* line in
 the system — and it is pure decoration (glow). This is the highest-leverage rendering optimisation
-available, and it is listed first in the ladder for that reason.
+available, and it is listed first in the ladder for that reason. The ultra field already proves the
+alternative: it stamps pre-baked radial-gradient sprites with `drawImage` and never touches
+`shadowBlur`.
 
-### 3.3 The frame-rate coupling (a performance bug, not just a physics one)
+### 3.3 The ultra field cost model (modelled)
+
+The field's costs are **structural bounds, not measurements** — they are enforced by the source and
+verifiable by reading it, but no browser was available to time a frame.
+
+| Phase | Cost | Bound |
+| --- | --- | --- |
+| Metrics pass | `O(V + E)` every 30 frames | `graphMetrics.rebuild` |
+| Broad phase | `O(n·k)` | uniform grid, 78 px cells, 260 px cutoff |
+| Particle step + draw | `O(P)` | `P = round(900 × density/100 × tierFactor)`, `0` at SURVIVAL |
+| Glow stamps | `O(n + P)` | one pre-baked `drawImage` per sprite; no `shadowBlur` |
+| Signal traffic | `O(E × traffic × tier)` | capped by tier, off at SURVIVAL |
+| Nebula rebuild | **1 gradient / 4–30 frames** at ⅛ scale | `nebula` field of the active tier |
+| HUD write | **~5 Hz** | text values + four bar widths |
+| Adaptive tier | attempts the highest tier whose measured `avgMs` fits | `ultra.adapt`, hysteresis via `slowRun` |
+
+Two consequences worth stating: the field **yields the standard loop** while it is active (one rAF
+loop runs at a time), and it replaces the standard renderer's per-node `shadowBlur` with pre-baked
+sprites — so the ultra path is, by construction, the cheaper of the two glow strategies. What remains
+unmeasured is whether it actually holds 16.7 ms on real hardware; the harness in § 6 plus the
+in-app `--fps` readout and `LOD AUTO` badge are how a reader can check.
+
+### 3.4 The frame-rate coupling (a performance bug, not just a physics one)
 
 `updatePhysics` advances by a constant increment per frame with no `deltaTime` (`NOO-020`). The
 consequence is not only that the simulation runs ≈2.4× faster on a 144 Hz display — it is that the
@@ -99,7 +130,9 @@ cost on high-refresh hardware.
 | Physics step | `O(n²) + O(E)` | node count squared | cutoff radius (260 px) |
 | Render pass | `O(n + E)` | primitives | DPR × area (if DPR scaling lands) |
 | Hit test | `O(n)` | node count | pointer move frequency |
-| `injectNode` | `O(1)` amortised | — | deferred into the next broad phase |
+| `injectNode` | `O(n log n)` | nearest-neighbour sort | 90–130 nodes |
+| Ultra field step | `O(n·k + P + E·t)` | neighbours · particles · traffic | grid + tier caps (§ 3.3) |
+| Ultra physics | `O(n·k)` | node count × local density | 78 px cells, 260 px cutoff |
 | `appendChat` | `O(1)` + reflow | transcript length | DOM growth (unbounded — see § 5.6) |
 | `grimoire.filter` | `O(F × L)` | fragments × length | 7 records, no index needed |
 | Composition (`polymathLLM`) | `O(1)` | — | Fixed vocabulary, no search |
@@ -124,6 +157,13 @@ column links to the tracked item where one exists.
 | 8 | **Move physics to a Worker** with transferable typed arrays | Off the main thread; smooth interaction under heavy load | L | High *(only at scale)* | roadmap `10.x` |
 | 9 | **Batch edge strokes** into one path per colour | 270 `stroke()` calls → a handful | S | Low–Medium | — |
 | 10 | **Off-screen static layer** for the dot hatching | Currently pure CSS on the substrate, already cheap | — | None | — |
+
+**Ladder status after 9.5.0.** Rungs 2, 4 and 5 are implemented **inside the ultra field**: pre-baked
+glow sprites replace per-node `shadowBlur` there, the field's broad phase is a uniform grid, and both
+canvases are DPR-scaled with a 2× cap. The standard atlas deliberately keeps its original integrator
+and glow pass, so `NOO-015` and `NOO-020` remain open **for STANDARD**; rung 1 is shipped for the
+field (it integrates with `dt`) but not for the atlas. Rungs 3 (suspend when hidden) and 7 (bound the
+transcript) remain open for both renderers.
 
 ### Two anti-optimisations, rejected
 
@@ -201,7 +241,7 @@ curl -sSL -o /dev/null -w 'lucide     %{size_download} B\n' \
 
 Then load the app with the Network panel open and **record the transfer size and the main-thread
 compilation task** — the Tailwind JIT pass shows up as a long task during load, which no amount of
-optimisation to our 88 KB can offset.
+optimisation to our 178 KB can offset.
 
 ### The two conclusions that follow
 
@@ -220,11 +260,12 @@ optimisation to our 88 KB can offset.
 
 | Guardrail | Mechanism | Where |
 | --- | --- | --- |
-| Payload cannot creep silently | Warn at 96,000 B, fail at 128,000 B | `scripts/audit.mjs` |
+| Payload cannot creep silently | Warn at 188,000 B, fail at 224,000 B (re-baselined in 9.5.0) | `scripts/audit.mjs` |
 | Findings cannot creep silently | Ratcheted baseline, 21 register IDs | `scripts/audit-baseline.json` |
 | Complexity cannot creep silently | `NOO-015` reports pair evaluations per frame derived from the spawn count | `scripts/audit.mjs` |
 | Frame-rate behaviour is reviewed | `NOO-020` asserts the integrator steps by `deltaTime` | `scripts/audit.mjs` |
 | Frame budget is re-measured per release | Manual harness in § 6, recorded in the release checklist | `DEPLOYMENT.md` |
+| Effect density cannot creep silently | 900-slot pool + 4 LOD tiers with hysteresis; SURVIVAL allocates nothing | `ULTRA_MAX_PARTS`, `ULTRA_TIERS` |
 
 **A note on the ratchet:** the audit deliberately fails on *new* debt rather than on *existing* debt,
 because a hard gate against known defects would block every unrelated improvement. The cost of that

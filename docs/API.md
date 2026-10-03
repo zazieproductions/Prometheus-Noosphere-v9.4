@@ -13,7 +13,9 @@
 - [Module map](#module-map)
 - [Global functions](#global-functions)
 - [Engine: `graphEngine`](#engine-graphengine)
-- [Engine: `polymathLLM`](#engine-polymathllm--template-composition-engine)
+- [Engine: `graphMetrics`](#engine-graphmetrics--derived-metrics)
+- [Engine: `ultra`](#engine-ultra--ultra-visualisation-field)
+- [Engine: `polymathLLM`](#engine-polymathllm--local-inference-with-template-fallback)
 - [Engine: `soundLab`](#engine-soundlab)
 - [Engine: `paletteGen`](#engine-palettegen)
 - [Engine: `grimoire`](#engine-grimoire)
@@ -45,17 +47,22 @@ appear in [`CHANGELOG.md`](../CHANGELOG.md) under *Changed*.
 ## Module map
 
 ```
-index.html  ─── globals ──────────── window-manager + ingestion + modal functions
-            ├── graphEngine          graph state, camera, rendering, injection
-            ├── polymathLLM          transcript + composition
-            ├── soundLab             audio presets           (playBeep is global)
-            ├── paletteGen           palette state + clipboard
+index.html  ─── data tables ──────── DOMAINS · ZAZIOPATH_STRATA · NODE_CLASSES · ZAZIOPATH_WIRES
+            │                       annotateNode() · addEdge() · mulberry32() · rng()
+            ├── globals ──────────── window-manager + ingestion + modal + hotkeys
+            ├── graphMetrics        derived pass: degree · mass · strata · weather · focus reach
+            ├── graphEngine         graph state, camera, standard rendering, injection, seeding
+            ├── ultra               ultra visualisation field (second renderer, same arrays)
+            ├── polymathLLM         transcript + composition
+            ├── soundLab            audio presets           (playBeep is global)
+            ├── paletteGen          palette state + clipboard
             ├── grimoire             fragment corpus + search
             └── ideaCombinator       dialectical synthesis
 ```
 
-Loading order matters: `sound` → `window manager` → `graph` → `polymathLLM` → `ingestion` →
-`paletteGen` → `grimoire` → `ideaCombinator` → `modal` → `telemetry` → initialisation. See
+Loading order matters: `sound` → `window manager` → `data tables` → `graphMetrics` → `graphEngine`
+→ `ultra` → `polymathLLM` → `ingestion` → `paletteGen` → `grimoire` → `ideaCombinator` → `modal` →
+`telemetry` → initialisation. See
 [`ARCHITECTURE.md` § Boot sequence](ARCHITECTURE.md#5-boot-sequence).
 
 ---
@@ -192,21 +199,28 @@ the modal. Domain options: `memetics` · `semiotics` · `psychoacoustics` · `hy
 
 ## Engine: `graphEngine`
 
-#### `injectNode(title: string, domain: string, desc: string) → void`
+#### `injectNode(title: string, domain: string, desc: string, opts?: object) → void`
 
-Appends a node and three random edges to the live simulation.
+Appends an annotated node and links it to its nearest conceptual neighbours. This is the single
+insertion point for the Ingestion Vector, the idea combinator and the manual modal.
+
+`opts`: `{ klass?, stratum?, origin?, ref?, uncertainty?, links? }` — `klass` defaults to
+`'ingested'`, `links` to `3`.
 
 ```js
-// node created by injectNode
+// node created by injectNode (9.5.0)
 {
   id: graphNodes.length,          // append-only; ids are never reused
   title, domain, desc,
-  valence: (92 + random() * 7.9).toFixed(1) + '%',
-  x: (random() - 0.5) * 100,      // spawned near the origin
-  y: (random() - 0.5) * 100,
+  valence: (92 + rng() * 7.9).toFixed(1) + '%',
+  x: (rng() - 0.5) * 100,         // spawned near the origin
+  y: (rng() - 0.5) * 100,
   vx: 0, vy: 0,
-  radius: 6,
-  color: DOMAINS[domain]?.color ?? '#00f7ff'
+  radius: klass === 'source' ? 6.5 : 6,
+  color: DOMAINS[domain]?.color ?? '#00f7ff',
+  stratum,                        // defaults from STRATUM_OF[domain]
+  klass, provenance: { origin, ref, recorded: !!ref },
+  uncertainty, activation: 1, mass: 0, phase, warp, birthAt: performance.now(),
 }
 ```
 
@@ -214,19 +228,33 @@ Appends a node and three random edges to the live simulation.
 | --- | --- |
 | `graphNodes.length` increased by 1 | Yes |
 | `id` valid and unique | Yes — assigned from the current length |
-| Edges added | 3, targeting `random(0 … id-2)` |
+| Edges added | `opts.links` (default 3), each targeting a **nearest** neighbour, `kind: 'derived'` |
 | Badge updated | `#synapse-count` → `"<n> NODES"` |
+| Metrics invalidated | `graphMetrics.dirty = true` |
+| Field birth event | `ultra.birthEvent(node)` — a no-op unless ULTRA is active |
 | Acoustic confirmation | 1400 Hz triangle |
 | Unknown `domain` | Falls back to cyan; node still injects (**no validation error**) |
 
-**Side effects:** mutates the live arrays, the DOM badge, and the audio context.
-**Cost:** `O(1)` amortised — the new node joins the `O(n²)` broad phase on the next frame.
+**Side effects:** mutates the live arrays, the DOM badge, the metrics flag and the audio context.
+**Cost:** `O(n log n)` — the neighbour sort dominates at 90–130 nodes.
+
+#### `setDisplayMode(mode: 'standard' | 'ultra') → void`
+Switches renderer. `'ultra'` calls `ultra.enter()`, `'standard'` calls `ultra.exit()`. The graph,
+the camera and the selection are untouched; the standard loop yields while the field is active.
+
+#### `seedZaziopath(silent?: boolean) → boolean`
+Merges the Zaziopath structure into the live graph: 8 stratum anchors, 29 § 00c entities and 1
+unresolved question (38 nodes), 17 `wire` edges carrying their published mechanisms and 30
+`containment` edges (one per entity, plus the question bound to the INDEX anchor) — boot 90/265 →
+**128 nodes / 312 edges**. Idempotent — returns `false` and (unless `silent`) says so in the terminal.
+Called automatically on the first `ultra.enter()`. **Cost:** `O(n)` plus the metrics pass.
 
 #### `filterDomain(dom: string) → void`
 Sets `activeDomainFilter` and re-styles the `.domain-btn` strip (`underline font-bold text-neon-cyan`
 on the active button). Pass `'all'` to clear.
-**Valid values:** `all` · `memetics` · `semiotics` · `psychoacoustics` · `hyperstition`.
-**Note:** `alchemy` exists in `DOMAINS` but has no button (`NOO-011`), so it cannot be isolated.
+**Valid values:** `all` · `memetics` · `semiotics` · `psychoacoustics` · `hyperstition` · `alchemy`
+(the alchemy button arrived in 9.5.0, retiring `NOO-011`). The filter also gates hit-testing, so a
+filtered-out node cannot be selected.
 
 #### `recluster() → void`
 Displaces every node by a uniform ±100 px on both axes, re-seeding the layout. Plays a 500 Hz
@@ -234,6 +262,83 @@ square wave. **Cost:** `O(n)`.
 
 #### `toggleLabels() → void`
 Flips `showLabels`, which gates the label pass in `renderGraph`.
+
+---
+
+## Engine: `graphMetrics` — derived metrics
+
+A pure function of the node and edge arrays, recomputed on a 30-frame cadence and whenever `dirty` is
+set (any topology change). Both renderers read it; neither writes to it.
+
+#### `rebuild() → void`
+Per node: `degree`, `mass` (degree centrality shaded by `valence`). Per stratum: `count`, centroid
+`x`/`y`, mean `activation`/`uncertainty`, `intensity`. Then calls `computeWeather()`.
+**Cost:** `O(V + E)`.
+
+#### `computeWeather() → void`
+Fills `weather` with unit-interval channels:
+
+| Channel | Reads |
+| --- | --- |
+| `excitation` | mean node activation, mean edge strength |
+| `tension` | cross-stratum edge mass × endpoint uncertainty, unresolved share |
+| `inference` | inferred edges and inferred nodes |
+| `source` | share of nodes with recorded provenance |
+| `cluster` | strongest stratum intensity |
+| `turbulence` | `0.4·tension + 0.3·inference + 0.3·excitation` |
+
+#### `updateRelevance(focusId: number | null) → void`
+Three-hop relevance map over the real adjacency (`1`, `0.62`, `0.34`, `0.18`, default `0.1`) with a
+`+0.22` bonus for same-stratum neighbours of the focus. Read by the field's dimming, convergence and
+label passes. **Cost:** `O(V + E)`.
+
+---
+
+## Engine: `ultra` — ultra visualisation field
+
+The second renderer. Full behaviour: [`ULTRA-VISUALIZATION.md`](ULTRA-VISUALIZATION.md).
+
+| Member | Type | Meaning |
+| --- | --- | --- |
+| `enabled` | `boolean` | whether the field owns the frame |
+| `field` | `'swarm' \| 'constellation' \| 'storm' \| 'mycelial' \| 'dream'` | active submode |
+| `params` | `{ density, glow, turbulence, traffic }` (0–100) + `{ weather, dream, trails }` (boolean) | control-surface state |
+| `tier` / `autoTier` | `0–3` / `boolean` | adaptive LOD tier and whether it self-selects |
+| `focusId` / `hoverId` | `number \| null` | selected and hovered node |
+| `dream` / `surge` / `flash` | `0–1` | idle ramp, event surge and storm flash |
+| `waves` | `Array` | live shockwaves (births, focus, excitation bursts) |
+
+#### Lifecycle
+- `init() → void` — sprite atlas, 900-slot particle pool, legend, controls. Once, at boot.
+- `enter() → void` / `exit() → void` — start/stop the field; seeds the Zaziopath lattice on first
+  entry, clears the atlas canvas on entry, restores it on exit. `enter()` refuses and explains itself
+  if no 2D context exists.
+- `invalidate() → void` — rebuilds the vignette and forces a nebula refresh (resize / DPR change).
+- `loop(ts) → void` — one field frame: decay → metrics → adapt → physics → ambient → particles →
+  render → HUD (DOM at ~5 Hz).
+
+#### Controls
+- `setSubmode(name) → void` — selects a field (enters ULTRA if needed; `dream` toggles back to `swarm`).
+- `setParam(key, value) → void` — clamps to `0–100`.
+- `toggle(key) → void` — `'weather'`, `'dream'`, `'trails'`.
+- `cyclePreset() → void` — `CALM → BALANCED → MAXIMAL`, applying density/glow/turbulence/traffic.
+- `toggleLegend() → void` · `refreshControls() → void` · `syncSliders() → void`.
+
+#### Events
+- `focus(node | null) → void` — sets the focused cluster and recomputes relevance.
+- `birthEvent(node) → void` — shockwave, 26-spark burst, weather spike, HUD line.
+- `excite(amount, x?, y?, color?) → void` — raises the surge and optionally pushes a shockwave.
+- `touch() → void` — resets the idle clock; wired to pointer movement.
+
+#### Shared hit-test
+`pickNodeAt(clientX, clientY)` is global and used by **both** renderers: it widens the radius in
+ULTRA so the larger halos remain clickable, and a click always resolves to the same node and the same
+terminal deep-dive.
+
+#### Tunable tables
+`ULTRA_FIELDS` (force profile, particle mix, edge grammar per field), `ULTRA_TIERS` (what each LOD
+drops), `ULTRA_PRESETS` / `ULTRA_PRESET_VALUES`, `ULTRA_MAX_PARTS` (pool ceiling). Extension recipes:
+[`ARCHITECTURE.md` § 15](ARCHITECTURE.md#15-extension-seams).
 
 ---
 
@@ -382,19 +487,29 @@ restores the authored defaults exactly.
 
 ## DOM contract
 
-42 unique IDs. An element is written by exactly one owner unless stated; the audit's four fatal rules
-enforce uniqueness and referential integrity on every run.
+74 declared IDs, 51 of them resolved by `getElementById` and 0 dangling. An element is written by
+exactly one owner unless stated; the audit's four fatal rules enforce uniqueness and referential
+integrity on every run.
 
 | ID | Element | Owner | Written by | Notes |
 | --- | --- | --- | --- | --- |
 | `workspace` | `<main>` | — | — | Positioning context only |
-| `win-graph` … `win-synthesizer` | `<div>` ×7 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
+| `win-graph` … `win-uplink` | `<div>` ×9 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
 | `neural-canvas` | `<canvas>` | graph | `resizeCanvas` | Backing store sized to parent |
+| `ultra-canvas` | `<canvas>` | ultra | `ultra.render` | Second canvas, pointer-transparent overlay |
+| `mode-btn-standard` `mode-btn-ultra` | `<button>` ×2 | graph | `setDisplayMode` | `mode-btn-on` marks the active renderer |
+| `render-badge` | `<span>` | ultra | `ultra.refreshControls` | `FORCE-SIM` ⇄ `ULTRA FIELD` |
+| `ultra-deck` | `<div>` | ultra | `enter` / `exit` | `hidden` while STANDARD is active |
+| `ultra-field-name` `ultra-fps` `ultra-lod` `ultra-signal-line` | `<span>` | ultra | HUD pass (~5 Hz) | Live field readouts |
+| `bar-excitation` `bar-tension` `bar-inference` `bar-source` | `<i>` | ultra | HUD pass | Weather meters; width = channel value |
+| `ultra-density` `ultra-glow` `ultra-turbulence` `ultra-traffic` | `<input type=range>` | ultra | user → `setParam` | Clamped 0–100 |
+| `ultra-weather-btn` `ultra-dream-btn` `ultra-trails-btn` `ultra-legend-btn` `ultra-preset` `ultra-seed-btn` | `<button>` | ultra | `toggle` · `cyclePreset` · `seedZaziopath` | Deck chips |
+| `ultra-legend` | `<div>` | ultra | `ultra.renderLegend` | Class (shape) + stratum (aura) registry |
 | `node-inspector-hud` | `<div>` | graph | `mousemove` handler | Opacity-toggled, not display-toggled |
 | `hud-cluster` `hud-title` `hud-desc` `hud-metric` | `<span>`/`<h4>`/`<p>` | graph | `mousemove` handler | Fed from `hoveredNode` |
 | `terminal-output` | `<div>` | polymath | `appendChat`, `clearChat` | Append-only log |
 | `terminal-input` | `<input>` | polymath | `submitUserPrompt` | `Enter` bound inline |
-| `synapse-count` | `<span>` | graph | `initGraphEngine`, `injectNode` | Live node count |
+| `synapse-count` | `<span>` | graph | `initGraphEngine`, `injectNode`, `seedZaziopath` | Live node count |
 | `chrono-clock` | `<div>` | telemetry | 1 Hz interval | `HH:MM:SS UTC` |
 | `stat-r0` `stat-cog` | `<span>` | telemetry | 1 Hz interval (~40 % of ticks) | Random-walk drift |
 | `stat-sub` | `<span>` | — | **never** | Framed as live — `NOO-013` |
@@ -432,6 +547,11 @@ Markup binds behaviour by attribute. Method calls (`graphEngine.*`) are excluded
 | `onclick` | `minimizeWindow('win-…')` | Hide a window |
 | `onclick` | `maximizeWindow('win-…')` | Toggle maximise with snapshot |
 | `onclick` | `graphEngine.recluster()` `toggleLabels()` `filterDomain('…')` | Atlas controls |
+| `onclick` | `graphEngine.setDisplayMode('…')` | STANDARD ⇄ ULTRA renderer switch |
+| `onclick` | `ultra.setSubmode('…')` | Field selection (5 submodes) |
+| `oninput` | `ultra.setParam('…', this.value)` | Density · glow · turbulence · traffic |
+| `onclick` | `ultra.toggle('weather' \| 'dream' \| 'trails')` `toggleLegend()` `cyclePreset()` | Deck chips |
+| `onclick` | `graphEngine.seedZaziopath()` | Merge the Zaziopath lattice into the live graph |
 | `onclick` | `polymathLLM.runDirective('…')` `clearChat()` `submitUserPrompt()` | Terminal controls |
 | `onkeydown` | `if (event.key === 'Enter') polymathLLM.submitUserPrompt()` | Prompt submission |
 | `onclick` | `soundLab.playTone('…')` | Frequency presets |
@@ -442,20 +562,32 @@ Markup binds behaviour by attribute. Method calls (`graphEngine.*`) are excluded
 | `ondragover` / `ondragleave` / `ondrop` | inline | Drop-zone highlight and ingestion |
 | `onchange` | `handleFileInput(event)` | Picker ingestion |
 
+**Keyboard.** One non-inline `keydown` listener binds `U` (renderer switch), `1`–`5`
+(`ultra.setSubmode`), `W` (weather), `D` (dream/IDLE) and `L` (legend). It ignores events originating
+in `INPUT`/`TEXTAREA`/`SELECT` and any modified key, so typing in the terminal and the modals is
+unaffected.
+
 ---
 
 ## Data constants
 
 | Constant | Line | Shape | Cardinality |
 | --- | --- | --- | --- |
-| `DOMAINS` | 845 | `{ key: { name, color } }` | 5 |
-| `rawSeedThemes` | 859 | `{ id, title, domain, desc, valence }[]` | 15 |
-| `VOCAB` | 1146 | `{ openings[5], tenets[5], actions[4] }` | 14 strings |
-| `PALETTES` | 1309 | `string[5][5]` | 5 states × 5 hex |
-| `GRIMOIRE_DATA` | 1354 | `{ title, tags, text }[]` | 7 |
+| `DOMAINS` | 952 | `{ key: { name, color } }` | 5 |
+| `ZAZIOPATH_STRATA` | 974 | `{ k, g, label, hex, home, i }[]` | 8 |
+| `STRATUM_OF` | 991 | `{ domain: stratumKey }` | 5 |
+| `NODE_CLASSES` | 999 | `{ key: { g, label, hue, shape } }` | 5 |
+| `ZAZIOPATH_WIRES` | 1011 | `[from, mechanism, to][]` | 17 |
+| `rawSeedThemes` | 1090 | `{ id, title, domain, desc, valence }[]` | 15 |
+| `ULTRA_FIELDS` | 1664 | `{ field: { cohesion, repel, grav, … } }` | 5 |
+| `ULTRA_TIERS` | 1674 | `{ name, dust, traffic, dpr, … }[]` | 4 |
+| `VOCAB` | 2591 | `{ openings[5], tenets[5], actions[4] }` | 14 strings |
+| `PALETTES` | 2818 | `string[5][5]` | 5 states × 5 hex |
+| `GRIMOIRE_DATA` | 2863 | `{ title, tags, text }[]` | 7 |
 
-Boot graph: **90 nodes** (15 seed archetypes × 6 procedural generations), **≈270 edges**
-(2–4 per node). Procedural titles are suffixed `[v1.0 … v7.0]`.
+Boot graph: **90 nodes** (15 seed archetypes × 6 procedural generations), **265 edges** (2–4 per
+node). Procedural titles are suffixed `[v1.0 … v7.0]`. Seeding the Zaziopath lattice adds **38 nodes
+and 47 edges** → 128 / 312 (see `seedZaziopath`).
 
 ---
 
@@ -475,7 +607,7 @@ node scripts/audit.mjs --refresh-baseline # rewrite scripts/audit-baseline.json
 | Exit code | Meaning |
 | --- | --- |
 | `0` | No fatal violations, no regression, payload within the hard budget |
-| `1` | Regression, fatal DOM-contract violation, or payload over 128,000 B |
+| `1` | Regression, fatal DOM-contract violation, or payload over the 224,000 B hard budget |
 | `2` | The audit could not run (missing `index.html`, unparseable baseline) |
 
 **Report schema** (`--json`):
@@ -484,7 +616,7 @@ node scripts/audit.mjs --refresh-baseline # rewrite scripts/audit-baseline.json
 {
   "generatedAt": "ISO-8601",
   "source": "index.html",
-  "budget":   { "bytes": 88649, "lines": 1477, "warn": 96000, "fail": 128000, "status": "ok" },
+  "budget":   { "bytes": 178657, "lines": 2994, "warn": 188000, "fail": 224000, "status": "ok" },
   "fatal":    [],                 // always-fatal DOM contract violations
   "regressions": [ { "id": "NOO-001", "severity": "high", "title": "…",
                      "seen": 6, "allowed": 6, "evidence": ["border-crimson-900"] } ],
@@ -502,6 +634,12 @@ node scripts/audit.mjs --refresh-baseline # rewrite scripts/audit-baseline.json
 `scripts/audit-baseline.json`. Findings may not exceed it; improvements are reported but do not
 fail. The baseline is updated only inside the pull request that caused the change, which is what
 makes "known debt" auditable rather than rhetorical.
+
+At `HEAD` the baseline accepts **30 findings across 16 register IDs**. Five IDs were retired in
+9.5.0 — `NOO-010`, `NOO-011`, `NOO-014`, `NOO-021` (fixed) and `NOO-016` (cleared from the
+automated count by 17 `aria-*` attributes; the remaining accessibility work is tracked by hand in
+[`ACCESSIBILITY.md`](ACCESSIBILITY.md)) — and `NOO-007` fell from four sites to two. See
+[`ARCHITECTURE.md` § Defect register](ARCHITECTURE.md#17-defect-register).
 
 ### `scripts/serve.mjs`
 
@@ -642,6 +780,10 @@ runDirective(type, data = null) { /* … */ if (type === 'my-directive') { … }
 // 3 · New engine — an object literal inside the runtime script, invoked from DOMContentLoaded
 const myEngine = { init() { /* … */ } };
 window.addEventListener('DOMContentLoaded', () => { /* … */ myEngine.init(); });
+
+// 4 · New ultra field — append to ULTRA_FIELDS (force profile + particle mix) and add a chip
+storm: { label: 'SIGNAL STORM', cohesion: 0.6, repel: 1.0, grav: 0.4, jitter: 2.4, /* … */ },
+// <button class="ultra-chip field-chip" data-field="storm" onclick="ultra.setSubmode('storm')">STORM</button>
 ```
 
 **Contribution requirements:** `npm test` exits 0, new findings are baselined deliberately or fixed,

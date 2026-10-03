@@ -31,13 +31,70 @@ Nothing yet. The next entry is planned as `9.5.1` — the correctness horizon in
 
 ## [9.5.0] — 2026-10-03
 
-The local-workstation release. The single-file artefact keeps its shape — **95,308 bytes, 1,571
-lines, one file**, zero installed dependencies on the published path — and gains **SYNAPSE SHELL**:
-a real host terminal, available only when NOÖSPHERE is started locally with `npm start`. Everything
-the previous `Unreleased` block contained (repository scaffolding, documentation and the hardened
-dev server) ships here too.
+**One graph, two renderers — and a real terminal in the workstation.** This revision adds the ultra
+visualisation, a second, layered rendering system over the *same* node and edge arrays, and
+**SYNAPSE SHELL**, a host terminal available only when NOÖSPHERE is started locally with `npm start`.
+It retires four register IDs and clears a fifth from the automated count; the standard atlas is
+unchanged in behaviour. ULTRA is a toggle beside it, not a replacement, and the published
+single-file artefact keeps its shape — **183,533 bytes, 3,050 lines, one file**, zero installed
+dependencies on the static path. Everything the previous `Unreleased` block contained (repository
+scaffolding, the documentation set and the hardened dev server) ships here too.
 
 ### Added
+
+#### Ultra visualisation mode
+
+- **Ultra visualisation mode** (`RENDER: STANDARD | ULTRA`, hotkey `U`) — a Canvas 2D field composited
+  additively over a second canvas in the same viewport, reading the same `graphNodes` / `graphEdges`,
+  camera and selection as the standard atlas. Full reference:
+  [`docs/ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
+  - **Five fields** — `SWARM`, `CONSTELLATION`, `SIGNAL STORM`, `MYCELIAL`, `DREAM` — each a
+    parameterisation of the same data: force profile, edge grammar, particle mix, fog density.
+  - **Cognitive weather** — a second-order atmosphere derived from the graph every 30 frames
+    (excitation, tension, inference, source density, cluster intensity, turbulence) driving fog,
+    storm flashes, vignette breathing and traffic spawn rate, with a four-meter HUD readout.
+  - **Class grammar** — node halos encode the claim class: source (hexagon), source-backed concept
+    (ring), inferred synthesis (dashed ring), newly ingested (expanding birth rings), unresolved
+    question (broken ring).
+  - **Strata atmospheres** — the eight Zaziopath strata become real regions: aura plumes sized by
+    regional intensity, semantic gravity toward the stratum centre of mass, same-stratum swarm
+    cohesion, and stratum-hued tendrils in `MYCELIAL`.
+  - **Focus as thought-cluster** — selection computes a three-hop relevance map over the real edge
+    set: related nodes brighten, unrelated matter dims to 18 % and stops drawing edges, connected
+    edges thicken, and the cluster converges while unrelated matter drifts out. The terminal's
+    `selectedNode`, the Ollama context and the visual cluster are always the same entity.
+  - **Birth events** — ingestion, synthesis and manual authoring enter the field as a shockwave, spark
+    burst, weather spike and a halo that settles over ~3 s.
+  - **Idle dream state** — after ~11 s without input: slower drift, deeper fog, thinning traffic and a
+    periodic *revelation* that lights a high-tension connection and names both endpoints.
+  - **Adaptive LOD** — four tiers (`SURVIVAL` → `MAXIMAL`) scale DPR, particle caps, class grammar,
+    labels and nebula cadence from a frame-time EMA; a 900-slot reused particle pool, pre-baked glow
+    sprites (no `shadowBlur`), a uniform-grid broad phase (`O(n·k)`) and 5 Hz DOM updates bound cost.
+  - **Graceful degradation** — no 2D context, a slow device, or `prefers-reduced-motion` all have
+    defined behaviour (`SURVIVAL` tier, or `CONSTELLATION` at low turbulence with idle off).
+- **Zaziopath structure in the graph model** — `ZAZIOPATH_STRATA` (the vault's eight strata, glyphs and
+  Okabe–Ito hues), `NODE_CLASSES`, `STRATUM_OF`, and the seventeen-wire `ZAZIOPATH_WIRES` register
+  from § 00c with their published mechanisms. `graphEngine.seedZaziopath()` merges the lattice into the
+  live graph — the same arrays the standard renderer draws.
+- **Provenance on every node and edge** — `stratum`, `klass`, `provenance {origin, ref, recorded}`,
+  `uncertainty`, `activation`, `mass`, plus `strength` / `kind` / `inferred` / `mechanism` on edges.
+  Injection now records its origin (file name, combinator directive, operator) and links new nodes to
+  their three nearest conceptual neighbours.
+- **Derived metrics pass** (`graphMetrics`) — centrality/degree, mass, per-stratum membership,
+  centroids and intensity, the weather channels, and the focus relevance map. Recomputed on a cadence
+  and on topology change; never stored twice.
+- **Behavioural smoke harness** (`scripts/smoke.mjs`, `npm run smoke`, `npm run verify`) — runs the
+  runtime inside a dependency-free DOM/Canvas stub and asserts 36 behaviours: boot graph shape, both
+  renderers, lattice seeding, submodes, presets, legend, injection, focus relevance, hotkeys, resize
+  and the return to STANDARD. Wired into CI beside the audit.
+- **Documentation** — this file plus [`ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md); updates
+  across `README.md`, `ARCHITECTURE.md`, `API.md`, `DESIGN.md`, `PERFORMANCE.md`, `TESTING.md`,
+  `DECISIONS.md` (ADR-015), `ROADMAP.md`, `ACCESSIBILITY.md` and `MAINTAINABILITY.md`.
+- **Also in this revision:** optional localhost Ollama inference for the Polymath terminal (merged
+  before this entry) — see [`API.md`](docs/API.md#local-ollama-inference-optional) and
+  [`SECURITY.md`](SECURITY.md).
+
+#### SYNAPSE SHELL
 
 - **SYNAPSE SHELL — a real host terminal** (`9.5.0` headline). One process (`npm start`) now bridges
   a genuine PTY into a draggable NOÖSPHERE window:
@@ -91,15 +148,18 @@ dev server) ships here too.
   threat model and the shell boundary; `ARCHITECTURE.md` § 19, `API.md`'s transport reference,
   `TESTING.md` § 2.4–2.5 + § 3.6, `DEPLOYMENT.md`'s local-workstation recipe and ADR-011…014 were
   added in the same change.
+
+#### Repository and documentation set
+
 - **Documentation set** (`docs/`) — a complete engineering dossier:
-  - `ARCHITECTURE.md` — runtime topology, ten-engine inventory, data models, the force-simulation
+  - `ARCHITECTURE.md` — runtime topology, engine inventory, data models, the force-simulation
     derivation, camera transform, window manager, extension seams, verified invariants, the full
     defect register, and a glossary translating the interface's vocabulary into engineering terms.
   - `API.md` — every global function and engine method with signatures, side effects and complexity;
-    the 42-element DOM contract; the inline handler map; the tooling API.
+    the full DOM contract; the inline handler map; the tooling API.
   - `DESIGN.md` — token system, typography registers, elevation and texture, motion policy, chrome
     grammar, colour-in-motion semantics, voice rules, and the anti-pattern list.
-  - `DECISIONS.md` — ten architecture decision records (`ADR-001`…`ADR-010`) covering single-file
+  - `DECISIONS.md` — architecture decision records (`ADR-001`…`ADR-015`) covering single-file
     delivery, the no-build constraint, vanilla JS, Canvas 2D, deterministic content, no persistence,
     ratcheted tooling, the satirical framing, the semantic accent system and direct coupling.
   - `ACCESSIBILITY.md` — a measured WCAG 2.2 AA gap analysis with contrast ratios computed by
@@ -129,7 +189,47 @@ dev server) ships here too.
   template that asks for the register delta.
 - **Doc asset** — an abstract neural-cartography banner for the README (`docs/assets/`).
 
+#### Local-First WEB UPLINK (research workstation)
+
+- **WEB UPLINK — a local-first research workstation** (`win-uplink` + terminal slash commands). A
+  ten-level orchestrator (`scripts/uplink/*`, `uplink-client.js`) plans, searches, crawls, reads and
+  ranks sources, then hands the reading list to the existing ingestion pipeline — with every model
+  call still going to the local Ollama process. Commands: `/web`, `/read`, `/crawl`, `/site`,
+  `/research`, `/news`, `/browser`, `/sources`, `/ingest`, `/clear-cache`.
+  - **Progressive capability detection** — `SEARCH`, `CRAWLER`, `BROWSER` and `OLLAMA` each report
+    online/offline independently; a missing optional component degrades to a real fallback (built-in
+    metasearch, bounded BFS crawler, interactive DOM reader, extractive synthesis) instead of
+    fabricating results.
+  - **SSRF-aware, loopback-gated transport** — the orchestrator never leaves the machine without an
+    explicit request, refuses private-range targets, and keeps its browser profile in an isolated
+    cache directory (`.noosphere-cache/`), never the operator's own.
+  - **Documentation** — [`docs/WEB_UPLINK.md`](docs/WEB_UPLINK.md), plus the README section and the
+    `SECURITY.md` additions that ship with it.
+- **Behavioural suite** — `scripts/test-uplink.mjs`: 11 checks over search, ranking, crawling,
+  caching, SSRF refusal and the offline-fallback contract.
+
+
 ### Changed
+
+- **Payload budget re-baselined, deliberately** — `SIZE_BUDGET` moves from `96,000 / 128,000 B` to
+  `188,000 / 224,000 B`, anchored to the new measured payload with ~5 % warn and ~25 % fail headroom.
+  `ROADMAP.md` (9.4.2) had already stated the budget would be re-baselined deliberately in 9.5.0 with
+  the reason recorded; the reason is the ultra renderer, which is the largest subsystem in the file
+  (~46 kB of ~179 kB). The ratchet against unbounded growth is preserved. See
+  [`PERFORMANCE.md` § 8](docs/PERFORMANCE.md#8-guardrails).
+- **Both canvases are now device-pixel-ratio scaled** (capped at 2×), with the camera transform kept
+  in CSS pixels so the pointer mapping, labels and zoom stay exact. `NOO-014` retired.
+- **The graph's initial layout is now seeded** (`mulberry32`) instead of `Math.random()`, so the boot
+  graph is reproducible: 90 nodes and 265 edges, twice in a row. `NOO-021` retired.
+- **Node-count chrome is truthful** — the status-bar badge matches the spawn count and the boot banner
+  reports the live node total. `NOO-010` retired.
+- **The alchemy domain gained the filter affordance it never had.** `NOO-011` retired.
+- **Graph controls carry ARIA labels** (17 attributes across the toolbar, mode switch, fields, sliders
+  and toggles). This is a partial answer to `NOO-016`: the audit's heuristic clears when any semantics
+  exist, but the deeper P1 items (live regions, region semantics, modal focus) remain open and are
+  still tracked in [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan).
+- `package.json` version → `9.5.0`; the status-bar label follows. CI now runs the smoke harness after
+  the audit.
 
 - **`scripts/serve.mjs`** is now the local workstation server rather than a bare static server: it
   keeps the existing static behaviour and inference proxy, and adds vendor assets (`/vendor/xterm.*`
@@ -142,15 +242,34 @@ dev server) ships here too.
   [ADR-012](docs/DECISIONS.md)), `jsdom` as dev-only, and new scripts (`start:no-shell`, `test:shell`,
   `test:ui`; `npm test` now runs all three suites).
 - **`index.html`** — added the eighth window (`#win-shell`, chrome only), its dock launcher, the
-  window in the grid-realignment defaults, and two asset tags (95,308 B, still under the 96,000 B warn
-  threshold). Every existing window contract, id and handler is unchanged.
+  window in the grid-realignment defaults, and two asset tags. The shell's runtime is external, so the
+  document's growth is dominated by the ultra renderer — **183,533 B, under the re-baselined 188,000 B
+  warn threshold**. Every existing window contract, id and handler is unchanged.
 - **Documentation** — README, ARCHITECTURE, API, SECURITY, TESTING, DEPLOYMENT and DECISIONS updated
   for the new subsystem; `docs/SHELL.md` added.
 - **`scripts/audit-baseline.json`** refreshed: `NOO-007` (unescaped `innerHTML` interpolation) had
   already dropped from 4 to 2 sites in `index.html` before this change, and the baseline was stale.
   The ratchet is tightened rather than left as unearned headroom.
 
+### Fixed
+
+- `NOO-011` — domain without a filter affordance (alchemy).
+- `NOO-014` — canvas not device-pixel-ratio scaled (both canvases).
+- `NOO-010` — node-count parity drift between chrome and engine (both directions).
+- `NOO-021` — RNG unseeded; the layout is now reproducible per run.
+- `NOO-007` — reduced from 4 to 2 as the transcript and ingestion paths were refactored to write text
+  nodes; the remaining two sinks are tracked.
+
 ### Notes
+
+- **Selection behaviour is preserved and extended.** A click still appends the inspection line, sets
+  `polymathLLM.selectedNode` and fires `node-deepdive`; it now also opens the field's local cluster.
+  Clicking empty canvas clears the field focus and leaves the terminal's context untouched.
+- **Ultra mode seeds the Zaziopath lattice on first entry** (announced in the transcript). The 38
+  extra nodes live in the same arrays, so STANDARD draws them too after the seed.
+- **The graph simulation is still `O(n²)` in STANDARD** (`NOO-015`); the ultra field uses a uniform
+  grid. `NOO-020` (frame-rate-dependent integration) is unchanged in the standard integrator.
+- Deep links, hashes and persistence: still none, by [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend).
 
 - **The published artefact's behaviour is preserved.** `index.html` gained one window's chrome, its
   dock launcher, an entry in the grid-realignment defaults and two asset tags; every existing
@@ -165,9 +284,11 @@ dev server) ships here too.
 - **`AUTONOMOUS` is off by default, never persisted, and revocable without the model's
   cooperation** (STOP AGENT / INTERRUPT / KILL PROCESS / RESTART). It is an authorisation you grant,
   not one the model can claim ([ADR-014](docs/DECISIONS.md)).
-- **The register is the canonical record of known defects** — 21 IDs across 36 findings. Items are
-  scheduled in `ROADMAP.md`; severe items (`NOO-001`, `NOO-007`, `NOO-016`, `NOO-019`) are
-  prioritised in `9.5.1` and `9.6.0`, and the `9.5.0` shell added no register IDs.
+- **The register is the canonical record of known defects** — **16 tracked IDs across 30 findings**
+  after this release retired `NOO-010`/`NOO-011`/`NOO-014`/`NOO-021` and cleared `NOO-016` from the
+  automated count. Items are scheduled in `ROADMAP.md`; severe items (`NOO-001`, `NOO-007`,
+  `NOO-016`, `NOO-019`) are prioritised in `9.5.1` and `9.6.0`, and the `9.5.0` shell added no
+  register IDs.
 
 ---
 
