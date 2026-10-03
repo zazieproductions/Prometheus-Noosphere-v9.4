@@ -13,8 +13,8 @@ frame budget · [`DECISIONS.md`](DECISIONS.md) for why any of this is the way it
 ## 1. Purpose and scope
 
 NOÖSPHERE // OS is a **single-document, zero-dependency, zero-build browser operating system**: a
-simulated desktop hosting eight windowed subsystems over eleven cooperating client-side engines,
-plus the external shell runtime (`window.synapseShell`).
+simulated desktop hosting nine windowed subsystems over eleven cooperating client-side engines,
+plus two external modules (`window.synapseShell`, `window.webUplink`).
 
 This document describes the system as it is implemented in `index.html` at `HEAD`. Every line
 reference, count and complexity figure below is reproducible: line anchors were taken from the
@@ -55,13 +55,13 @@ Three layers, one document. Nothing crosses a layer boundary without an explicit
 │ WORKSPACE                                     <main id="workspace">                   │
 │   absolutely positioned, overlapping, z-ordered window shells — all share one class:  │
 │                                                                                      │
-│   .glass-panel  (×8)                                                                  │
+│   .glass-panel  (×9)                                                                  │
 │     ├── .win-header     drag handle, title glyph, window controls                     │
 │     ├── toolbar         per-window controls (filters, directives, search)             │
 │     └── .content        engine-owned viewport or canvas                               │
 │                                                                                      │
-│   the eighth window (`win-shell`) is a real host terminal: its interior is built by   │
-│   `shell/synapse-shell.js` against the local bridge — see § 19                        │
+│   the eighth window (`win-shell`) is a real host terminal and the ninth                  │
+│   (`win-uplink`) is the local research workstation — see § 19 and `WEB_UPLINK.md`       │
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ RUNTIME                                 one <script>, eleven engines, in order       │
 │                                                                                      │
@@ -105,26 +105,27 @@ makes the single-file constraint survivable.
 
 ## 4. Document anatomy
 
-Verified line anchors from `HEAD` (`index.html`, 3,023 lines at 9.5.0):
+Verified line anchors from `HEAD` (`index.html`, 3,050 lines at 9.5.0):
 
 | Range | Region | Contents |
 | --- | --- | --- |
-| 1–18 | Document head | Metadata, title, three CDN tags, the two SYNAPSE SHELL assets |
-| 19–67 | `tailwind.config` | Design tokens: colours, font stacks, shadows, animations, keyframes |
-| 68–164 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars, ultra deck |
-| 170–214 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
-| 217 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
-| 222–336 | `#win-graph` | Neural Vault — filter/sort toolbar, render switch, ultra deck, two `<canvas>` elements, weather readout, legend, inspector HUD |
-| 338–390 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
-| 392–448 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
-| 450–536 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
-| 538–619 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
-| 621–650 | `#win-notes` | Grimoire — search field, fragment list |
-| 652–699 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
-| 701–719 | `#win-shell` | SYNAPSE SHELL — chrome plus one host element; the console itself is built by `shell/synapse-shell.js` (§ 19) |
-| 721–770 | `<footer>` | Dock (7 launchers, including the shell), neural load, decorative equaliser |
-| 773–805 | Modal | Quick idea injection — title, cluster, analysis, commit |
-| 810–3023 | Runtime `<script>` | Eleven in-document engines plus initialisation (see §6) |
+| 1–19 | Document head | Metadata, title, three CDN tags, the external shell and uplink assets |
+| 20–67 | `tailwind.config` | Design tokens: colours, font stacks, shadows, animations, keyframes |
+| 69–165 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars, ultra deck |
+| 171–215 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
+| 218 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
+| 223–338 | `#win-graph` | Neural Vault — filter/sort toolbar, render switch, ultra deck, two `<canvas>` elements, weather readout, legend, inspector HUD |
+| 339–392 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
+| 393–450 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
+| 451–538 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
+| 539–621 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
+| 622–652 | `#win-notes` | Grimoire — search field, fragment list |
+| 653–701 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
+| 702–720 | `#win-shell` | SYNAPSE SHELL — chrome plus one host element; the console itself is built by `shell/synapse-shell.js` (§ 19) |
+| 721–738 | `#win-uplink` | WEB UPLINK — chrome plus one workspace host; the workstation is built by `uplink-client.js` |
+| 739–792 | `<footer>` | Dock (8 launchers, including the shell and the uplink), neural load, decorative equaliser |
+| 795–827 | Modal | Quick idea injection — title, cluster, analysis, commit |
+| 832–3050 | Runtime `<script>` | Eleven in-document engines plus initialisation (see §6) |
 ---
 
 ## 5. Boot sequence
@@ -170,28 +171,29 @@ Two ordering facts matter:
 
 | # | Engine | Line | Owns | Consumes | Emits |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `sound` / `soundLab` | 853 | `audioCtx`, `audioEnabled` | user gestures | oscillator tones; `playBeep()` is the global event sound |
-| 2 | window manager | 866 | `highestZ`, drag state, geometry | pointer events | focus/z-order mutation, beeps |
-| 3a | graph model + Zaziopath structure | 981 | `DOMAINS`, `ZAZIOPATH_STRATA`, `NODE_CLASSES`, `ZAZIOPATH_WIRES`, `annotateNode()`, `addEdge()`, `mulberry32()` | seed tables | annotated node/edge records |
-| 3b | graph engine | 1535 | `graphNodes`, `graphEdges`, `camera`, `showLabels`, `activeDomainFilter`, `hoveredNode`, display mode | pointer + wheel, filters, injections | standard frame rendering, inspector HUD, `seedZaziopath()` |
-| 3c | `graphMetrics` | 1415 | degree, mass, stratum centroids/intensity, weather channels, focus relevance | node + edge arrays | derived metrics for both renderers |
-| 3d | `ultra` | 1738 | field state, params, particle pool, glow sprites, nebula, LOD tier | the same node + edge arrays, `graphMetrics`, camera, focus | field frames, weather HUD, birth events |
-| 4 | `polymathLLM` | 2643 | transcript DOM, `VOCAB`, `selectedNode` | prompts, directives, grimoire fragments, ingestion events | role-typed transcript entries |
-| 5 | ingestion | 2794 | `FileReader` lifecycle | drop/picker events | graph nodes (with provenance), artefact feed rows, transcript notices |
-| 6 | `paletteGen` | 2856 | `currentPaletteIdx`, `PALETTES` | user clicks | swatch DOM, clipboard writes |
-| 7 | `grimoire` | 2902 | `GRIMOIRE_DATA` | search input | fragment cards, terminal dispatch |
-| 8 | `ideaCombinator` | 2934 | selection values | two domain vectors | synthesised axiom (class `inferred`), graph node |
-| 9 | modal | 2963 | modal visibility | user authoring | graph node (provenance `OPERATOR//MANUAL`) |
-| 10 | telemetry | 2989 | clock text, drift values | 1 Hz interval | clock, two gauge strings |
+| 1 | `sound` / `soundLab` | 875 | `audioCtx`, `audioEnabled` | user gestures | oscillator tones; `playBeep()` is the global event sound |
+| 2 | window manager | 888 | `highestZ`, drag state, geometry | pointer events | focus/z-order mutation, beeps |
+| 3a | graph model + Zaziopath structure | 1004 | `DOMAINS`, `ZAZIOPATH_STRATA`, `NODE_CLASSES`, `ZAZIOPATH_WIRES`, `annotateNode()`, `addEdge()`, `mulberry32()` | seed tables | annotated node/edge records |
+| 3b | graph engine | 1558 | `graphNodes`, `graphEdges`, `camera`, `showLabels`, `activeDomainFilter`, `hoveredNode`, display mode | pointer + wheel, filters, injections | standard frame rendering, inspector HUD, `seedZaziopath()` |
+| 3c | `graphMetrics` | 1438 | degree, mass, stratum centroids/intensity, weather channels, focus relevance | node + edge arrays | derived metrics for both renderers |
+| 3d | `ultra` | 1761 | field state, params, particle pool, glow sprites, nebula, LOD tier | the same node + edge arrays, `graphMetrics`, camera, focus | field frames, weather HUD, birth events |
+| 4 | `polymathLLM` | 2666 | transcript DOM, `VOCAB`, `selectedNode` | prompts, directives, grimoire fragments, ingestion events | role-typed transcript entries |
+| 5 | ingestion | 2821 | `FileReader` lifecycle | drop/picker events | graph nodes (with provenance), artefact feed rows, transcript notices |
+| 6 | `paletteGen` | 2883 | `currentPaletteIdx`, `PALETTES` | user clicks | swatch DOM, clipboard writes |
+| 7 | `grimoire` | 2929 | `GRIMOIRE_DATA` | search input | fragment cards, terminal dispatch |
+| 8 | `ideaCombinator` | 2961 | selection values | two domain vectors | synthesised axiom (class `inferred`), graph node |
+| 9 | modal | 2990 | modal visibility | user authoring | graph node (provenance `OPERATOR//MANUAL`) |
+| 10 | telemetry | 3016 | clock text, drift values | 1 Hz interval | clock, two gauge strings |
 | 11 | `window.synapseShell` — external, `shell/synapse-shell.js` | — | session records, xterm instances, sockets, AI-mode mirror, agent log | `/api/shell/*`, `/ws/shell`, agent SSE | terminal output to xterm, chrome text, agent step log |
+| 12 | `window.webUplink` — external, `uplink-client.js` + `scripts/uplink/*` | — | research sessions, result sets, caches, capability state | `/api/uplink/*`, the terminal's slash commands, local Ollama | search/crawl/read results, ingestion candidates, status pill |
 
 A full treatment of the second renderer — data contract, mappings, submodes, weather, LOD — is
 [`ULTRA-VISUALIZATION.md`](ULTRA-VISUALIZATION.md).
 Every engine in the document is a **plain object literal or a small set of functions** with an
 explicit public surface, documented in [`API.md`](API.md). No prototypes, no classes, no
 inheritance — the surface area of the system is small enough that composition by convention is
-sufficient and cheaper to read. Row 11 is the exception that proves the pattern: the shell is one
-IIFE in `shell/`, listed here because § 15 and § 19 treat it as a peer of the engines, not as part
+sufficient and cheaper to read. Rows 11–12 are the exception that proves the pattern: the shell and the uplink are
+external modules, listed here because § 15 and § 19 treat them as peers of the engines, not as part
 of the document (ADR-011).
 
 ---
@@ -435,7 +437,7 @@ view-preserving, viewport-aware layout algorithm (clamp-and-flow on boot and on 
 a responsive rewrite — the desktop metaphor is intentional, but unreachable windows are a defect.
 
 **Listener note.** `makeDraggable` binds its `mousemove` and `mouseup` handlers to `document` once
-per window (8 × 2 = 16 permanent listeners) rather than to a single delegated set. Correct, but
+per window (9 × 2 = 18 permanent listeners) rather than to a single delegated set. Correct, but
 quadratic in window count; tracked as `NOO-017`.
 
 ---
@@ -637,13 +639,13 @@ roadmap, the changelog and `scripts/audit.mjs` titles.
 | `NOO-014` | ~~Med~~ | ~~Canvas not HiDPI-scaled~~ | **Retired in 9.5.0** — both canvases scale by `devicePixelRatio` (cap 2×), transform kept in CSS px | — |
 | `NOO-015` | Med | `O(n²)` broad phase | 4,005 pairs/frame, no spatial index | Uniform grid / Barnes–Hut; optionally a worker |
 | `NOO-016` | High | Accessibility semantics | **Cleared from the automated count in 9.5.0** — 17 `aria-*` on the graph and ultra controls; real debt remains (14 icon-only buttons app-wide unlabelled, 0 `role`, 0 `tabindex`, no live regions) | Finish [`ACCESSIBILITY.md` § 8](ACCESSIBILITY.md#8-remediation-plan) P0/P1 |
-| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 8 windows = 16 permanent | Delegate once, or bind during drag only |
+| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 9 windows = 18 permanent | Delegate once, or bind during drag only |
 | `NOO-018` | Med | No link-preview metadata | No description, favicon or OG tags | Add meta set + favicon |
 | `NOO-019` | High | Unreachable default geometry | Layout spans 1760 × 880; `win-synthesizer` needs ≥1500 px and is undocked | Viewport-aware layout on boot and resize |
 | `NOO-020` | Med | Frame-rate-dependent physics | No `deltaTime` in `updatePhysics` | Fixed-timestep accumulator at 60 Hz |
 | `NOO-021` | ~~Low~~ | ~~Initial state is not reproducible~~ | **Retired in 9.5.0** — graph spawn, injection and the Zaziopath lattice use a seeded `mulberry32`; 90 nodes / 265 edges reproduce exactly | — |
 
-> **Budget note.** The 9.5.0 changes leave the document at **181,219 B (3,023 lines)**, of which the
+> **Budget note.** The 9.5.0 changes leave the document at **183,533 B (3,050 lines)**, of which the
 > ultra renderer is the largest subsystem (~46 kB). The payload budget was re-baselined from
 > `96,000 / 128,000` to `188,000 / 224,000` in the same change, anchored to the measured payload with
 > ~5 % warn and ~25 % fail headroom. The reason is recorded in

@@ -5,7 +5,7 @@
 
 Thanks for considering a contribution. This project has an unusual shape (one file, no build, no
 dependencies), so the conventions below matter more than usual: they are what keeps a single
-3,023-line document reviewable by other people.
+3,050-line document reviewable by other people.
 
 ---
 

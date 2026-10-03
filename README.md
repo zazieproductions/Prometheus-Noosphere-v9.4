@@ -43,7 +43,7 @@
 
 ## What this is
 
-NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders eight draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to eleven cooperating client-side engines — a force-directed graph laboratory with two renderers (a readable standard atlas and an ultra swarm/neural field over the same data), a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator — plus a twelfth, `window.synapseShell`, loaded only in local workstation mode, which puts a real host terminal in the eighth window.
+NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders nine draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to eleven cooperating client-side engines — a force-directed graph laboratory with two renderers (a readable standard atlas and an ultra swarm/neural field over the same data), a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator — plus two external modules loaded only in local workstation mode: `window.synapseShell`, which puts a real host terminal in the eighth window, and `window.webUplink`, which runs the local research workstation in the ninth.
 It is a **front-end craft project** — the reference implementation for a set of opinions about what a zero-build, zero-dependency, zero-backend interface can look like when the constraints are treated as the design brief rather than as obstacles.
 
 **One graph, two renderers.** `RENDER: STANDARD | ULTRA` in the graph window switches between the readable force atlas and a layered additive field — swarm motion, strata auras, edge traffic, particles, cognitive weather, dream states — driven by the *same* nodes, edges, provenance and selection state. Ultra mode never builds a second knowledge structure; see [`docs/ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
@@ -197,14 +197,14 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 ## Architecture at a glance
 
 ```
-                          index.html  (1 document · 3,023 lines)
+                          index.html  (1 document · 3,050 lines)
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  <head>            tailwind.config  →  design tokens (colour/type/shadow)     │
 │                    <style>          →  CRT, glass, glow, scrollbar, hatching   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  chrome            <header>  system status bar   ·  <footer> dock + telemetry │
 │  workspace         <main id="workspace">  —  absolutely positioned windows    │
-│                    └── .glass-panel ×8   ← every window: one draggable shell  │
+│                    └── .glass-panel ×9   ← every window: one draggable shell  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  runtime           single <script>      —  11 engines, ordered by dependency  │
 │                                                                              │
@@ -220,6 +220,7 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 │   9 modal        manual node authoring                                        │
 │  10 telemetry    1 Hz clock + bounded random-walk drift                        │
 │  11 synapseShell host PTY window (external module; local bridge only)          │
+│  12 webUplink    local web research workstation (external; local bridge only)  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -257,12 +258,12 @@ Measured from `HEAD` by [`scripts/audit.mjs`](scripts/audit.mjs) — reproduce w
 
 | Metric | Value |
 | --- | --- |
-| Application payload | **181,219 B** (177 KiB) · **3,023 lines** · 1 document |
+| Application payload | **183,533 B** (179 KiB) · **3,050 lines** · 1 document |
 | Contribution of assets | 0 B vendored — the local shell loads xterm from `node_modules`, never a CDN |
-| Runtime dependencies installed | **0** for the static artefact · 3 + 1 optional for the local shell (`@xterm/xterm`, `@xterm/addon-fit`, `ws`, optional `node-pty`) |
+| Runtime dependencies installed | **0** for the static artefact · 3 + 1 optional for the local shell (`@xterm/xterm`, `@xterm/addon-fit`, `ws`, optional `node-pty`); the research orchestrator uses Node built-ins only |
 | Build steps | **0** — the shell's JavaScript is served from `node_modules` at runtime, not bundled |
-| Windowed subsystems | **8** |
-| Engines / modules | **11** in-document engines (ten original + the ultra renderer) + **1** external module (`window.synapseShell`) + **5** server modules (`shell`, `agent`, `routes`, `gate`, `procinfo`) |
+| Windowed subsystems | **9** |
+| Engines / modules | **11** in-document engines (ten original + the ultra renderer) + **2** external modules (`window.synapseShell`, `window.webUplink`) + **5** server modules (`shell`, `agent`, `routes`, `gate`, `procinfo`) + **8** research modules (`scripts/uplink/*`) |
 | Semantic domains | **5** (memetics · semiotics · psychoacoustics · hyperstition · alchemical OS) |
 | Boot graph | **90 nodes**, **265** seeded-procedural edges, from **15** seed archetypes |
 | Zaziopath lattice | **38 nodes** (8 strata · 29 § 00c entities · 1 unresolved question), **47 edges** (17 wires · 30 containment) — boot 90/265 → **128 nodes / 312 edges** |
@@ -406,10 +407,11 @@ Condensed from [`docs/ROADMAP.md`](docs/ROADMAP.md); every item is traceable to 
 
 ```mermaid
 flowchart LR
-    subgraph SHIPPED["Shipped · 9.5.0 — ultra mode + SYNAPSE SHELL"]
+    subgraph SHIPPED["Shipped · 9.5.0 — ultra mode + SYNAPSE SHELL + WEB UPLINK"]
       A["Ultra renderer over one graph"] --> B["NOO-014 HiDPI · NOO-021 seeded RNG"]
       B --> C["NOO-010 · 011 parity · smoke harness"]
       S1["PTY bridge + loopback gate"] --> S2["AI SHELL: OFF · ASSIST · AUTONOMOUS"]
+      U1["Web Uplink: search · crawl · read"] --> U2["/web · /research · /ingest commands"]
     end
     subgraph NOW["Now · 9.5.1 — correctness"]
       D["NOO-019 reachable layout"] --> E["NOO-001 · 006 · 007 fixes"]
@@ -428,7 +430,7 @@ flowchart LR
 
 | Horizon | Theme | Headline items |
 | --- | --- | --- |
-| **Shipped — 9.5.0** | Ultra renderer + host shell | **Delivered:** ultra visualisation (second renderer over one graph) · SYNAPSE SHELL (PTY bridge, AI SHELL modes, loopback gate) · `NOO-010`/`NOO-011`/`NOO-014`/`NOO-021` retired · seeded RNG · HiDPI canvases · alchemy filter · 36-assertion smoke harness · 29 + 5 shell tests |
+| **Shipped — 9.5.0** | Ultra renderer + host shell + web uplink | **Delivered:** ultra visualisation (second renderer over one graph) · SYNAPSE SHELL (PTY bridge, AI SHELL modes, loopback gate) · Local-First WEB UPLINK (search/crawl/read orchestrator, terminal slash commands) · `NOO-010`/`NOO-011`/`NOO-014`/`NOO-021` retired · seeded RNG · HiDPI canvases · alchemy filter · 36-assertion smoke harness · 29 + 5 shell tests |
 | **Now — 9.5.1** | Correctness | `NOO-019` reachable layout · `NOO-001` undefined colour family · `NOO-006` invalid icon · `NOO-007` remaining escaping · `NOO-009`/`NOO-013` honesty · `NOO-012` dock |
 | **Next — 9.6.0** | Fidelity & trust | `NOO-008` vendored/pinned dependencies · `NOO-018` link-preview metadata · `NOO-020` fixed-step standard physics · accessibility P1 (live regions, window semantics, modal focus) · headless harness |
 | **Later — 10.0.0** | Structure & access | `NOO-015` standard-atlas spatial index + worker physics · `NOO-016` keyboard and screen-reader model · ES-module extraction behind an optional bundler |
@@ -506,3 +508,15 @@ of ingested local text are sent to the local Ollama process. Do not expose the d
 server or Ollama to the internet. Opening `index.html` directly or using GitHub Pages remains
 simulation-only: a static host cannot run Ollama or the local proxy. No cloud inference or
 API keys are used.
+
+### Local-First Web Uplink & Research Workstation (`WEB_UPLINK`)
+
+When running via `npm start`, NOÖSPHERE includes a 10-level **Local Web Research Orchestrator** (`win-uplink` + terminal slash commands) while keeping all LLM reasoning strictly on local `llama3.1:8b` via Ollama:
+
+- **Commands**: `/web <query>`, `/read <URL>`, `/crawl <URL>`, `/site <domain> <query>`, `/research <query>`, `/news <query>`, `/browser <URL>`, `/sources`, `/ingest <n>`, `/clear-cache`.
+- **Progressive Capability Detection**:
+  - `SEARCH // ONLINE`: Prefers local **SearXNG** (`SEARXNG_URL`, default `http://127.0.0.1:8080`) and automatically falls back to zero-key public metasearch (DuckDuckGo, Wikipedia, Crossref, arXiv, HN Algolia, Wikimedia).
+  - `CRAWLER // ONLINE`: Uses optional local **Crawl4AI** (`CRAWL4AI_URL`, default `http://127.0.0.1:11235`) or the built-in relevance-guided bounded BFS crawler.
+  - `BROWSER // ONLINE/OFFLINE`: Uses local **Chromium / Playwright / CDP** with an isolated managed profile (`.noosphere-cache/browser-profile`, never your personal profile) when installed, or the built-in interactive DOM Reader fallback.
+  - `OLLAMA // ONLINE/OFFLINE`: Uses `llama3.1:8b` at `http://127.0.0.1:11434` for search planning, multi-hop follow-up generation, and citation synthesis, or non-fabricated extractive synthesis when offline.
+- **Full setup & security documentation**: **[`docs/WEB_UPLINK.md`](docs/WEB_UPLINK.md)**.

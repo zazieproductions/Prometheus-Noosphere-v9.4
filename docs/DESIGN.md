@@ -244,7 +244,7 @@ selection, hover and the deep-dive panel behave identically in both renderers.
 
 ## 6. Chrome grammar
 
-Every window is built from the same five parts, in the same order. Learn one, know eight.
+Every window is built from the same five parts, in the same order. Learn one, know nine.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -274,7 +274,7 @@ Every window is built from the same five parts, in the same order. Learn one, kn
 one (`dread`) is not a real Lucide icon and therefore renders as nothing (`NOO-006`). Icon auditing
 is mechanical precisely so this class of typo cannot ship silently again.
 
-**Windows in the dock:** seven of eight. `win-synthesizer` has no launcher (`NOO-012`), which
+**Windows in the dock:** eight of nine. `win-synthesizer` has no launcher (`NOO-012`), which
 compounds `NOO-019` — it is the one window that can be lost entirely on a smaller display.
 
 **The renderer split.** The graph window is the only window carrying two renderers: its toolbar adds

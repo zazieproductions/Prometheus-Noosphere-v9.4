@@ -6,7 +6,7 @@
 **Status:** ❌ **Not conformant.** Tracked as [`NOO-016`](ARCHITECTURE.md#17-defect-register) (high).
 **Target:** WCAG 2.2 Level AA for the interface chrome; a defined-but-exempt status for the graph
 canvas (see [§ 7](#7-the-canvas-problem)).
-**Method:** static analysis of `HEAD` (61 buttons, 71 declared IDs, **17 `aria-*`** — all on the graph
+**Method:** static analysis of `HEAD` (64 buttons, 74 declared IDs, **17 `aria-*`** — all on the graph
 and ultra controls — 0 `role`, 0 `tabindex`) plus formula-measured contrast ratios. No automated
 accessibility tool has been run — and saying so is the point of this document.
 
@@ -120,7 +120,7 @@ change — but the substitution is applied inconsistently, so this is *partially
 | Gauge/radar values | Visual only; no table, no text summary | ⚠️ 1.1.1 |
 
 **Headings.** The instrument aesthetic means almost no text is marked as a heading. Visually this is
-correct; programmatically it leaves an AT user with no document outline for eight windowed regions.
+correct; programmatically it leaves an AT user with no document outline for nine windowed regions.
 
 **Suggested remediation shape:** each window becomes a labelled `role="region"` (or `<section>` with
 `aria-labelledby` pointing at its title), the transcript becomes `aria-live="polite"`,

@@ -16,7 +16,7 @@ Two claims are worth defending, and one is worth retracting.
 
 | Claim | Status | Evidence |
 | --- | --- | --- |
-| The application payload is small and auditable | ✅ **Measured** — 181,219 B, 3,023 lines, 0 vendored assets | `npm test` |
+| The application payload is small and auditable | ✅ **Measured** — 183,533 B, 3,050 lines, 0 vendored assets | `npm test` |
 | The ultra field's cost is bounded by construction | ⚠️ **Modelled** — pool (900), LOD tiers (4) and grid (`O(n·k)`) bound it; per-frame ms **unverified** without a browser ([§ 3.3](#33-the-ultra-field-cost-model-modelled)) | source |
 | The total delivery cost is small | ⚠️ **Unverified** — third-party CDN cost not measured here ([§ 7](#7-load-cost-and-its-measurement-gap)) | Requires network |
 | "Canvas 60 fps" (window badge) | ⚠️ **Aspirational** — the badge is authored copy, and several costs below are frame-budget-relevant | [§ 3](#3-frame-budget-model) |
@@ -30,8 +30,8 @@ design statement, not a measurement, and this document is where that distinction
 
 | Metric | Value | Source |
 | --- | --- | --- |
-| Application payload | **181,219 B** (177 KiB) | `scripts/audit.mjs` |
-| Lines | **3,023** | `scripts/audit.mjs` |
+| Application payload | **183,533 B** (179 KiB) | `scripts/audit.mjs` |
+| Lines | **3,050** | `scripts/audit.mjs` |
 | Runtime dependencies installed | **0** | `package.json` |
 | Vendored assets (images/fonts/audio) | **0 B** | Repository contains one data-free PNG in `docs/` |
 | Network calls from the runtime | **0** | No `fetch` / `XMLHttpRequest` / `WebSocket` in the source |
@@ -46,8 +46,8 @@ design statement, not a measurement, and this document is where that distinction
 
 | Threshold | Bytes | Current | Headroom |
 | --- | --- | --- | --- |
-| Warn | 188,000 | 181,219 | +6,781 B |
-| Fail | 224,000 | 181,219 | +42,781 B |
+| Warn | 188,000 | 183,533 | +4,467 B |
+| Fail | 224,000 | 183,533 | +40,467 B |
 The budget exists because a single-file application is a *design asset*: it stays reviewable in one
 sitting. The band was re-baselined in 9.5.0 from `96,000 / 128,000` in the same change that added the
 ultra renderer — the largest single addition the file has taken. The new numbers are anchored to the

@@ -36,7 +36,7 @@ visualisation, a second, layered rendering system over the *same* node and edge 
 **SYNAPSE SHELL**, a host terminal available only when NOÖSPHERE is started locally with `npm start`.
 It retires four register IDs and clears a fifth from the automated count; the standard atlas is
 unchanged in behaviour. ULTRA is a toggle beside it, not a replacement, and the published
-single-file artefact keeps its shape — **181,219 bytes, 3,023 lines, one file**, zero installed
+single-file artefact keeps its shape — **183,533 bytes, 3,050 lines, one file**, zero installed
 dependencies on the static path. Everything the previous `Unreleased` block contained (repository
 scaffolding, the documentation set and the hardened dev server) ships here too.
 
@@ -189,6 +189,26 @@ scaffolding, the documentation set and the hardened dev server) ships here too.
   template that asks for the register delta.
 - **Doc asset** — an abstract neural-cartography banner for the README (`docs/assets/`).
 
+#### Local-First WEB UPLINK (research workstation)
+
+- **WEB UPLINK — a local-first research workstation** (`win-uplink` + terminal slash commands). A
+  ten-level orchestrator (`scripts/uplink/*`, `uplink-client.js`) plans, searches, crawls, reads and
+  ranks sources, then hands the reading list to the existing ingestion pipeline — with every model
+  call still going to the local Ollama process. Commands: `/web`, `/read`, `/crawl`, `/site`,
+  `/research`, `/news`, `/browser`, `/sources`, `/ingest`, `/clear-cache`.
+  - **Progressive capability detection** — `SEARCH`, `CRAWLER`, `BROWSER` and `OLLAMA` each report
+    online/offline independently; a missing optional component degrades to a real fallback (built-in
+    metasearch, bounded BFS crawler, interactive DOM reader, extractive synthesis) instead of
+    fabricating results.
+  - **SSRF-aware, loopback-gated transport** — the orchestrator never leaves the machine without an
+    explicit request, refuses private-range targets, and keeps its browser profile in an isolated
+    cache directory (`.noosphere-cache/`), never the operator's own.
+  - **Documentation** — [`docs/WEB_UPLINK.md`](docs/WEB_UPLINK.md), plus the README section and the
+    `SECURITY.md` additions that ship with it.
+- **Behavioural suite** — `scripts/test-uplink.mjs`: 11 checks over search, ranking, crawling,
+  caching, SSRF refusal and the offline-fallback contract.
+
+
 ### Changed
 
 - **Payload budget re-baselined, deliberately** — `SIZE_BUDGET` moves from `96,000 / 128,000 B` to
@@ -223,7 +243,7 @@ scaffolding, the documentation set and the hardened dev server) ships here too.
   `test:ui`; `npm test` now runs all three suites).
 - **`index.html`** — added the eighth window (`#win-shell`, chrome only), its dock launcher, the
   window in the grid-realignment defaults, and two asset tags. The shell's runtime is external, so the
-  document's growth is dominated by the ultra renderer — **181,219 B, under the re-baselined 188,000 B
+  document's growth is dominated by the ultra renderer — **183,533 B, under the re-baselined 188,000 B
   warn threshold**. Every existing window contract, id and handler is unchanged.
 - **Documentation** — README, ARCHITECTURE, API, SECURITY, TESTING, DEPLOYMENT and DECISIONS updated
   for the new subsystem; `docs/SHELL.md` added.

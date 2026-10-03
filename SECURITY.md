@@ -213,16 +213,22 @@ browser at page load and governed by their vendors' own policies.
 <sub>Disclosing your own defects in a public register is a security posture, not a liability.</sub>
 </div>
 
-## Optional local inference privacy boundary
+## Optional local inference & Web Uplink privacy and security boundary
 
 On `npm start`, terminal prompts and limited graph, grimoire, history and ingested text excerpts
-are posted to the same-origin local server and forwarded only to `127.0.0.1:11434` (Ollama).
-They do not leave the machine through this integration. The inference routes require a
+are posted to the same-origin local server and forwarded only to `127.0.0.1:11434` (Ollama `llama3.1:8b`).
+They do not leave the machine through this integration. The inference and `/api/uplink/*` routes require a
 loopback socket, localhost Host and matching Origin; static assets retain the existing bind
 behavior. Do not expose either server to untrusted users. Model outputs are rendered as text,
 not HTML. The historical static-only privacy statement above applies to file-open and
-GitHub Pages simulation mode, not to local inference mode. The separate Ollama installation
+GitHub Pages simulation mode, not to local inference or Web Uplink mode. The separate Ollama installation
 and its configuration are the user's responsibility.
+
+When the user explicitly invokes **Web Uplink** commands (`/web`, `/read`, `/crawl`, `/site`, `/research`, `/news`, `/browser`):
+- **Search Egress**: Sanitized search queries (and never your local Zaziopath corpus or ingested files) are sent to your local SearXNG instance (`SEARXNG_URL`) or fallback public search APIs.
+- **Public Webpage Fetching & SSRF Protection**: Requested URLs are fetched from the public internet after strict SSRF and DNS-rebinding validation (`scripts/uplink/security.mjs`), which blocks `localhost`, `127.0.0.0/8`, RFC1918 private networks (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), link-local and cloud metadata endpoints (`169.254.169.254`, `fd00:ec2::254`), `file://`, non-HTTP schemes, binary MIME types, and redirect-to-private-IP hops.
+- **Prompt-Injection Isolation**: Fetched webpage content is treated strictly as untrusted data, stripped of hidden DOM elements and known injection/control tokens, and wrapped in `<untrusted_web_evidence>` fences before local `llama3.1:8b` synthesis.
+- **Ephemeral by Default**: Web findings remain ephemeral unless the user explicitly runs `/ingest <n>`, `INGEST SOURCE`, `INGEST FINDING`, or `ADD TO GRAPH`, which tags provenance as `WEB SOURCE` and separates quoted source text from local Ollama interpretation.
 
 ### Host shell privacy boundary
 

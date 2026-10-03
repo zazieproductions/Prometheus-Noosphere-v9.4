@@ -48,7 +48,7 @@ CSS primitives and all eleven engines.
 
 **Positive**
 - `git clone` → open the file → it runs. There is no step where the artefact is not working.
-- The whole system fits in a reviewable object: 3,023 lines, 181,219 B, no generated code. (9.5.0 added two
+- The whole system fits in a reviewable object: 3,050 lines, 183,533 B, no generated code. (9.5.0 added two
   independent features — the ultra renderer in this document, and SYNAPSE SHELL whose runtime lives in
   `shell/` and `server/` by design: see [ADR-011](#adr-011--the-shell-module-lives-outside-indexhtml) and
   [ADR-015](#adr-015--a-second-renderer-for-ultra-mode--same-graph-additive-canvas-2d).)- Constraint-driven design: because everything is visible at once, there is nowhere to hide
@@ -141,7 +141,7 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
 ### Alternatives considered
 - **A component framework.** Rejected: the framework would model the windows, but the interesting
   part of the system (canvas physics, audio, ingestion) has no state to reconcile.
-- **Web components.** Rejected as over-engineering for eight windows sharing one behaviour module.
+- **Web components.** Rejected as over-engineering for nine windows sharing one behaviour module.
 
 ---
 
@@ -382,7 +382,7 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 
 ### Context
 Eleven in-document engines — ten original plus the ultra renderer — one external shell module, one
-document, eight windows. The textbook answer is an event bus and a centralorchestrator; the honest question is whether the coupling actually needs decoupling at this size.
+document, nine windows. The textbook answer is an event bus and a central orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
 
 ### Decision
 Initialise in a fixed order inside a single `DOMContentLoaded` handler. Couple engines **directly**
@@ -424,7 +424,7 @@ append-only DOM. No event bus, no store, no pub/sub.
 ### Context
 
 SYNAPSE SHELL needs a terminal emulator, session tabs, an agent console, panels and ~380 lines of
-styling — roughly 1,100 lines. The 9.5.0 document sits at 181,219 B against a re-baselined 188,000 B
+styling — roughly 1,100 lines. The 9.5.0 document sits at 183,533 B against a re-baselined 188,000 B
 warn threshold and a 224,000 B hard budget; inlining the shell would push it past the warn threshold
 for every visitor, including the majority (static hosts, GitHub Pages) for whom none of that code can execute,
 because there is no PTY bridge to talk to.

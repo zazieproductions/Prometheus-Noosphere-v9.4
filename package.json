@@ -2,8 +2,7 @@
   "name": "noosphere-os",
   "version": "9.5.0",
   "private": true,
-  "description": "NO\u00d6SPHERE // OS \u2014 a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis, with a dual standard/ultra graph renderer and SYNAPSE SHELL: a real local host terminal.",
-  "keywords": [
+  "description": "NO\u00d6SPHERE // OS \u2014 a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis, with a dual standard/ultra graph renderer, SYNAPSE SHELL (a real local host terminal) and Local-First WEB UPLINK.",  "keywords": [
     "canvas",
     "creative-coding",
     "force-directed-graph",
@@ -38,14 +37,14 @@
     "audit:json": "node scripts/audit.mjs --json",
     "audit:report": "node scripts/audit.mjs --write-report",
     "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
-    "test": "node scripts/audit.mjs && node scripts/smoke.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs",
+    "test": "node scripts/audit.mjs && node scripts/smoke.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs && node scripts/test-uplink.mjs",
     "test:audit": "node scripts/audit.mjs",
     "test:shell": "node scripts/test-shell.mjs",
     "test:ui": "node scripts/test-ui.mjs",
+    "test:uplink": "node scripts/test-uplink.mjs",
     "smoke": "node scripts/smoke.mjs",
     "verify": "node scripts/audit.mjs && node scripts/smoke.mjs",
-    "ci": "node scripts/audit.mjs --write-report"
-  },
+    "ci": "node scripts/audit.mjs --write-report && node scripts/test-uplink.mjs"  },
   "dependencies": {
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",

@@ -3,7 +3,7 @@
 > Shipping a one-file application — locally, to GitHub Pages, and to any static host — including the
 > Content-Security-Policy the current architecture actually requires.
 
-**Deployable artefact:** `index.html` — one file, 181,219 B, no build step.**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
+**Deployable artefact:** `index.html` — one file, 183,533 B, no build step.**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
 
 ---
 
@@ -296,7 +296,7 @@ git push origin main --follow-tags
 # 5 · Verify live
 #    - hard-reload the deployed URL (bypass cache)
 #    - console: zero errors, zero unexpected network calls
-#    - all eight windows present (SYNAPSE SHELL included); RE-ALIGN restores the grid
+#    - all nine windows present (SYNAPSE SHELL + WEB UPLINK included); RE-ALIGN restores the grid
 #    - header shows the expected version string
 ```
 

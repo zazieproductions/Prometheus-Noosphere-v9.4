@@ -487,14 +487,14 @@ restores the authored defaults exactly.
 
 ## DOM contract
 
-71 declared IDs, 51 of them resolved by `getElementById` and 0 dangling. An element is written by
+74 declared IDs, 51 of them resolved by `getElementById` and 0 dangling. An element is written by
 exactly one owner unless stated; the audit's four fatal rules enforce uniqueness and referential
 integrity on every run.
 
 | ID | Element | Owner | Written by | Notes |
 | --- | --- | --- | --- | --- |
 | `workspace` | `<main>` | — | — | Positioning context only |
-| `win-graph` … `win-shell` | `<div>` ×8 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
+| `win-graph` … `win-uplink` | `<div>` ×9 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
 | `neural-canvas` | `<canvas>` | graph | `resizeCanvas` | Backing store sized to parent |
 | `ultra-canvas` | `<canvas>` | ultra | `ultra.render` | Second canvas, pointer-transparent overlay |
 | `mode-btn-standard` `mode-btn-ultra` | `<button>` ×2 | graph | `setDisplayMode` | `mode-btn-on` marks the active renderer |

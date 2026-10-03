@@ -86,16 +86,16 @@ Measured at `HEAD`; all reproducible with `npm test` and the commands in the aud
 
 | Metric | Value | Reading |
 | --- | --- | --- |
-| Application payload | 181,219 B / 3,023 lines | Within budget (6,781 B of headroom to the warn threshold) |
-| Runtime script | 120,898 B / 2,211 lines | Eleven in-document engines (ten original + ultra) across thirteen banner regions; the shell console is external (`shell/` — ADR-011) |
-| Markup + chrome | 52,586 B / 643 lines | Markup is well below the logic again — see § 5 |
+| Application payload | 183,533 B / 3,050 lines | Within budget (4,467 B of headroom to the warn threshold) |
+| Runtime script | 121,235 B / 2,216 lines | Eleven in-document engines (ten original + ultra) across thirteen banner regions; the shell console is external (`shell/` — ADR-011) |
+| Markup + chrome | 54,524 B / 664 lines | Markup is well below the logic again — see § 5 |
 | Design tokens | 2,076 B | Colours, fonts, shadows, animations |
 | CSS primitives | 4,641 B | Only what utilities cannot express; includes the ultra deck chrome |
-| Engines / modules | 11 in-document + 1 external (`window.synapseShell`) + 5 server modules | Each with a single responsibility and a documented surface |
-| Windowed subsystems | 8 | Each mapping to one engine or one engine pair; the shell window maps to `window.synapseShell` |
-| Duplicated window chrome | 8 `.win-header` blocks, 61 buttons app-wide | Still the single largest duplication in the repository |
+| Engines / modules | 11 in-document + 2 external (`window.synapseShell`, `window.webUplink`) + 5 server modules + 8 research modules | Each with a single responsibility and a documented surface |
+| Windowed subsystems | 9 | Each mapping to one engine or one engine pair; the shell window maps to `window.synapseShell` |
+| Duplicated window chrome | 9 `.win-header` blocks, 64 buttons app-wide | Still the single largest duplication in the repository |
 | Magic numbers with semantic meaning | 12 named in § 4, plus the ultra tuning tables | Candidates for a constants block |
-| Automated checks | 21 register IDs + 4 fatal rules + 36 smoke assertions + 34 shell behavioural tests | ~0.4 s audit, ~3 s smoke; the shell suites skip without their optional dependencies |
+| Automated checks | 21 register IDs + 4 fatal rules + 36 smoke assertions + 34 shell behavioural tests + 11 uplink checks | ~0.4 s audit, ~3 s smoke; the shell suites skip without their optional dependencies |
 | Tracked findings | 30 across 16 IDs | Baselined, severity-classified, roadmap-mapped |
 **Comment density and naming.** Engine banners (`// 3. FORCE-DIRECTED NEURAL GRAPH ATLAS ENGINE`)
 partition the script into labelled regions, and every engine exposes verb-named methods
@@ -273,7 +273,7 @@ currently blocked on. This is a stated position, not an oversight.
 | --- | --- | --- | --- |
 | **Bus factor 1** | Certain | High | Conventional Commits, ADRs, this document, dependency-free tooling, and a manual matrix that assumes no author knowledge |
 | Unpinned CDNs change under a fixed commit | Medium | Medium | Pin URLs now; self-host in `9.6.0` (`NOO-008`); the CSP section in [`DEPLOYMENT.md`](DEPLOYMENT.md#5-content-security-policy) documents the blast radius |
-| Single file crosses the budget | Medium | Medium | Warn at 188,000 B, fail at 224,000 B (re-baselined in 9.5.0 for the ultra renderer), with 6,781 B of headroom; further shell work belongs in `shell/`, not the document ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)) |
+| Single file crosses the budget | Medium | Medium | Warn at 188,000 B, fail at 224,000 B (re-baselined in 9.5.0 for the ultra renderer), with 4,467 B of headroom; further shell work belongs in `shell/`, not the document ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)) |
 | Shell dependencies rot or fail to compile | Medium | Low | Pinned exactly; `node-pty` is optional and its absence renders as a state, not an error ([ADR-012](DECISIONS.md#adr-012--optional-native-dependency-with-a-degraded-mode)); the published artefact imports none of it |
 | A remote client or cross-site page reaches the PTY | Low | Critical | Per-request gate on peer, `Host`, `Origin`, forwarding headers and `Sec-Fetch-Site`; no CORS; refusals are tested for both HTTP and the WebSocket upgrade ([`SECURITY.md` § 4](../SECURITY.md#4--the-local-shell-is-not-sandboxed-docsshellmd)) |
 | Satire misread as endorsement | Medium | Medium | Explicit framing in the README, the architecture document and [`DESIGN.md` § 9](DESIGN.md#9-satire-and-disclosure) |

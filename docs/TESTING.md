@@ -148,7 +148,7 @@ rather than control-based, and is stepped through before every release.
 | 2 | Click into a background window | Raises to front; only one window shows the active glow |
 | 3 | Minimise, then restore from the dock | Returns with its previous geometry and gains focus |
 | 4 | Maximise, then restore | Exact previous geometry, position included |
-| 5 | Click **RE-ALIGN** | All eight windows return to the authored grid, all visible |
+| 5 | Click **RE-ALIGN** | All nine windows return to the authored grid, all visible |
 | 6 | Drag on a window's header *button* | No drag; the control's own action fires |
 
 ### 3.2 Graph atlas
@@ -295,7 +295,7 @@ A change is complete when all of the following hold. This is the same list revie
       and must fail closed with a readable reason.
 - [ ] User-facing change is recorded in [`CHANGELOG.md`](../CHANGELOG.md).
 - [ ] If a documented signature changed, [`API.md`](API.md) is updated in the same commit.
-- [ ] Payload delta is understood (current headroom: **6,781 B** to the warn threshold, 188,000 B).
+- [ ] Payload delta is understood (current headroom: **4,467 B** to the warn threshold, 188,000 B).
 
 ---
 
@@ -367,7 +367,7 @@ silently", not as a substitute for § 3 or the harness below.
 | --- | --- |
 | Runner | Playwright, pinned, in `devDependencies` — the **runtime** stays dependency-free |
 | Seed | `?seed=` URL parameter (generator shipped, parameter not yet) for a deterministic layout |
-| Assertions | Boot without console errors; 8 windows present; node count matches the badge; filter reduces rendered nodes; injection increments the counter; transcript grows; ingestion of a fixture adds exactly one node; **the mode switch draws on the second canvas and returns losslessly** |
+| Assertions | Boot without console errors; 9 windows present; node count matches the badge; filter reduces rendered nodes; injection increments the counter; transcript grows; ingestion of a fixture adds exactly one node; **the mode switch draws on the second canvas and returns losslessly** |
 | Visual | Seeded screenshots at 1280 / 1440 / 1920 — the third is what would have caught `NOO-019` automatically |
 | Accessibility | Assert an accessible name on every `button`; `NOO-016` becomes a ratchet again as coverage improves |
 | Trigger | Same CI workflow, second job; a harness failure is a build failure |
