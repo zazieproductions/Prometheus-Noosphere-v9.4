@@ -1,7 +1,7 @@
 # Architecture
 
 > Runtime topology, data models, algorithms, extension seams and the defect register for
-> **NOÖSPHERE // OS v9.4.1**.
+> **NOÖSPHERE // OS v9.5.0**.
 
 **Audience:** engineers reading, reviewing or extending the runtime.
 **Prerequisite:** none beyond comfort with the DOM and Canvas. No framework knowledge required.
@@ -54,10 +54,13 @@ Three layers, one document. Nothing crosses a layer boundary without an explicit
 │ WORKSPACE                                     <main id="workspace">                   │
 │   absolutely positioned, overlapping, z-ordered window shells — all share one class:  │
 │                                                                                      │
-│   .glass-panel  (×7)                                                                  │
+│   .glass-panel  (×8)                                                                  │
 │     ├── .win-header     drag handle, title glyph, window controls                     │
 │     ├── toolbar         per-window controls (filters, directives, search)             │
 │     └── .content        engine-owned viewport or canvas                               │
+│                                                                                      │
+│   the eighth window (`win-shell`) is a real host terminal: its interior is built by   │
+│   `shell/synapse-shell.js` against the local bridge — see § 19                        │
 ├──────────────────────────────────────────────────────────────────────────────────────┤
 │ RUNTIME                                   one <script>, ten engines, in order        │
 │                                                                                      │
@@ -96,25 +99,30 @@ makes the single-file constraint survivable.
 
 ## 4. Document anatomy
 
-Verified line anchors from `HEAD` (`index.html`, 1,477 lines):
+Verified line anchors from `HEAD` (`index.html`, 1,571 lines):
 
 | Range | Region | Contents |
 | --- | --- | --- |
-| 1–13 | Document head | Metadata, title, three CDN `<script>`/`<link>` tags |
-| 16–61 | `tailwind.config` | Design tokens: colours, font stacks, shadows, animations, keyframes |
-| 64–112 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars |
-| 118–163 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
-| 165 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
-| 170–222 | `#win-graph` | Neural Vault — toolbar, `<canvas>`, inspector HUD |
-| 227–277 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
-| 281–334 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
-| 339–421 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
-| 427–506 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
-| 510–536 | `#win-notes` | Grimoire — search field, fragment list |
-| 541–586 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
-| 591–636 | `<footer>` | Dock (6 launchers), neural load, decorative equaliser |
-| 638–669 | Modal | Quick idea injection — title, cluster, analysis, commit |
-| 675–1475 | Runtime `<script>` | Ten engines plus initialisation (see §6) |
+| 1–19 | Document head | Metadata, title, three CDN tags, the two SYNAPSE SHELL assets |
+| 20–67 | `tailwind.config` | Design tokens: colours, font stacks, shadows, animations, keyframes |
+| 68–116 | `<style>` | CRT overlay, glass panel, active-window state, glow, hatching, scrollbars |
+| 121–167 | `<header>` | Status bar: identity, health, node count, entropy, controls, clock |
+| 169 | `#workspace` | Positioning context for all windows (`100vh − 5rem`) |
+| 174–228 | `#win-graph` | Neural Vault — toolbar, `<canvas>`, inspector HUD |
+| 231–281 | `#win-terminal` | Synapse-X — transcript, directive chips, input line |
+| 285–340 | `#win-uploader` | Ingestion Vector — drop zone, artefact feed |
+| 343–427 | `#win-analytics` | Memetic Contagion — gauge grid, SVG radar, telemetry log |
+| 431–510 | `#win-aesthetic` | Hexonomy & Sound Lab — swatches, tone buttons, copy/colour cards |
+| 514–541 | `#win-notes` | Grimoire — search field, fragment list |
+| 545–590 | `#win-synthesizer` | Hyper-Idea Combinator — domain selectors, mutation output |
+| 594–610 | `#win-shell` | SYNAPSE SHELL — chrome plus one host element; the console itself is built by `shell/synapse-shell.js` (§ 19) |
+| 613–663 | `<footer>` | Dock (7 launchers, including the shell), neural load, decorative equaliser |
+| 666–697 | Modal | Quick idea injection — title, cluster, analysis, commit |
+| 701–1569 | Runtime `<script>` | Ten engines plus initialisation (see §6) |
+
+The shell is the only subsystem whose runtime is **not** in `index.html`: ~700 lines of browser
+JavaScript plus ~380 lines of CSS, which would have broken the payload budget for every visitor,
+including those on a static host where none of it can run (§ 19.2).
 
 ---
 
@@ -165,10 +173,14 @@ Two ordering facts matter:
 | 8 | `ideaCombinator` | 1393 | selection values | two domain vectors | synthesised axiom, graph node |
 | 9 | modal | 1420 | modal visibility | user authoring | graph node |
 | 10 | telemetry | 1444 | clock text, drift values | 1 Hz interval | clock, two gauge strings |
+| 11 | `window.synapseShell` — external, `shell/synapse-shell.js` | — | session records, xterm instances, sockets, AI-mode mirror, agent log | `/api/shell/*`, `/ws/shell`, agent SSE | terminal output to xterm, chrome text, agent step log |
 
-Every engine is a **plain object literal or a small set of functions** with an explicit public
-surface, documented in [`API.md`](API.md). No prototypes, no classes, no inheritance — the surface
-area of the system is small enough that composition by convention is sufficient and cheaper to read.
+Every engine in the document is a **plain object literal or a small set of functions** with an
+explicit public surface, documented in [`API.md`](API.md). No prototypes, no classes, no
+inheritance — the surface area of the system is small enough that composition by convention is
+sufficient and cheaper to read. Row 11 is the exception that proves the pattern: the shell is one
+IIFE in `shell/`, listed here because § 15 and § 19 treat it as a peer of the engines, not as part
+of the document (ADR-011).
 
 ---
 
@@ -299,7 +311,7 @@ practice at every zoom level because zoom is a *view* transform and never feeds 
 **Frame-rate coupling.** The integrator advances by a constant increment per frame with no
 `deltaTime` term, so a 144 Hz display runs the simulation ≈2.4× faster than a 60 Hz display. The
 loop is *stable* at both rates, but the dynamics are not time-invariant. Tracked as `NOO-020`; the
-remediation (fixed 60 Hz accumulator with an interpolation step) is scoped to `9.5.0`.
+remediation (fixed 60 Hz accumulator with an interpolation step) is scoped to `9.6.0`.
 
 ---
 
@@ -348,12 +360,12 @@ with fixed pixel widths, so:
   entry**, so it is unreachable without a reload;
 - on narrow/mobile viewports this is a hard limitation, not a degradation.
 
-This is `NOO-019`, rated high, and it is the first item in the `9.4.2` horizon. The fix is a
+This is `NOO-019`, rated high, and it is the first item in the `9.5.1` horizon. The fix is a
 view-preserving, viewport-aware layout algorithm (clamp-and-flow on boot and on resize) rather than
 a responsive rewrite — the desktop metaphor is intentional, but unreachable windows are a defect.
 
 **Listener note.** `makeDraggable` binds its `mousemove` and `mouseup` handlers to `document` once
-per window (7 × 2 = 14 permanent listeners) rather than to a single delegated set. Correct, but
+per window (8 × 2 = 16 permanent listeners) rather than to a single delegated set. Correct, but
 quadratic in window count; tracked as `NOO-017`.
 
 ---
@@ -378,7 +390,7 @@ drop | pick  →  FileReader.readAsText  →  tokenise (\s+)  →  filter (len >
 
 **Verdict on the drop-zone copy.** The UI advertises `.PDF`. `readAsText` on a binary PDF yields
 mojibake, so the practical input is plain text and Markdown. This is a copy-accuracy defect rather
-than a code defect; it is tracked in the accuracy register as `NOO-009` and corrected in `9.4.2`.
+than a code defect; it is tracked in the accuracy register as `NOO-009` and corrected in `9.5.1`.
 
 ---
 
@@ -490,10 +502,13 @@ Each extension point is a single, well-bounded edit. None requires touching more
 | Add a palette | Append to `PALETTES` | 1 array | XS |
 | Add a fragment | Append to `GRIMOIRE_DATA` | 1 array | XS |
 | Change the acoustic grammar | `playBeep` call sites or `soundLab` presets | 1 module | S |
+| Add a shell quick action | `buildQuickActions()` + a `case` in `onClick()` | 1 module (`shell/synapse-shell.js`) | XS |
+| Add an agent tool | `TOOLS` + `executeTool()` in `server/agent.mjs` + the system-prompt description | 2 places | S |
+| Add a shell HTTP route | `server/routes.mjs` (+ a hub method if it touches the PTY) | 1–2 files | S |
 
 **Extraction seam (future).** The ten engines are already isolated by comment banner and by
 identifier; they correspond 1:1 with the proposed ES modules in
-[`MAINTAINABILITY.md` § Extraction plan](MAINTAINABILITY.md#5-extraction-plan). The single-file
+[`MAINTAINABILITY.md` § Extraction plan](MAINTAINABILITY.md#7-extraction-plan). The single-file
 constraint is a delivery decision, not a structural one — the code is extraction-ready, which is
 precisely why it does not need to be extracted yet.
 
@@ -507,7 +522,7 @@ violation fails CI regardless of baseline.
 | Invariant | Rule |
 | --- | --- |
 | Every `id` is unique | Duplicate ID detection |
-| Every `getElementById('x')` resolves | Dangling-reference detection (42 IDs, 0 dangling) |
+| Every `getElementById('x')` resolves | Dangling-reference detection (46 declared IDs, 28 lookup sites, 0 dangling) |
 | Every `restoreOrFocus('win-x')` target exists | Dock integrity check |
 | Every inline handler calls a defined global | Handler resolution (properties excluded) |
 
@@ -530,7 +545,7 @@ roadmap, the changelog and `scripts/audit.mjs` titles.
 | `NOO-004` | Low | Project class never defined | `.no-scrollbar` used on the directive strip | Add the utility rule |
 | `NOO-005` | Info | Dead animation config | `pulse-glow`, `scanline` declared, zero call sites | Apply or delete |
 | `NOO-006` | Med | Unresolvable icon | `data-lucide="dread"` is not a Lucide icon | Choose a real name (e.g. `brain-circuit`) |
-| `NOO-007` | High | Unescaped `innerHTML` sinks | 4 sites interpolate prompt text and dropped filenames | Route through `textContent` / `escapeHtml()` |
+| `NOO-007` | High | Unescaped `innerHTML` sinks | 2 sites interpolate prompt text and dropped filenames (was 4 at `9.4.1`) | Route through `textContent` / `escapeHtml()` |
 | `NOO-008` | Med | Unpinned runtime dependency | `cdn.tailwindcss.com`, `unpkg.com/lucide@latest` | Pin versions; self-host for offline parity |
 | `NOO-009` | Low | Advertised volume ≠ shipped | "240+ fragments", 7 shipped | Correct the copy, or ship the corpus |
 | `NOO-010` | Low | Counter parity drift | Badge 142 / banner "120+" / engine spawns 90 | Derive all three from `graphNodes.length` |
@@ -540,7 +555,7 @@ roadmap, the changelog and `scripts/audit.mjs` titles.
 | `NOO-014` | Med | Canvas not HiDPI-scaled | No `devicePixelRatio` handling | Scale backing store; store DPR in the resize path |
 | `NOO-015` | Med | `O(n²)` broad phase | 4,005 pairs/frame, no spatial index | Uniform grid / Barnes–Hut; optionally a worker |
 | `NOO-016` | High | No accessibility semantics | 0 `aria-*`, 0 `role`, 0 `tabindex`; 7 `outline-none` | Keyboard model + roles + live regions |
-| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 7 windows = 14 permanent | Delegate once, or bind during drag only |
+| `NOO-017` | Low | Listener multiplication | 2 `document` listeners × 8 windows = 16 permanent | Delegate once, or bind during drag only |
 | `NOO-018` | Med | No link-preview metadata | No description, favicon or OG tags | Add meta set + favicon |
 | `NOO-019` | High | Unreachable default geometry | Layout spans 1760 × 880; `win-synthesizer` needs ≥1500 px and is undocked | Viewport-aware layout on boot and resize |
 | `NOO-020` | Med | Frame-rate-dependent physics | No `deltaTime` in `updatePhysics` | Fixed-timestep accumulator at 60 Hz |
@@ -575,6 +590,59 @@ exists so that no reader has to guess whether a term describes a mechanism or a 
 Publishing this table is a deliberate choice. A portfolio artefact that invites technical scrutiny
 should survive it, and the fastest way to demonstrate engineering judgement is to be the first
 person to state the limits of the thing you built.
+
+---
+
+---
+
+## 19. SYNAPSE SHELL — the local host execution layer
+
+The eighth window is not a simulation of a terminal; it *is* one. This section records how it fits
+the architecture. Behaviour, trust boundary and operator controls live in [`SHELL.md`](SHELL.md).
+
+### 19.1 Shape
+
+```
+browser ─ xterm.js ─ WebSocket (same origin) ─ node-pty (forkpty) ─ $SHELL ─ macOS
+                     \__ refused unless the request is provably from the same machine
+```
+
+The client half (`shell/synapse-shell.js`) is one IIFE exposing `window.synapseShell`. It obeys the
+same window contract as every other subsystem — a `.glass-panel` with a `.win-header` inside
+`#workspace`, registered by the existing `makeDraggable` pass, launched from the dock with
+`restoreOrFocus('win-shell')` — and reuses the shared chrome vocabulary (`playBeep`, z-order helpers)
+instead of reimplementing it. What it adds is a second transport: one WebSocket and one xterm
+instance per session, fitted to the panel by `ResizeObserver`, reporting geometry back to the PTY on
+every change.
+
+### 19.2 Why the shell lives outside `index.html`
+
+`index.html` carries a hard payload budget (96 KB warn, 128 KB fail, enforced by the audit). The
+shell needs ~1,100 lines of browser code and styling that only exist when a local bridge is present.
+Inlining it would push the document past the warn threshold for every visitor, including static-host
+visitors for whom none of that code can ever run. Two asset tags cost 148 bytes and the module loads
+after first paint. This is the only file-splitting decision in the project, recorded as an ADR in
+[`DECISIONS.md`](DECISIONS.md).
+
+### 19.3 Server modules, and what each refuses to do
+
+| Module | Owns | Refuses to |
+| --- | --- | --- |
+| `scripts/serve.mjs` | Boot, static serving, vendor assets, inference proxy, shutdown | Touch the PTY directly |
+| `server/gate.mjs` | The loopback classification (peer, `Host`, `Origin`, forwarded headers, `Sec-Fetch-Site`) | Offer any exception other than the operator's own token |
+| `server/shell.mjs` | Sessions: spawn, write, insert, resize, interrupt, kill, restart, read, save, ring buffers, backpressure, cwd tracking, process ownership | Filter, parse or rewrite user commands |
+| `server/agent.mjs` | The bounded loop; the only place a model decision becomes machine action | Start while the mode is OFF; exceed MAX STEPS / MAX RUNTIME |
+| `server/routes.mjs` | HTTP control plane, WebSocket upgrade, agent SSE | Serve a client that failed the gate |
+| `server/ollama.mjs` | Local inference calls | Leave loopback unless the operator relocates the URL |
+| `server/procinfo.mjs` | `ps`/`lsof`/`ss` inspection, tree termination | Signal pids outside NOÖSPHERE's own process trees |
+
+### 19.4 Coupling rule
+
+The shell breaks the static artefact's "no network" property and nothing else. It reaches other
+subsystems the way they reach each other — direct calls to documented globals (`playBeep`,
+`graphEngine.injectNode` from a script) plus the shared `$NOOSPHERE_ZAZIOPATH` location — and it adds
+no event bus, no store and no persistence: AI mode is memory-only, scrollback is memory-only, and the
+only artefact it can write is a session you explicitly save.
 
 ---
 

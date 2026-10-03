@@ -12,6 +12,9 @@ reports/
 *.log
 npm-debug.log*
 
+# SYNAPSE SHELL — sessions saved on explicit request (SAVE SESSION), never automatic
+logs/
+
 # Editors & OS
 .DS_Store
 Thumbs.db
