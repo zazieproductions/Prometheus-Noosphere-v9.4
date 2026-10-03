@@ -378,3 +378,26 @@ presented as critical design. It is licensed with the code, and it is not advice
 <div align="center">
 <sub>Built as a single file, on purpose. <code>NOÖSPHERE // OS v9.4.1</code></sub>
 </div>
+
+### Local inference (optional, no API keys)
+
+The original Polymath terminal used vocabulary templates and did **not** perform inference.
+To enable real local responses, install Ollama separately and install **only** `llama3.1:8b`
+(if it is not already installed). No model is downloaded by NOÖSPHERE.
+
+```bash
+# Terminal 1 (with llama3.1:8b already installed)
+ollama serve
+# Terminal 2
+npm start
+# Browser: http://localhost:4173
+```
+
+The local Node server checks the installed model and proxies terminal requests exclusively to
+`http://127.0.0.1:11434`. The status badge reads `LOCAL INFERENCE // ONLINE · MODEL // llama3.1:8b`
+when available; otherwise `SIMULATION MODE` uses the original template engine. Prompts,
+selected graph nodes, nearby nodes, grimoire fragments, terminal history and short excerpts
+of ingested local text are sent to the local Ollama process. Do not expose the development
+server or Ollama to the internet. Opening `index.html` directly or using GitHub Pages remains
+simulation-only: a static host cannot run Ollama or the local proxy. No cloud inference or
+API keys are used.

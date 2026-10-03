@@ -237,9 +237,9 @@ Flips `showLabels`, which gates the label pass in `renderGraph`.
 
 ---
 
-## Engine: `polymathLLM` — template composition engine
+## Engine: `polymathLLM` — local inference with template fallback
 
-> **Not a language model.** No inference, no network, no prompt consumption. The composition
+> **Historical fallback:** the original engine had no inference, network or prompt consumption. The composition
 > algorithm, its variation space (100 argument structures, ≈29,100 surface variations) and the
 > disclosure that `prompt` is accepted but never read are all documented in
 > [`ARCHITECTURE.md` § The composition engine](ARCHITECTURE.md#12-the-composition-engine-polymath-llm).
@@ -251,9 +251,8 @@ Lucide icons inside it. Role determines the visual treatment: user prompts get a
 prefix, system notices a compact cyan treatment, assistant output a full panel.
 
 **Side effects:** DOM append, `scrollTop` set, `lucide.createIcons()` re-run.
-**HTML note:** `text` is interpolated into a template literal assigned to `innerHTML` — the sink
-tracked as `NOO-007`. Callers currently pass authored content, but `handleFileInput` passes user-supplied
-filenames into a sibling sink in the ingestion module.
+**HTML note:** transcript text is inserted as text (not HTML). The ingestion feed still has
+a separate filename interpolation sink tracked as `NOO-007`.
 
 #### `clearChat() → void`
 Empties `#terminal-output` (including the authored boot banner) and plays a 400 Hz square wave.
@@ -264,7 +263,7 @@ prompt as a `user` entry, plays a 1000 Hz tick and calls `generatePolymathRespon
 
 #### `generatePolymathResponse(prompt: string) → void`
 **Asynchronous.** After a fixed 400 ms delay, composes a response and appends it as an `assistant`
-entry. The `prompt` argument is **never read**; output depends solely on the RNG. See §12 of the
+entry. In simulation mode the `prompt` argument is **never read**; output depends solely on the RNG. See §12 of the
 architecture document — this is an intentional, documented property, not an oversight.
 
 Composition: 1 opening (5) + 2 distinct tenets (5 × 4 ordered pairs) + the fixed 4-step execution
@@ -563,3 +562,20 @@ and any change to a documented signature is recorded in [`CHANGELOG.md`](../CHAN
 <div align="center">
 <sub>Next: <a href="DESIGN.md">Design system →</a></sub>
 </div>
+
+## Local Ollama inference (optional)
+
+The historical `polymathLLM.generatePolymathResponse(prompt)` template composer is now the
+fallback. At startup `checkOllama()` calls `GET /api/noosphere/status`; `queryOllama(prompt,
+context = this.context())` calls `POST /api/noosphere` and returns the generated text.
+`generatePolymathResponse` uses this async path when online and switches to the original
+400 ms simulated composer if a request fails. Node deep dives and grimoire selections also
+use inference when available. `context()` supplies bounded graph, fragment, history and
+local-ingestion excerpts. No model installation or pulling is performed.
+
+The zero-dependency `scripts/serve.mjs` exposes only these API routes to loopback clients
+using a localhost Host and matching Origin. Status returns `{online, model}` (200); POST
+accepts `{prompt, context}` and returns `{response, model}` (200), or a JSON error
+(400/403/405/413/503). The server checks `/api/tags` for `llama3.1:8b` and uses
+`/api/chat` at `http://127.0.0.1:11434`, with `stream: false` and a NOÖSPHERE system
+prompt. Static hosting has no API; the browser catches failures and stays in simulation.

@@ -231,7 +231,7 @@
                 <div class="flex items-center space-x-2">
                     <i data-lucide="terminal" class="w-4 h-4 text-neon-emerald"></i>
                     <span class="font-mono text-xs font-bold tracking-wider text-neon-emerald">SYNAPSE-X // POLYMATH RECURSIVE LLM</span>
-                    <span class="bg-emerald-950/80 border border-emerald-700/50 text-[10px] px-1.5 py-0.2 rounded text-emerald-300 font-mono">ZERO-LATENCY ENGINE</span>
+                    <span class="bg-emerald-950/80 border border-emerald-700/50 text-[10px] px-1.5 py-0.2 rounded text-emerald-300 font-mono"><span id="inference-status">SIMULATION MODE</span></span>
                 </div>
                 <div class="flex items-center space-x-1.5">
                     <button onclick="polymathLLM.clearChat()" class="p-1 hover:text-neon-cyan text-slate-400" title="Flush Buffer"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
@@ -1089,6 +1089,7 @@
             if (hoveredNode) {
                 playBeep(1100, 'sine', 0.08);
                 polymathLLM.appendChat('system', `Synapse Node Inspected: [${hoveredNode.title}] // Domain: ${hoveredNode.domain.toUpperCase()}`);
+                polymathLLM.selectedNode = hoveredNode;
                 polymathLLM.runDirective('node-deepdive', hoveredNode);
             }
         });
@@ -1167,6 +1168,46 @@
         };
 
         const polymathLLM = {
+            history: [],
+            ingested: [],
+            selectedNode: null,
+            selectedFragment: null,
+            mode: 'simulation',
+            setMode(online) {
+                this.mode = online ? 'inference' : 'simulation';
+                document.getElementById('inference-status').textContent = online
+                    ? 'LOCAL INFERENCE // ONLINE · MODEL // llama3.1:8b' : 'SIMULATION MODE';
+            },
+            async checkOllama() {
+                try {
+                    const response = await fetch('/api/noosphere/status', { signal: AbortSignal.timeout(4000) });
+                    const state = await response.json();
+                    this.setMode(response.ok && state.online && state.model === 'llama3.1:8b');
+                } catch { this.setMode(false); }
+            },
+            context() {
+                const node = this.selectedNode;
+                const neighbors = node ? graphEdges.filter(e => e.source === node.id || e.target === node.id)
+                    .slice(0, 8).map(e => graphNodes[e.source === node.id ? e.target : e.source])
+                    .filter(Boolean).map(n => ({ title: n.title, domain: n.domain })) : [];
+                return {
+                    selectedNode: node && { title: node.title, domain: node.domain, description: node.desc },
+                    activeDomainFilter, nearbyNodes: neighbors,
+                    selectedFragment: this.selectedFragment,
+                    grimoire: GRIMOIRE_DATA.filter(f => !node || f.tags.includes(node.domain) || f.title.toLowerCase().includes(node.domain)).slice(0, 4),
+                    recentTerminalHistory: this.history.slice(-8), ingestedLocalText: this.ingested.slice(-3)
+                };
+            },
+            async queryOllama(prompt, context = this.context()) {
+                const response = await fetch('/api/noosphere', {
+                    method: 'POST', headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ prompt, context }), signal: AbortSignal.timeout(125000)
+                });
+                if (!response.ok) throw new Error('Local inference unavailable');
+                const result = await response.json();
+                if (!result.response || result.model !== 'llama3.1:8b') throw new Error('Invalid model response');
+                return result.response;
+            },
             appendChat(role, text) {
                 const container = document.getElementById('terminal-output');
                 const msg = document.createElement('div');
@@ -1179,21 +1220,28 @@
                 if (role === 'user') {
                     msg.innerHTML = `<span class="text-neon-emerald font-bold mr-1.5">USER@POLYMATH:~#</span> ${text}`;
                 } else if (role === 'system') {
-                    msg.innerHTML = `<span>⚡ ${text}</span>`;
+                    msg.innerHTML = `<span>⚡</span>`;
                 } else {
                     msg.innerHTML = `<div class="text-neon-cyan font-bold flex items-center space-x-1.5 mb-1">
                         <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
-                        <span>SYNAPSE-X CORE GENERATION</span>
+                        <span>${this.mode === 'inference' ? 'LOCAL INFERENCE // llama3.1:8b' : 'SIMULATION MODE // SYNTHESIZED'}</span>
                     </div>
-                    <div class="leading-relaxed text-[11px] whitespace-pre-wrap">${text}</div>`;
+                    <div class="leading-relaxed text-[11px] whitespace-pre-wrap"></div>`;
                 }
+                if (role === 'assistant' || role === 'user') this.history.push({ role, text: String(text).slice(0, 1000) });
+                this.history = this.history.slice(-12);
                 container.appendChild(msg);
+                // Treat model output and user-supplied text as text, never executable markup.
+                if (role === 'assistant') msg.querySelector('.whitespace-pre-wrap').textContent = text;
+                else if (role === 'user') msg.appendChild(document.createTextNode(` ${text}`));
+                else msg.textContent = `⚡ ${text}`;
                 container.scrollTop = container.scrollHeight;
                 lucide.createIcons();
             },
 
             clearChat() {
                 document.getElementById('terminal-output').innerHTML = '';
+                this.history = [];
                 playBeep(400, 'square', 0.05);
             },
 
@@ -1207,8 +1255,19 @@
                 this.generatePolymathResponse(val);
             },
 
-            generatePolymathResponse(prompt) {
-                // Simulate deep esoteric neural generation
+            async generatePolymathResponse(prompt) {
+                if (this.mode === 'inference') {
+                    try {
+                        const response = await this.queryOllama(prompt);
+                        this.appendChat('assistant', response);
+                        playBeep(1200, 'triangle', 0.1);
+                        return;
+                    } catch {
+                        this.setMode(false);
+                        this.appendChat('system', 'LOCAL INFERENCE UNAVAILABLE // switching to simulation');
+                    }
+                }
+                // Original synthesized engine, retained as offline fallback
                 setTimeout(() => {
                     const opening = VOCAB.openings[Math.floor(Math.random() * VOCAB.openings.length)];
                     const tenet1 = VOCAB.tenets[Math.floor(Math.random() * VOCAB.tenets.length)];
@@ -1238,7 +1297,8 @@
                     this.generatePolymathResponse('manifesto');
                 } else if (type === 'node-deepdive' && data) {
                     const analysis = `DEEP DIVE // NODE [${data.title.toUpperCase()}]\nDomain: ${data.domain.toUpperCase()}\nResonance Index: ${data.valence}\n\nTheoretical Synthesis:\nBy weaponizing ${data.desc}, the system creates a cognitive feedback loop wherein the consumer's subconscious assumes the identity posture of the brand before transactional evaluation occurs.`;
-                    this.appendChat('assistant', analysis);
+                    if (this.mode === 'inference') this.generatePolymathResponse(`Analyze the selected node ${data.title} (${data.domain}): ${data.desc}`);
+                    else this.appendChat('assistant', analysis);
                 }
             }
         };
@@ -1276,6 +1336,9 @@
                     const randomDomains = ['memetics', 'semiotics', 'psychoacoustics', 'hyperstition'];
                     const pickedDomain = randomDomains[Math.floor(Math.random() * randomDomains.length)];
                     graphEngine.injectNode(synthesizedNodeTitle, pickedDomain, `Ingested from ${file.name}. Parsed ${words.length} semantic vectors.`);
+
+                    polymathLLM.ingested.push({ file: file.name, text: String(content).slice(0, 2500) });
+                    polymathLLM.ingested = polymathLLM.ingested.slice(-3);
 
                     // Add to UI ingestion feed
                     const item = document.createElement('div');
@@ -1376,6 +1439,7 @@
                         <p class="text-slate-400 text-[10px] leading-relaxed line-clamp-3">${item.text}</p>
                     `;
                     card.onclick = () => {
+                        polymathLLM.selectedFragment = item;
                         polymathLLM.appendChat('system', `Grimoire Fragment Loaded: "${item.title}"`);
                         polymathLLM.generatePolymathResponse(item.title);
                     };
@@ -1460,6 +1524,7 @@
         // INITIALIZATION
         // -------------------------------------------------------------
         window.addEventListener('DOMContentLoaded', () => {
+            polymathLLM.checkOllama();
             initGraphEngine();
             resizeCanvas();
             renderGraph();
