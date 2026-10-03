@@ -26,7 +26,7 @@ after:   findings ×  allowed ×
 
 - [ ] No new register ID was introduced
 - [ ] If a count increased, the reason is stated below **and** the baseline change is in this PR
-- [ ] Payload delta is understood (current headroom to the 96,000 B warn threshold: ~7,300 B)
+- [ ] Payload delta is understood (current headroom to the 188,000 B warn threshold: ~9,300 B)
 
 Baseline justification (required if any count increased):
 
@@ -36,7 +36,7 @@ Baseline justification (required if any count increased):
 
 Manual matrix tasks run (see [`docs/TESTING.md` § 3](docs/TESTING.md#3-manual-verification-tier)):
 
-- [ ] `npm test` exits 0
+- [ ] `npm test` exits 0 (`npm run verify` runs the audit and the smoke harness together)
 - [ ] `npm start` serves the app and the change is visible
 - [ ] Relevant manual-matrix tasks pass (list numbers below)
 - [ ] Console is clean — no errors or warnings introduced

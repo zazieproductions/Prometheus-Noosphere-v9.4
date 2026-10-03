@@ -109,6 +109,54 @@
         .no-select { user-select: none; -webkit-user-select: none; }
 
         .cursor-cross { cursor: crosshair; }
+
+        /* ------------------------------------------------------------
+           ULTRA VISUALIZATION — control surface, chips, meters, legend.
+           The deck lives inside the graph window's own chrome so it never
+           becomes a generic settings panel; every control is a field or
+           weather term, and every label is a readout of live graph state.
+           ------------------------------------------------------------ */
+        .mode-btn {
+            background: transparent; color: #64748b; border: 0;
+            font-family: 'JetBrains Mono', monospace; cursor: pointer;
+            transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .mode-btn:hover { color: #00f7ff; }
+        .mode-btn-on {
+            background: #00f7ff; color: #030509; font-weight: 700;
+            box-shadow: 0 0 12px rgba(0, 247, 255, 0.45);
+        }
+        .ultra-chip {
+            border: 1px solid rgba(0, 247, 255, 0.18); color: #7c8ea3;
+            background: rgba(8, 12, 20, 0.6); cursor: pointer;
+            font-family: 'JetBrains Mono', monospace; white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s, background 0.15s, box-shadow 0.15s;
+        }
+        .ultra-chip:hover { border-color: rgba(0, 247, 255, 0.55); color: #00f7ff; }
+        .ultra-chip-on {
+            border-color: #00f7ff; background: #00f7ff; color: #030509;
+            font-weight: 700; box-shadow: 0 0 10px rgba(0, 247, 255, 0.4);
+        }
+        .ultra-chip-attn {
+            border-color: rgba(255, 170, 0, 0.6); color: #ffaa00;
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.25);
+        }
+        .ultra-slider {
+            -webkit-appearance: none; appearance: none; height: 3px; border-radius: 2px;
+            background: linear-gradient(90deg, rgba(0, 247, 255, 0.45), rgba(168, 85, 247, 0.45));
+            outline: none; cursor: pointer;
+        }
+        .ultra-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 9px; height: 9px; border-radius: 50%;
+            background: #00f7ff; box-shadow: 0 0 8px #00f7ff;
+        }
+        .ultra-slider::-moz-range-thumb {
+            width: 9px; height: 9px; border: 0; border-radius: 50%;
+            background: #00f7ff; box-shadow: 0 0 8px #00f7ff;
+        }
+        .ultra-bar { height: 3px; border-radius: 2px; background: rgba(148, 163, 184, 0.16); overflow: hidden; }
+        .ultra-bar > i { display: block; height: 100%; width: 0; }
+        .ultra-legend-swatch { width: 8px; height: 8px; border-radius: 2px; box-shadow: 0 0 6px currentColor; }
     </style>
 </head>
 
@@ -119,7 +167,7 @@
         <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2 text-neon-cyan font-bold tracking-widest text-sm">
                 <i data-lucide="atom" class="w-4 h-4 text-neon-cyan animate-spin" style="animation-duration: 12s;"></i>
-                <span class="glow-text-cyan font-esoteric font-black tracking-wider">NOÖSPHERE // OS v9.4.1</span>
+                <span class="glow-text-cyan font-esoteric font-black tracking-wider">NOÖSPHERE // OS v9.5.0</span>
             </div>
             <span class="text-slate-600">|</span>
             <div class="flex items-center space-x-2 text-slate-400">
@@ -129,7 +177,7 @@
             <span class="text-slate-600 hidden md:inline">|</span>
             <div class="hidden md:flex items-center space-x-2 text-slate-400">
                 <span>SYNAPSE CAPACITY:</span>
-                <span id="synapse-count" class="text-neon-amber font-bold">142 NODES</span>
+                <span id="synapse-count" class="text-neon-amber font-bold">90 NODES</span>
             </div>
             <div class="hidden lg:flex items-center space-x-2 text-slate-400">
                 <span>ENTROPY QUOTIENT:</span>
@@ -185,27 +233,86 @@
             </div>
             
             <!-- Graph Tool Controls -->
-            <div class="bg-obsidian/70 px-3 py-1.5 border-b border-cyan-950/60 flex items-center justify-between text-[11px] font-mono">
-                <div class="flex items-center space-x-2">
+            <div class="bg-obsidian/70 px-3 py-1.5 border-b border-cyan-950/60 flex items-center justify-between text-[11px] font-mono overflow-x-auto no-scrollbar">
+                <div class="flex items-center space-x-2 shrink-0">
                     <span class="text-slate-500">FILTER:</span>
                     <button onclick="graphEngine.filterDomain('all')" class="domain-btn text-neon-cyan underline font-bold px-1" data-d="all">ALL</button>
                     <button onclick="graphEngine.filterDomain('memetics')" class="domain-btn text-slate-400 hover:text-neon-crimson px-1" data-d="memetics">MEMETICS</button>
                     <button onclick="graphEngine.filterDomain('semiotics')" class="domain-btn text-slate-400 hover:text-neon-violet px-1" data-d="semiotics">SEMIOTICS</button>
                     <button onclick="graphEngine.filterDomain('psychoacoustics')" class="domain-btn text-slate-400 hover:text-neon-amber px-1" data-d="psychoacoustics">ACOUSTIC</button>
-                    <button onclick="graphEngine.filterDomain('hyperstition')" class="domain-btn text-slate-400 hover:text-neon-emerald px-1" data-d="hyperstition">HYPERSTITION</button>
+                    <button onclick="graphEngine.filterDomain('hyperstition')" class="domain-btn text-slate-400 hover:text-neon-emerald px-1" data-d="hyperstition">HYPERST.</button>
+                    <button onclick="graphEngine.filterDomain('alchemy')" class="domain-btn text-slate-400 hover:text-neon-cyan/70 px-1" data-d="alchemy">ALCHEMY</button>
                 </div>
-                <div class="text-[10px] text-slate-400 flex items-center space-x-2">
-                    <span>PAN: DRAG CANVAS</span>
-                    <span>•</span>
-                    <span>ZOOM: SCROLL</span>
+                <div class="flex items-center space-x-2 shrink-0 pl-3">
+                    <span class="text-[10px] text-slate-500">RENDER:</span>
+                    <div class="flex items-center rounded border border-cyan-900/60 overflow-hidden">
+                        <button id="mode-btn-standard" onclick="graphEngine.setDisplayMode('standard')" class="mode-btn mode-btn-on px-2 py-0.5 text-[10px] tracking-wider" aria-label="Standard graph renderer" title="Standard atlas — the readable force-directed graph">STANDARD</button>
+                        <button id="mode-btn-ultra" onclick="graphEngine.setDisplayMode('ultra')" class="mode-btn px-2 py-0.5 text-[10px] tracking-wider border-l border-cyan-900/60" aria-label="Ultra visualization renderer" title="Ultra visualization — living swarm / neural field">ULTRA</button>
+                    </div>
+                    <span id="render-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 text-cyan-300">FORCE-SIM</span>
+                </div>
+            </div>
+
+            <!-- ========================================================
+                 ULTRA VISUALIZATION DECK (hidden while STANDARD is active)
+                 Same graph data, second renderer, live readouts only.
+                 ======================================================== -->
+            <div id="ultra-deck" class="hidden bg-void/85 border-b border-cyan-950/60 px-3 py-1.5 font-mono text-[10px] space-y-1.5">
+                <div class="flex items-center justify-between overflow-x-auto no-scrollbar">
+                    <div class="flex items-center space-x-1 shrink-0">
+                        <span class="text-slate-500 mr-0.5">FIELD:</span>
+                        <button class="ultra-chip field-chip rounded px-1.5 py-0.5" data-field="swarm" onclick="ultra.setSubmode('swarm')" aria-label="Swarm field submode">SWARM</button>
+                        <button class="ultra-chip field-chip rounded px-1.5 py-0.5" data-field="constellation" onclick="ultra.setSubmode('constellation')" aria-label="Constellation submode">CONSTELL</button>
+                        <button class="ultra-chip field-chip rounded px-1.5 py-0.5" data-field="storm" onclick="ultra.setSubmode('storm')" aria-label="Signal storm submode">STORM</button>
+                        <button class="ultra-chip field-chip rounded px-1.5 py-0.5" data-field="mycelial" onclick="ultra.setSubmode('mycelial')" aria-label="Mycelial submode">MYCEL</button>
+                        <button class="ultra-chip field-chip rounded px-1.5 py-0.5" data-field="dream" onclick="ultra.setSubmode('dream')" aria-label="Dream state submode">DREAM</button>
+                    </div>
+                    <div class="flex items-center space-x-1 shrink-0 pl-2">
+                        <button id="ultra-weather-btn" onclick="ultra.toggle('weather')" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Toggle cognitive weather">WEATHER</button>
+                        <button id="ultra-dream-btn" onclick="ultra.toggle('dream')" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Toggle dream state">IDLE</button>
+                        <button id="ultra-trails-btn" onclick="ultra.toggle('trails')" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Toggle motion trails">TRAILS</button>
+                        <button id="ultra-legend-btn" onclick="ultra.toggleLegend()" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Toggle visual legend">MAP</button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between overflow-x-auto no-scrollbar">
+                    <div class="flex items-center space-x-1.5 shrink-0 text-slate-500">
+                        <span>DENSITY</span><input id="ultra-density" class="ultra-slider w-12" type="range" min="0" max="100" value="55" oninput="ultra.setParam('density', this.value)" aria-label="Particle density">
+                        <span>GLOW</span><input id="ultra-glow" class="ultra-slider w-12" type="range" min="0" max="100" value="60" oninput="ultra.setParam('glow', this.value)" aria-label="Glow intensity">
+                        <span>TURBULENCE</span><input id="ultra-turbulence" class="ultra-slider w-12" type="range" min="0" max="100" value="45" oninput="ultra.setParam('turbulence', this.value)" aria-label="Turbulence">
+                        <span>TRAFFIC</span><input id="ultra-traffic" class="ultra-slider w-12" type="range" min="0" max="100" value="60" oninput="ultra.setParam('traffic', this.value)" aria-label="Edge traffic">
+                    </div>
+                    <div class="flex items-center space-x-1 shrink-0 pl-2">
+                        <button onclick="ultra.cyclePreset()" id="ultra-preset" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Cycle effect preset">PRESET: BALANCED</button>
+                        <button onclick="graphEngine.seedZaziopath()" id="ultra-seed-btn" class="ultra-chip rounded px-1.5 py-0.5" aria-label="Seed the Zaziopath structure" title="Merge the Zaziopath §00a strata and §00c wire register into this same graph">SEED ⧗ ZAZIOPATH</button>
+                        <span id="ultra-lod" class="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60 text-emerald-300">LOD AUTO</span>
+                    </div>
                 </div>
             </div>
 
             <!-- Canvas Viewport -->
             <div class="relative flex-1 bg-void/90 overflow-hidden cursor-cross">
                 <canvas id="neural-canvas" class="w-full h-full block"></canvas>
+                <!-- Ultra field: layered above the atlas, pointer-transparent so every
+                     existing interaction (drag, zoom, hover, select) is unchanged. -->
+                <canvas id="ultra-canvas" class="w-full h-full block absolute inset-0 pointer-events-none"></canvas>
+                <!-- Cognitive weather readout (updated from live graph metrics) -->
+                <div id="ultra-readout" class="hidden absolute top-2 right-2 w-40 bg-void/70 border border-cyan-900/50 rounded px-2 py-1.5 font-mono text-[9px] pointer-events-none backdrop-blur-sm z-20">
+                    <div class="flex justify-between items-center">
+                        <span id="ultra-field-name" class="text-cyan-300 font-bold tracking-wider">SWARM FIELD</span>
+                        <span id="ultra-fps" class="text-emerald-400">--fps</span>
+                    </div>
+                    <div class="mt-1 space-y-0.5">
+                        <div class="flex items-center space-x-1"><span class="w-11 text-slate-500">EXCITE</span><span class="ultra-bar flex-1"><i id="bar-excitation" style="background:#00f7ff"></i></span></div>
+                        <div class="flex items-center space-x-1"><span class="w-11 text-slate-500">TENSION</span><span class="ultra-bar flex-1"><i id="bar-tension" style="background:#ff0055"></i></span></div>
+                        <div class="flex items-center space-x-1"><span class="w-11 text-slate-500">INFER</span><span class="ultra-bar flex-1"><i id="bar-inference" style="background:#a855f7"></i></span></div>
+                        <div class="flex items-center space-x-1"><span class="w-11 text-slate-500">SOURCE</span><span class="ultra-bar flex-1"><i id="bar-source" style="background:#00ff9d"></i></span></div>
+                    </div>
+                    <div id="ultra-signal-line" class="mt-1 text-neon-amber/90 truncate">◈ FIELD DORMANT</div>
+                </div>
+                <!-- Visual legend: classes (shape) and strata (aura colour) -->
+                <div id="ultra-legend" class="hidden absolute top-2 left-2 w-56 bg-void/85 border border-cyan-900/60 rounded p-2 font-mono text-[9px] text-slate-400 pointer-events-none backdrop-blur-sm z-20"></div>
                 <!-- HUD Overlay inside graph -->
-                <div id="node-inspector-hud" class="absolute bottom-3 left-3 right-3 bg-surface/90 border border-cyan-500/40 p-2.5 rounded text-xs font-mono pointer-events-none transition-opacity duration-200 opacity-0 backdrop-blur-md">
+                <div id="node-inspector-hud" class="absolute bottom-3 left-3 right-3 bg-surface/90 border border-cyan-500/40 p-2.5 rounded text-xs font-mono pointer-events-none transition-opacity duration-200 opacity-0 backdrop-blur-md z-20">
                     <div class="flex justify-between items-start">
                         <div>
                             <span id="hud-cluster" class="text-[9px] uppercase px-1.5 py-0.5 rounded bg-cyan-950 text-neon-cyan font-bold border border-cyan-700/50">SEMIOTIC ENGINE</span>
@@ -850,11 +957,135 @@
             alchemy: { name: 'Alchemical OS', color: '#00f7ff' }
         };
 
-        // Seeded polymath knowledge base (120+ nodes dynamic network)
+        // Seeded polymath knowledge base (90 nodes dynamic network)
         let graphNodes = [];
         let graphEdges = [];
         let showLabels = true;
         let activeDomainFilter = 'all';
+
+        // -------------------------------------------------------------
+        // 3a. ZAZIOPATH STRUCTURE — strata, provenance classes, wire register
+        // -------------------------------------------------------------
+        // Both renderers read these extensions of the same node/edge objects; nothing
+        // here is exclusive to the ultra field. The eight strata, their glyphs and
+        // their Okabe–Ito hues are the Zaziopath vault's own colour code (§00a). INDEX
+        // is lifted from `#231F20` to a neutral because the vault's near-black cannot
+        // glow on a `#030509` field.
+        const ZAZIOPATH_STRATA = [
+            { k: 'index',       g: '◈', label: 'INDEX / META',      hex: '#8b93a7', home: '§00–§03 · §10 · §13–§14' },
+            { k: 'identity',    g: '◉', label: 'IDENTITY',          hex: '#0072b2', home: '§04' },
+            { k: 'shadow',      g: '◐', label: 'SHADOW',            hex: '#cc79a7', home: '§02 · §05' },
+            { k: 'evidence',    g: '▤', label: 'SIGNAL / EVIDENCE', hex: '#e69f00', home: '§07 · §07a · §11' },
+            { k: 'recursion',   g: '∞', label: 'RECURSION LAB',     hex: '#009e73', home: '§06' },
+            { k: 'stewardship', g: '△', label: 'STEWARDSHIP',       hex: '#56b4e9', home: '§08–§09' },
+            { k: 'specimens',   g: '⚠', label: 'SPECIMENS',         hex: '#d55e00', home: '§12' },
+            { k: 'myth',        g: '☾', label: 'MYTHOGRAPHY',       hex: '#f0e442', home: '§05 · lore files' },
+        ];
+        const STRATA_BY_KEY = {};
+        ZAZIOPATH_STRATA.forEach((s, i) => { s.i = i; STRATA_BY_KEY[s.k] = s; });
+
+        // A semantic domain places a node in a stratum of the vault: contagion and its
+        // inversions in SHADOW, constructed meaning in MYTHOGRAPHY, measured frequency
+        // in SIGNAL/EVIDENCE, self-referential artifice in RECURSION LAB, protocol and
+        // craft in STEWARDSHIP.
+        const STRATUM_OF = {
+            memetics: 'shadow', semiotics: 'myth', psychoacoustics: 'evidence',
+            hyperstition: 'recursion', alchemy: 'stewardship',
+        };
+
+        // Node classes — what kind of claim a node is. `shape` is the halo grammar the
+        // ultra renderer draws; `hue` is the class temperature. See
+        // docs/ULTRA-VISUALIZATION.md §4 for the full visual contract.
+        const NODE_CLASSES = {
+            source:   { g: '▤', label: 'SOURCE DOCUMENT',  hue: '#e69f00', shape: 'hex' },
+            concept:  { g: '◉', label: 'SOURCE-BACKED',    hue: '#00f7ff', shape: 'ring' },
+            inferred: { g: '∞', label: 'INFERRED / SYNTH', hue: '#a855f7', shape: 'dash' },
+            ingested: { g: '⇣', label: 'NEWLY INGESTED',   hue: '#00ff9d', shape: 'burst' },
+            question: { g: '?', label: 'UNRESOLVED',       hue: '#ff0055', shape: 'open' },
+        };
+
+        // The Zaziopath §00c wire register: seventeen published cross-stratum wires,
+        // each carrying its own mechanism. `<stratum>:<entity>` on both ends; `◇` is the
+        // vault's ninth marker (practice/production) and folds into STEWARDSHIP here,
+        // because both describe work-on-the-self routines rather than evidence or lore.
+        const ZAZIOPATH_WIRES = [
+            ['identity:Shadow profile', 'defines the exact attack surface', 'shadow:Money-scam models'],
+            ['identity:Armoured performance', 'recruits insight as rank', 'shadow:Shadow engine'],
+            ['identity:Meta-level addiction', 'meets the depth-three safety cap', 'recursion:Recursion staircase'],
+            ['identity:Tuffy Bunnytown', 'turns inner parts into holdable lore', 'myth:Mythographic childhood'],
+            ['identity:Sovereign anarchism', 'dramatizes the inversion finding', 'myth:Matrix protocol'],
+            ['stewardship:Shadow/light crosswalk', 'reappears as production structure', 'stewardship:4 × 3 album modules'],
+            ['stewardship:Shadow/light crosswalk', 'turns pivots into executable code', 'stewardship:Twelve questions'],
+            ['shadow:Shadow engine', 'turns quiet rhetorics outward as tools', 'specimens:Cognitive Infiltration'],
+            ['shadow:Ten money scams', 'reappears annotated and under glass', 'specimens:Social-engineering templates'],
+            ['stewardship:Z-related composition', 'permutes identical material into new selves', 'myth:Identity Castles'],
+            ['stewardship:Decay studies', 'aestheticizes entropy as the medium', 'myth:Signal Rot Atlas'],
+            ['stewardship:Decay studies', 'fights entropy with administration', 'evidence:ISRC catalog'],
+            ['specimens:Social-engineering templates', 'uses the same craft, aimed outward', 'myth:Branding Psy-Ops'],
+            ['myth:Identity Castles', 'is statistically refuted by identifiers', 'evidence:Catalog evidence'],
+            ['myth:Myth workshop', 'fuels the tribunal that reads it back', 'recursion:AI tribunal'],
+            ['recursion:GPT 7.7-t', 'holds machine memory in two directions', 'recursion:Memory export'],
+            ['evidence:Evidence bench', 'replaces self-claims with counts', 'stewardship:The Tuesday self'],
+        ];
+        // The premise question at the centre of the vault (§00) — a real unresolved
+        // node, not a decorative one: it is the only member of the `question` class.
+        const ZAZIOPATH_QUESTION = 'When does psychological insight help you communicate, and when does it '
+            + 'begin engineering the moral, emotional, or aesthetic meaning of every response another person could make?';
+
+        let zaziopathSeeded = false;
+
+        // Deterministic PRNG (mulberry32) — the ultra field's motion signatures, the
+        // Zaziopath lattice placement and the particle seeds are reproducible per run.
+        function mulberry32(seed) {
+            let a = seed >>> 0;
+            return function () {
+                a = (a + 0x6d2b79f5) >>> 0;
+                let t = Math.imul(a ^ (a >>> 15), 1 | a);
+                t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+        const rng = mulberry32(0x9a71c3);
+
+        // Every node carries its claim class, its stratum, its provenance and the
+        // quantities the ultra renderer maps to light, motion and turbulence.
+        function annotateNode(n, opts = {}) {
+            const klass = opts.klass || 'concept';
+            const stratum = opts.stratum || STRATUM_OF[n.domain] || 'index';
+            n.klass = klass;
+            n.stratum = STRATA_BY_KEY[stratum] ? stratum : 'index';
+            n.provenance = {
+                origin: opts.origin || 'seed',
+                ref: opts.ref || 'SEED//' + String(n.id).padStart(2, '0'),
+            };
+            n.provenance.recorded = !!opts.ref;
+            n.uncertainty = opts.uncertainty != null ? opts.uncertainty
+                : klass === 'question' ? 0.9 : klass === 'inferred' ? 0.62 : klass === 'ingested' ? 0.3 : 0.1;
+            n.activation = opts.activation != null ? opts.activation : 0.3;
+            n.mass = 0;
+            n.birthAt = performance.now();
+            n.phase = rng() * Math.PI * 2;
+            n.warp = 0.55 + rng() * 0.9;
+            return n;
+        }
+
+        // Edges carry strength (width), activation (pulse speed), kind and whether the
+        // relationship is asserted by a source or inferred by the system (jitter).
+        function addEdge(s, t, opts = {}) {
+            if (s == null || t == null || s === t) return null;
+            const e = {
+                source: s, target: t,
+                strength: opts.strength != null ? opts.strength : 0.18 + rng() * 0.42,
+                kind: opts.kind || 'support',
+                inferred: !!opts.inferred,
+                activation: opts.activation != null ? opts.activation : 0.25,
+                ref: opts.ref || '',
+                mechanism: opts.mechanism || '',
+                birthAt: performance.now(),
+            };
+            graphEdges.push(e);
+            return e;
+        }
 
         const rawSeedThemes = [
             { id: 1, title: 'Baudrillardian Simulacra', domain: 'semiotics', desc: 'Phase 4 sign-order simulation. The product precedes reality.', valence: '99.4%' },
@@ -878,35 +1109,39 @@
             graphNodes = [];
             graphEdges = [];
 
-            // Spawn 100+ procedural interconnected nodes
+            // Spawn 90 procedural interconnected nodes. The fifteen seed archetypes are
+            // source-backed concepts; their `[vN.0]` derivatives are labelled as what
+            // they are — inferred synthesis — and every node is annotated with its
+            // stratum and provenance so both renderers can read them.
             for (let i = 0; i < 90; i++) {
                 const domainKeys = Object.keys(DOMAINS);
                 const domainKey = domainKeys[i % domainKeys.length];
                 const seed = rawSeedThemes[i % rawSeedThemes.length];
+                const isSeed = i < rawSeedThemes.length;
 
-                graphNodes.push({
+                graphNodes.push(annotateNode({
                     id: i,
-                    title: i < rawSeedThemes.length ? seed.title : `${seed.title} [v${(i % 7) + 1}.0]`,
+                    title: isSeed ? seed.title : `${seed.title} [v${(i % 7) + 1}.0]`,
                     domain: domainKey,
                     desc: seed.desc,
                     valence: seed.valence,
-                    x: (Math.random() - 0.5) * 600,
-                    y: (Math.random() - 0.5) * 450,
+                    x: (rng() - 0.5) * 600,
+                    y: (rng() - 0.5) * 450,
                     vx: 0,
                     vy: 0,
-                    radius: i < rawSeedThemes.length ? 5.5 : 3.2,
+                    radius: isSeed ? 5.5 : 3.2,
                     color: DOMAINS[domainKey].color
-                });
+                }, isSeed
+                    ? { klass: 'concept', origin: 'seed', ref: `THEME//${seed.title.slice(0, 16)}`, activation: 0.45 }
+                    : { klass: 'inferred', origin: 'synthesis', ref: `VARIANT//v${(i % 7) + 1}.0`, uncertainty: 0.6, activation: 0.22 }));
             }
 
             // Create dense web of interconnected edges
             for (let i = 0; i < graphNodes.length; i++) {
-                const links = 2 + Math.floor(Math.random() * 3);
+                const links = 2 + Math.floor(rng() * 3);
                 for (let k = 0; k < links; k++) {
-                    const target = (i + 1 + Math.floor(Math.random() * 12)) % graphNodes.length;
-                    if (target !== i) {
-                        graphEdges.push({ source: i, target: target });
-                    }
+                    const target = (i + 1 + Math.floor(rng() * 12)) % graphNodes.length;
+                    addEdge(i, target, { kind: 'support', strength: 0.15 + rng() * 0.4 });
                 }
             }
 
@@ -918,13 +1153,46 @@
         let lastMouse = { x: 0, y: 0 };
         let hoveredNode = null;
 
+        // Viewport size in CSS pixels, plus one device-pixel ratio per canvas. Keeping
+        // the transform in CSS pixels is what makes the camera arithmetic, the label
+        // metrics and the pointer mapping agree at every zoom and display density.
+        let viewW = 1, viewH = 1, viewDpr = 1, ultraDpr = 1, ultraDprCap = 2;
+
+        const ultraCanvas = document.getElementById('ultra-canvas');
+        const ultraCtx = ultraCanvas.getContext('2d');
+
         function resizeCanvas() {
-            if (canvas.parentElement) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-            }
+            const parent = canvas.parentElement;
+            if (!parent || !parent.clientWidth) return;
+            viewW = Math.max(1, parent.clientWidth);
+            viewH = Math.max(1, parent.clientHeight);
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            viewDpr = dpr;
+            ultraDpr = Math.min(dpr, ultraDprCap);
+            canvas.width = Math.round(viewW * viewDpr);
+            canvas.height = Math.round(viewH * viewDpr);
+            ultraCanvas.width = Math.round(viewW * ultraDpr);
+            ultraCanvas.height = Math.round(viewH * ultraDpr);
+            if (ultra.enabled) ultra.invalidate();
         }
         window.addEventListener('resize', resizeCanvas);
+
+        // Nearest visible node under the pointer — shared by both renderers so a click
+        // in ULTRA mode selects exactly the entity STANDARD mode would select.
+        function pickNodeAt(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (clientX - rect.left - viewW / 2 - camera.x) / camera.zoom;
+            const mouseY = (clientY - rect.top - viewH / 2 - camera.y) / camera.zoom;
+            let found = null, best = Infinity;
+            for (const n of graphNodes) {
+                if (activeDomainFilter !== 'all' && n.domain !== activeDomainFilter) continue;
+                const r = ultra.enabled ? Math.max(n.radius * 2.2, 13) : n.radius * 2 + 5;
+                const dx = n.x - mouseX, dy = n.y - mouseY;
+                const d2 = dx * dx + dy * dy;
+                if (d2 < r * r && d2 < best) { best = d2; found = n; }
+            }
+            return found;
+        }
 
         function updatePhysics() {
             const kRepel = 220;
@@ -978,11 +1246,16 @@
         }
 
         function renderGraph() {
+            // One graph, two renderers: while the ultra field is active the standard
+            // frame loop stays alive but yields every frame.
+            if (ultra.enabled) { requestAnimationFrame(renderGraph); return; }
+
             updatePhysics();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.setTransform(viewDpr, 0, 0, viewDpr, 0, 0);
+            ctx.clearRect(0, 0, viewW, viewH);
 
             ctx.save();
-            ctx.translate(canvas.width / 2 + camera.x, canvas.height / 2 + camera.y);
+            ctx.translate(viewW / 2 + camera.x, viewH / 2 + camera.y);
             ctx.scale(camera.zoom, camera.zoom);
 
             // Draw Edges
@@ -1040,19 +1313,9 @@
         window.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                const mouseX = (e.clientX - rect.left - canvas.width / 2 - camera.x) / camera.zoom;
-                const mouseY = (e.clientY - rect.top - canvas.height / 2 - camera.y) / camera.zoom;
-
-                let found = null;
-                for (let n of graphNodes) {
-                    const dx = n.x - mouseX;
-                    const dy = n.y - mouseY;
-                    if (Math.sqrt(dx * dx + dy * dy) < (n.radius * 2 + 5)) {
-                        found = n;
-                        break;
-                    }
-                }
-                hoveredNode = found;
+                hoveredNode = pickNodeAt(e.clientX, e.clientY);
+                ultra.hoverId = hoveredNode ? hoveredNode.id : null;
+                ultra.touch();
 
                 const hud = document.getElementById('node-inspector-hud');
                 if (hoveredNode) {
@@ -1088,12 +1351,158 @@
         canvas.addEventListener('click', (e) => {
             if (hoveredNode) {
                 playBeep(1100, 'sine', 0.08);
-                polymathLLM.appendChat('system', `Synapse Node Inspected: [${hoveredNode.title}] // Domain: ${hoveredNode.domain.toUpperCase()}`);
+                polymathLLM.appendChat('system', `Synapse Node Inspected: [${hoveredNode.title}] // Stratum: ${hoveredNode.stratum.toUpperCase()} // Domain: ${hoveredNode.domain.toUpperCase()} // ${hoveredNode.provenance.ref}`);
                 polymathLLM.selectedNode = hoveredNode;
+                // The terminal and the field resolve the same entity: selection opens a
+                // local thought-cluster in ULTRA and the deep-dive in the transcript.
+                ultra.focus(hoveredNode);
                 polymathLLM.runDirective('node-deepdive', hoveredNode);
+            } else if (ultra.enabled) {
+                ultra.focus(null);
             }
         });
 
+        // Field shortcuts: U renders the mode switch, 1–5 pick a field, W weather,
+        // D idle behaviour, L the legend. Typing in a terminal or modal is unaffected.
+        window.addEventListener('keydown', (e) => {
+            const tag = e.target && e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
+            const k = e.key.toLowerCase();
+            if (k === 'u') graphEngine.setDisplayMode(ultra.enabled ? 'standard' : 'ultra');
+            else if (!ultra.enabled) return;
+            else if (k >= '1' && k <= '5') ultra.setSubmode(ULTRA_FIELD_KEYS[Number(k) - 1]);
+            else if (k === 'w') ultra.toggle('weather');
+            else if (k === 'd') ultra.toggle('dream');
+            else if (k === 'l') ultra.toggleLegend();
+        });
+
+        // -------------------------------------------------------------
+        // 3b2. DERIVED GRAPH METRICS — mass, strata, cognitive weather
+        // -------------------------------------------------------------
+        // One derivation pass, read by the standard HUD and by the ultra field. This
+        // is where the archive's *structure* becomes measurable: centrality becomes
+        // mass, provenance becomes evidence density, cross-stratum wires become
+        // contradiction pressure, unresolved claims become turbulence.
+        const graphMetrics = {
+            dirty: true,
+            frames: 0,
+            degree: Object.create(null),
+            adjacency: Object.create(null),
+            maxDegree: 1,
+            strata: {},
+            weather: { excitation: 0, tension: 0, inference: 0, source: 0, turbulence: 0, cluster: 0 },
+            relevance: Object.create(null),
+            focus: null,
+
+            rebuild() {
+                const degree = Object.create(null);
+                const adj = Object.create(null);
+                for (const n of graphNodes) { degree[n.id] = 0; adj[n.id] = []; }
+                for (const e of graphEdges) {
+                    if (degree[e.source] != null) { degree[e.source]++; adj[e.source].push(e.target); }
+                    if (degree[e.target] != null) { degree[e.target]++; adj[e.target].push(e.source); }
+                }
+                let maxDegree = 1;
+                for (const k in degree) if (degree[k] > maxDegree) maxDegree = degree[k];
+                this.degree = degree;
+                this.adjacency = adj;
+                this.maxDegree = maxDegree;
+
+                const strata = {};
+                for (const s of ZAZIOPATH_STRATA) strata[s.k] = { count: 0, x: 0, y: 0, act: 0, uncertainty: 0, intensity: 0 };
+                for (const n of graphNodes) {
+                    const d = degree[n.id] || 0;
+                    n.degree = d;
+                    // Conceptual importance: centrality, shaded by the node's own valence
+                    // signal, so a hub with a weak claim does not out-shine a compact one.
+                    const val = parseFloat(n.valence);
+                    n.mass = (0.3 + 0.7 * (d / maxDegree)) * (0.55 + 0.45 * (isNaN(val) ? 0.6 : val / 100));
+                    const S = strata[n.stratum] || (strata[n.stratum] = { count: 0, x: 0, y: 0, act: 0, uncertainty: 0, intensity: 0 });
+                    S.count++; S.x += n.x; S.y += n.y; S.act += n.activation; S.uncertainty += n.uncertainty;
+                }
+                let maxCount = 1;
+                for (const k in strata) {
+                    const S = strata[k];
+                    if (S.count) { S.x /= S.count; S.y /= S.count; S.act /= S.count; S.uncertainty /= S.count; }
+                    if (S.count > maxCount) maxCount = S.count;
+                }
+                // Stratum intensity = share of the field × how awake that region is.
+                for (const k in strata) {
+                    const S = strata[k];
+                    S.intensity = (S.count / maxCount) * (0.45 + 0.55 * Math.min(1, S.act * 2));
+                }
+                this.strata = strata;
+                this.computeWeather();
+                this.dirty = false;
+            },
+
+            computeWeather() {
+                const N = graphNodes.length || 1;
+                const E = graphEdges.length || 1;
+                let act = 0, cross = 0, strength = 0, inferredEdges = 0, inferredNodes = 0,
+                    sourced = 0, unresolved = 0;
+                for (const n of graphNodes) {
+                    act += n.activation;
+                    if (n.klass === 'inferred') inferredNodes++;
+                    if (n.klass === 'question') unresolved++;
+                    if (n.klass === 'source' || n.klass === 'concept' || n.provenance.recorded) sourced++;
+                }
+                for (const e of graphEdges) {
+                    const a = graphNodes[e.source], b = graphNodes[e.target];
+                    strength += e.strength;
+                    if (e.inferred) inferredEdges++;
+                    if (a && b && a.stratum !== b.stratum) {
+                        const ia = (STRATA_BY_KEY[a.stratum] || {}).i || 0;
+                        const ib = (STRATA_BY_KEY[b.stratum] || {}).i || 0;
+                        const span = Math.abs(ia - ib) / 7;
+                        cross += e.strength * (0.35 + span) * (0.6 + 0.4 * ((a.uncertainty + b.uncertainty) / 2));
+                    }
+                }
+                const clamp01 = (v) => v < 0 ? 0 : v > 1 ? 1 : v;
+                const w = this.weather;
+                w.excitation = clamp01((act / N) * 1.9 + strength / E * 0.5);
+                w.tension = clamp01((cross / E) * 2.1 + (unresolved / N) * 1.4);
+                w.inference = clamp01((inferredEdges / E) * 0.8 + (inferredNodes / N) * 1.1);
+                w.source = clamp01((sourced / N) * 1.25);
+                w.cluster = clamp01(Math.max(0, ...Object.values(this.strata).map(s => s.intensity)));
+                w.turbulence = clamp01(w.tension * 0.4 + w.inference * 0.3 + w.excitation * 0.3);
+                this.dirty = false;
+            },
+
+            // Focus relevance by graph distance: 1 hop brightens fully, 2 hops partly,
+            // 3 hops faintly, everything else dims. Same-stratum neighbours of the
+            // focus are pulled one step closer, because the stratum is a real region.
+            updateRelevance(focusId) {
+                const rel = this.relevance = Object.create(null);
+                for (const n of graphNodes) rel[n.id] = 0.1;
+                this.focus = focusId;
+                const root = graphNodes[focusId];
+                if (!root) return;
+                rel[focusId] = 1;
+                const seen = Object.create(null); seen[focusId] = 1;
+                let frontier = [focusId];
+                const weights = [0.62, 0.34, 0.18];
+                for (let hop = 0; hop < 3; hop++) {
+                    const next = [];
+                    for (const id of frontier) {
+                        for (const nb of this.adjacency[id] || []) {
+                            if (seen[nb]) continue;
+                            seen[nb] = 1;
+                            rel[nb] = Math.max(rel[nb], weights[hop]);
+                            next.push(nb);
+                        }
+                    }
+                    frontier = next;
+                }
+                for (const n of graphNodes) {
+                    if (n.stratum === root.stratum && rel[n.id] > 0.1 && rel[n.id] < 1) rel[n.id] = Math.min(1, rel[n.id] + 0.22);
+                }
+            },
+        };
+
+        // -------------------------------------------------------------
+        // 3b3. GRAPH ENGINE + DISPLAY MODE SWITCH
+        // -------------------------------------------------------------
         const graphEngine = {
             recluster() {
                 for (let n of graphNodes) {
@@ -1117,28 +1526,1063 @@
                 });
                 playBeep(900, 'sine', 0.04);
             },
-            injectNode(title, domain, desc) {
+            // Every node enters the graph with its claim class, provenance and origin —
+            // ingestion, synthesis and manual authoring all land in the same structure.
+            injectNode(title, domain, desc, opts = {}) {
                 const id = graphNodes.length;
-                const newNode = {
+                const klass = opts.klass || 'ingested';
+                const newNode = annotateNode({
                     id: id,
                     title: title,
                     domain: domain,
                     desc: desc,
-                    valence: (92 + Math.random() * 7.9).toFixed(1) + '%',
-                    x: (Math.random() - 0.5) * 100,
-                    y: (Math.random() - 0.5) * 100,
+                    valence: (92 + rng() * 7.9).toFixed(1) + '%',
+                    x: (rng() - 0.5) * 100,
+                    y: (rng() - 0.5) * 100,
                     vx: 0, vy: 0,
-                    radius: 6,
+                    radius: klass === 'source' ? 6.5 : 6,
                     color: DOMAINS[domain] ? DOMAINS[domain].color : '#00f7ff'
-                };
+                }, {
+                    klass: klass,
+                    stratum: opts.stratum,
+                    origin: opts.origin || 'ingestion',
+                    ref: opts.ref || '',
+                    uncertainty: opts.uncertainty,
+                    activation: 1,
+                });
                 graphNodes.push(newNode);
-                // Connect to 3 nearby nodes
-                for (let k = 0; k < 3; k++) {
-                    graphEdges.push({ source: id, target: Math.floor(Math.random() * (id - 1)) });
-                }
+                // Attach to the three nearest conceptual neighbours rather than three
+                // arbitrary ones: the birth event then reads as the corpus binding
+                // itself to the region it actually belongs to.
+                graphNodes
+                    .filter((n) => n.id !== id)
+                    .map((n) => ({ n, d: (n.x - newNode.x) ** 2 + (n.y - newNode.y) ** 2 }))
+                    .sort((a, b) => a.d - b.d)
+                    .slice(0, opts.links || 3)
+                    .forEach(({ n }) => addEdge(id, n.id, {
+                        kind: 'derived', inferred: klass !== 'source',
+                        strength: 0.3 + rng() * 0.3, activation: 1,
+                    }));
                 document.getElementById('synapse-count').innerText = `${graphNodes.length} NODES`;
+                graphMetrics.dirty = true;
+                ultra.birthEvent(newNode);
                 playBeep(1400, 'triangle', 0.2);
-            }
+            },
+
+            // The one switch. STANDARD keeps the atlas it always had; ULTRA starts the
+            // field loop over the same arrays, the same camera and the same selection.
+            setDisplayMode(mode) {
+                this.displayMode = mode;
+                if (mode === 'ultra') ultra.enter(); else ultra.exit();
+            },
+
+            // Merge the Zaziopath structure into the live graph. Eight §00a strata become
+            // anchor nodes, the seventeen §00c wires become real edges carrying their
+            // published mechanisms, and the vault's premise question becomes the graph's
+            // single unresolved node. Same arrays, same ids, same renderers.
+            seedZaziopath(silent = false) {
+                if (zaziopathSeeded) {
+                    if (!silent) polymathLLM.appendChat('system', 'ZAZIOPATH LATTICE already resident — regions are live.');
+                    return false;
+                }
+                zaziopathSeeded = true;
+                const R = Math.max(150, Math.min(viewW, viewH) * 0.33);
+                const anchors = {};
+                const entity = new Map();
+                const makeNode = (spec, ref, klass, opts = {}) => {
+                    const cut = spec.indexOf(':');
+                    const key = cut === -1 ? spec : spec.slice(cut + 1);
+                    const stratum = cut === -1 ? 'index' : spec.slice(0, cut);
+                    const s = STRATA_BY_KEY[stratum] || ZAZIOPATH_STRATA[0];
+                    const a = (s.i / ZAZIOPATH_STRATA.length) * Math.PI * 2 - Math.PI / 2;
+                    const n = annotateNode({
+                        id: graphNodes.length,
+                        title: (klass === 'question' ? '?' : s.g) + ' ' + key,
+                        domain: opts.domain || 'alchemy',
+                        desc: opts.desc || `${s.label} — ${key}. Provenance: ${ref}.`,
+                        valence: opts.valence || '—',
+                        x: Math.cos(a) * R + (rng() - 0.5) * (opts.spread || 110),
+                        y: Math.sin(a) * R + (rng() - 0.5) * (opts.spread || 110),
+                        vx: 0, vy: 0,
+                        radius: opts.radius || 4.4,
+                        color: opts.color || s.hex,
+                    }, { klass, stratum: s.k, origin: 'zaziopath', ref, uncertainty: opts.uncertainty, activation: 0.5 });
+                    graphNodes.push(n);
+                    return n;
+                };
+                ZAZIOPATH_STRATA.forEach((s) => {
+                    const n = makeNode(`${s.k}:${s.label}`, `§00a ${s.label}`, 'source', {
+                        radius: 6.8, spread: 30, desc: `${s.g} ${s.label} — vault stratum, home ${s.home}.`,
+                    });
+                    anchors[s.k] = n;
+                });
+                for (let i = 0; i < ZAZIOPATH_WIRES.length; i++) {
+                    const [a, mech, b] = ZAZIOPATH_WIRES[i];
+                    const ref = `§00c wire ${String(i + 1).padStart(2, '0')}`;
+                    const pair = [a, b].map((spec) => {
+                        const key = spec.slice(spec.indexOf(':') + 1);
+                        if (!entity.has(key)) {
+                            const n = makeNode(spec, ref, 'source', { spread: 150 });
+                            entity.set(key, n);
+                            const s = STRATA_BY_KEY[n.stratum];
+                            if (s) addEdge(anchors[s.k].id, n.id, { kind: 'containment', strength: 0.3 });
+                        }
+                        return entity.get(key);
+                    });
+                    addEdge(pair[0].id, pair[1].id, { kind: 'wire', strength: 0.55, activation: 0.55, ref, mechanism: mech });
+                }
+                const q = makeNode('index:PREMISE QUESTION', '§00 premise', 'question', {
+                    domain: 'semiotics', radius: 5.2, spread: 40, valence: '—', color: '#ff0055',
+                    uncertainty: 0.95, desc: ZAZIOPATH_QUESTION,
+                });
+                addEdge(anchors.index.id, q.id, { kind: 'containment', strength: 0.4 });
+                graphMetrics.dirty = true;
+                document.getElementById('synapse-count').innerText = `${graphNodes.length} NODES`;
+                ultra.excite(1.8);
+                if (!silent) {
+                    playBeep(880, 'sine', 0.2);
+                    polymathLLM.appendChat('system', `ZAZIOPATH LATTICE SEEDED // 8 strata · 17 §00c wires · ${graphNodes.length} nodes resident. The field's regions are now the archive's own strata.`);
+                }
+                return true;
+            },
+        };
+
+        // -------------------------------------------------------------
+        // 3c. ULTRA VISUALIZATION ENGINE — alternate renderer, same graph
+        // -------------------------------------------------------------
+        // A layered Canvas-2D field composited additively: no WebGL context, no CDN,
+        // no second data model. Every visual property is read from the shared node and
+        // edge records — nothing here is arbitrary eye candy:
+        //   size     ← conceptual mass (degree centrality, shaded by valence)
+        //   halo     ← activation (recency, ingestion, focus, graph excitation)
+        //   width    ← edge strength          traffic speed ← edge activation × field
+        //   jitter   ← uncertainty (inferred claims, unresolved questions)
+        //   aura     ← stratum membership and regional intensity
+        //   dust     ← local connectivity     weather ← contradiction / inference /
+        //   brightness ← focus relevance                evidence pressure in the graph
+        // The full contract lives in docs/ULTRA-VISUALIZATION.md §4.
+        const ULTRA_FIELDS = {
+            swarm:         { label: 'SWARM FIELD',      cohesion: 1.0, repel: 1.0, grav: 0.8, jitter: 0.5,  traffic: 1.0, dust: 1.0, fog: 0.8, speed: 1.0,  pattern: 'none',    flash: 0.15 },
+            constellation: { label: 'CONSTELLATION',    cohesion: 1.6, repel: 1.5, grav: 1.3, jitter: 0.12, traffic: 0.5, dust: 0.5, fog: 0.5, speed: 0.5,  pattern: 'lines',   flash: 0.05 },
+            storm:         { label: 'SIGNAL STORM',     cohesion: 0.6, repel: 1.0, grav: 0.4, jitter: 2.4,  traffic: 2.2, dust: 1.6, fog: 1.2, speed: 2.4,  pattern: 'streak',  flash: 1.0 },
+            mycelial:      { label: 'MYCELIAL NETWORK', cohesion: 0.9, repel: 0.7, grav: 0.5, jitter: 0.35, traffic: 0.8, dust: 1.2, fog: 1.0, speed: 0.7,  pattern: 'tendril', flash: 0.12 },
+            dream:         { label: 'DREAM STATE',      cohesion: 0.7, repel: 0.6, grav: 0.3, jitter: 0.3,  traffic: 0.4, dust: 0.8, fog: 1.4, speed: 0.35, pattern: 'drift',   flash: 0.08 },
+        };
+        const ULTRA_FIELD_KEYS = Object.keys(ULTRA_FIELDS);
+        // Adaptive level of detail. The tiers name what is dropped, not just how much:
+        // SURVIVAL renders nodes, edges and glows only, and never allocates particles.
+        const ULTRA_TIERS = [
+            { name: 'SURVIVAL', dust: 0,    traffic: 0,   dpr: 1,   decor: false, labels: false, nebula: 30 },
+            { name: 'BALANCED', dust: 0.3,  traffic: 0.4, dpr: 1,   decor: true,  labels: false, nebula: 14 },
+            { name: 'HIGH',     dust: 0.65, traffic: 1.0, dpr: 1.5, decor: true,  labels: true,  nebula: 8 },
+            { name: 'MAXIMAL',  dust: 1.0,  traffic: 1.4, dpr: 2,   decor: true,  labels: true,  nebula: 4 },
+        ];
+        const ULTRA_PRESETS = ['CALM', 'BALANCED', 'MAXIMAL'];
+        const ULTRA_PRESET_VALUES = [[28, 45, 22, 28], [55, 60, 45, 60], [95, 95, 80, 100]];
+        const ULTRA_MAX_PARTS = 900;
+        const prefersReducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+        function hexA(hex, a) {
+            const h = hex.replace('#', '');
+            const v = h.length === 3 ? h.split('').map((x) => x + x).join('') : h;
+            const n = parseInt(v, 16);
+            return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+        }
+
+        // Pre-baked additive glow sprites. Drawing a stamp beats shadowBlur by roughly
+        // an order of magnitude at this particle count, and it is what makes the
+        // additive layering affordable in plain Canvas 2D.
+        function glowSprite(color, size = 64) {
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const g = c.getContext('2d');
+            const grd = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+            grd.addColorStop(0, hexA(color, 1));
+            grd.addColorStop(0.25, hexA(color, 0.5));
+            grd.addColorStop(0.55, hexA(color, 0.14));
+            grd.addColorStop(1, hexA(color, 0));
+            g.fillStyle = grd;
+            g.fillRect(0, 0, size, size);
+            return c;
+        }
+
+        const ultra = {
+            enabled: false,
+            field: 'swarm',
+            preset: 1,
+            params: { density: 55, glow: 60, turbulence: 45, traffic: 60, weather: true, dream: true, trails: true },
+            tier: 2,
+            autoTier: true,
+            time: 0,
+            lastTs: 0,
+            avgMs: 16,
+            slowRun: 0,
+            frames: 0,
+            idleMs: 0,
+            dream: 0,
+            focusId: null,
+            hoverId: null,
+            surge: 0,
+            flash: 0,
+            revealTimer: 9,
+            revealEdge: null,
+            revealT: 1,
+            signalLine: '◈ FIELD DORMANT',
+            nebTick: 99,
+            parts: [],
+            partCursor: 0,
+            arrivals: [],
+            waves: [],
+            sprites: Object.create(null),
+            dom: null,
+            _cells: new Map(),
+
+            init() {
+                this.dom = {
+                    deck: document.getElementById('ultra-deck'),
+                    readout: document.getElementById('ultra-readout'),
+                    legend: document.getElementById('ultra-legend'),
+                    fieldName: document.getElementById('ultra-field-name'),
+                    fps: document.getElementById('ultra-fps'),
+                    signal: document.getElementById('ultra-signal-line'),
+                    lod: document.getElementById('ultra-lod'),
+                    badge: document.getElementById('render-badge'),
+                    modeStd: document.getElementById('mode-btn-standard'),
+                    modeUltra: document.getElementById('mode-btn-ultra'),
+                    seedBtn: document.getElementById('ultra-seed-btn'),
+                    preset: document.getElementById('ultra-preset'),
+                    bars: {
+                        excitation: document.getElementById('bar-excitation'),
+                        tension: document.getElementById('bar-tension'),
+                        inference: document.getElementById('bar-inference'),
+                        source: document.getElementById('bar-source'),
+                    },
+                };
+                const colors = new Set(Object.values(DOMAINS).map((d) => d.color));
+                ZAZIOPATH_STRATA.forEach((s) => colors.add(s.hex));
+                Object.values(NODE_CLASSES).forEach((c) => colors.add(c.hue));
+                ['#ffffff', '#ff0055', '#00f7ff', '#00ff9d', '#ffaa00', '#a855f7', '#7dd3fc'].forEach((c) => colors.add(c));
+                colors.forEach((c) => { this.sprites[c] = glowSprite(c); });
+                this.nebula = document.createElement('canvas');
+                for (let i = 0; i < ULTRA_MAX_PARTS; i++) {
+                    this.parts.push({ alive: false, k: 'dust', x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 1, size: 2, col: '#00f7ff', e: null, t: 0, sp: 0 });
+                }
+                this.renderLegend();
+                this.refreshControls();
+            },
+
+            // ---- control surface -------------------------------------------------
+            refreshControls() {
+                const d = this.dom;
+                if (!d) return;
+                d.deck.classList.toggle('hidden', !this.enabled);
+                d.readout.classList.toggle('hidden', !this.enabled);
+                d.modeStd.classList.toggle('mode-btn-on', !this.enabled);
+                d.modeUltra.classList.toggle('mode-btn-on', this.enabled);
+                d.badge.textContent = this.enabled ? `ULTRA · ${ULTRA_TIERS[this.tier].name}` : 'FORCE-SIM';
+                d.badge.className = this.enabled
+                    ? 'text-[9px] px-1.5 py-0.5 rounded bg-fuchsia-950/70 border border-fuchsia-700/60 text-fuchsia-300'
+                    : 'text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 text-cyan-300';
+                document.querySelectorAll('.field-chip').forEach((b) => {
+                    b.classList.toggle('ultra-chip-on', b.dataset.field === this.field);
+                });
+                [['weather', 'ultra-weather-btn'], ['dream', 'ultra-dream-btn'], ['trails', 'ultra-trails-btn']]
+                    .forEach(([key, id]) => {
+                        const el = document.getElementById(id);
+                        if (el) el.classList.toggle('ultra-chip-on', !!this.params[key]);
+                    });
+                d.preset.textContent = `PRESET: ${ULTRA_PRESETS[this.preset]}`;
+                d.seedBtn.classList.toggle('ultra-chip-attn', !zaziopathSeeded);
+                d.lod.textContent = this.autoTier ? `LOD AUTO · ${ULTRA_TIERS[this.tier].name}` : `LOD ${ULTRA_TIERS[this.tier].name}`;
+                if (this.enabled) this.updateHud();
+            },
+
+            syncSliders() {
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+                set('ultra-density', this.params.density);
+                set('ultra-glow', this.params.glow);
+                set('ultra-turbulence', this.params.turbulence);
+                set('ultra-traffic', this.params.traffic);
+            },
+
+            setParam(key, value) {
+                this.params[key] = Math.max(0, Math.min(100, Number(value) || 0));
+            },
+
+            toggle(key) {
+                this.params[key] = !this.params[key];
+                this.refreshControls();
+                playBeep(this.params[key] ? 1150 : 620, 'sine', 0.06);
+            },
+
+            cyclePreset() {
+                this.preset = (this.preset + 1) % ULTRA_PRESETS.length;
+                const v = ULTRA_PRESET_VALUES[this.preset];
+                this.params.density = v[0]; this.params.glow = v[1];
+                this.params.turbulence = v[2]; this.params.traffic = v[3];
+                this.syncSliders();
+                this.refreshControls();
+                playBeep(980, 'triangle', 0.08);
+            },
+
+            setSubmode(name) {
+                if (!this.enabled) { this.enter(); }
+                if (!ULTRA_FIELDS[name]) return;
+                this.field = this.field === name && name === 'dream' ? 'swarm' : name;
+                this.signalLine = `◈ ${ULTRA_FIELDS[this.field].label} ENGAGED`;
+                this.refreshControls();
+                playBeep(1180, 'triangle', 0.09);
+            },
+
+            toggleLegend() {
+                const el = this.dom.legend;
+                el.classList.toggle('hidden');
+                if (!el.classList.contains('hidden')) this.renderLegend();
+            },
+
+            // Legend is generated from the two registries, so it can never drift out of
+            // sync with the field it explains.
+            renderLegend() {
+                const el = this.dom && this.dom.legend;
+                if (!el) return;
+                const row = (glyph, label, hue, extra) => `<div class="flex items-center space-x-1.5 py-0.5">
+                    <span class="ultra-legend-swatch shrink-0" style="background:${hue};color:${hue}"></span>
+                    <span class="w-3 text-center shrink-0" style="color:${hue}">${glyph}</span>
+                    <span class="truncate">${label}</span>
+                    ${extra ? `<span class="text-slate-500 ml-auto shrink-0">${extra}</span>` : ''}</div>`;
+                el.innerHTML = `<div class="text-[8px] tracking-widest mb-1 text-neon-cyan">CLAIM CLASS // HALO GRAMMAR</div>`
+                    + Object.values(NODE_CLASSES).map((c) => row(c.g, c.label, c.hue)).join('')
+                    + `<div class="border-t border-cyan-900/40 my-1.5"></div>`
+                    + `<div class="text-[8px] tracking-widest mb-1" style="color:#f0e442">STRATUM // ATMOSPHERE</div>`
+                    + ZAZIOPATH_STRATA.map((s) => row(s.g, s.label, s.hex, s.home)).join('')
+                    + `<div class="mt-1.5 text-slate-500 leading-tight">size = mass · halo = activity · jitter = uncertainty · aura = stratum</div>`;
+            },
+
+            // ---- lifecycle -------------------------------------------------------
+            enter() {
+                if (this.enabled) return;
+                if (!ultraCtx) {
+                    polymathLLM.appendChat('system', 'ULTRA FIELD UNAVAILABLE // no 2D composite context in this browser — STANDARD renderer retained.');
+                    return;
+                }
+                this.enabled = true;
+                if (!zaziopathSeeded) graphEngine.seedZaziopath(true);
+                graphMetrics.dirty = true;
+                this.tier = prefersReducedMotion ? 1 : 2;
+                if (prefersReducedMotion) {
+                    this.params.turbulence = 15;
+                    this.params.dream = false;
+                    this.field = 'constellation';
+                    this.syncSliders();
+                }
+                this.lastTs = performance.now();
+                this.time = this.lastTs;
+                this.idleMs = 0;
+                this.dream = 0;
+                this.nebTick = 99;
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                this.refreshControls();
+                playBeep(1320, 'triangle', 0.16, 0.05);
+                polymathLLM.appendChat('system',
+                    `ULTRA FIELD ONLINE // ${ULTRA_FIELDS[this.field].label} · same graph · ${graphNodes.length} nodes / ${graphEdges.length} edges · LOD ${ULTRA_TIERS[this.tier].name}${prefersReducedMotion ? ' · reduced motion' : ''}.`);
+                requestAnimationFrame((ts) => this.loop(ts));
+            },
+
+            exit() {
+                if (!this.enabled) return;
+                this.enabled = false;
+                ultraCtx.setTransform(1, 0, 0, 1, 0, 0);
+                ultraCtx.clearRect(0, 0, ultraCanvas.width, ultraCanvas.height);
+                this.dom.legend.classList.add('hidden');
+                this.refreshControls();
+                playBeep(520, 'sine', 0.12);
+                polymathLLM.appendChat('system', 'RENDERER: STANDARD // ultra field suspended — the atlas is the same graph.');
+            },
+
+            invalidate() {
+                this.nebTick = 99;
+                const v = document.createElement('canvas');
+                v.width = 320; v.height = 200;
+                const g = v.getContext('2d');
+                const grd = g.createRadialGradient(160, 100, 20, 160, 100, 190);
+                grd.addColorStop(0, 'rgba(3,5,9,0)');
+                grd.addColorStop(0.62, 'rgba(3,5,9,0.25)');
+                grd.addColorStop(1, 'rgba(3,5,9,0.92)');
+                g.fillStyle = grd;
+                g.fillRect(0, 0, 320, 200);
+                this.vignette = v;
+            },
+
+            touch() { this.idleMs = 0; },
+
+            // ---- events ----------------------------------------------------------
+            excite(amount, x, y, col) {
+                this.surge = Math.min(2.4, this.surge + amount);
+                if (x != null) this.waves.push({ x, y, r: 4, max: 90 + 60 * amount, life: 0, col: col || '#00f7ff' });
+                if (this.waves.length > 8) this.waves.shift();
+            },
+
+            // Called by graphEngine.injectNode: ingestion and synthesis become a birth
+            // event in the field — node emerges, its edges propagate, weather spikes.
+            birthEvent(node) {
+                graphMetrics.dirty = true;
+                if (!this.enabled) return;
+                this.excite(1.4, node.x, node.y, NODE_CLASSES[node.klass] ? NODE_CLASSES[node.klass].hue : '#00ff9d');
+                const hue = (NODE_CLASSES[node.klass] || NODE_CLASSES.ingested).hue;
+                for (let i = 0; i < 26; i++) {
+                    const a = rng() * Math.PI * 2, sp = 0.4 + rng() * 2.4;
+                    this.spawn('spark', node.x, node.y, {
+                        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+                        life: 500 + rng() * 700, size: 1.4 + rng() * 2.4, col: i % 3 ? hue : '#ffffff',
+                    });
+                }
+                this.signalLine = `◈ BIRTH // ${node.title.slice(0, 22)} ENTERED THE FIELD`;
+            },
+
+            focus(node) {
+                this.focusId = node ? node.id : null;
+                graphMetrics.updateRelevance(this.focusId);
+                if (node) {
+                    this.excite(0.7, node.x, node.y, (NODE_CLASSES[node.klass] || NODE_CLASSES.concept).hue);
+                    this.signalLine = `◈ LOCAL CLUSTER // ${node.title.slice(0, 20)}`;
+                } else {
+                    this.signalLine = '◈ FIELD DORMANT';
+                }
+                this.touch();
+            },
+
+            spawn(kind, x, y, o = {}) {
+                const p = this.parts[this.partCursor];
+                this.partCursor = (this.partCursor + 1) % this.parts.length;
+                p.alive = true; p.k = kind; p.x = x; p.y = y;
+                p.vx = o.vx || 0; p.vy = o.vy || 0;
+                p.life = 0; p.max = o.life || 900;
+                p.size = o.size || 2; p.col = o.col || '#00f7ff';
+                p.e = o.e || null; p.t = o.t || 0; p.sp = o.sp || 0.004;
+                return p;
+            },
+
+            // ---- per-frame -------------------------------------------------------
+            loop(ts) {
+                if (!this.enabled) return;
+                const raw = Math.max(1, ts - this.lastTs);
+                this.lastTs = ts;
+                const dt = Math.min(2.6, raw / 16.667);
+                this.time += raw;
+                this.frames++;
+                this.avgMs = this.avgMs * 0.88 + raw * 0.12;
+                graphMetrics.frames++;
+
+                graphMetrics.weather.excitation = Math.max(0, graphMetrics.weather.excitation - raw * 0.00004);
+                this.surge = Math.max(0, this.surge - raw * 0.00035);
+                this.revealT = Math.min(1, this.revealT + raw * 0.0006);
+
+                // Idle drift: after ~11 s without pointer or keyboard the field sinks
+                // into its dream state — slower, softer, still the same data.
+                this.idleMs += raw;
+                const stale = graphMetrics.dirty;
+                if (this.frames % 30 === 0 || stale) {
+                    graphMetrics.rebuild();
+                    this.refreshEdges();
+                }
+                const dreaming = this.params.dream && this.idleMs > 11000;
+                this.dream += ((dreaming ? 1 : 0) - this.dream) * Math.min(1, raw * 0.0004);
+                if (dreaming) {
+                    this.revealTimer -= raw / 1000;
+                    if (this.revealTimer <= 0) { this.revealTimer = 9 + rng() * 8; this.reveal(); }
+                }
+
+                for (let i = this.waves.length - 1; i >= 0; i--) {
+                    const wv = this.waves[i];
+                    wv.life += 0.016 * dt;
+                    wv.r += (wv.max - wv.r) * 0.05 * dt;
+                    if (wv.life >= 1) this.waves.splice(i, 1);
+                }
+                this.adapt(raw);
+                this.physics(dt);
+                this.ambient(dt);
+                this.stepParticles(dt);
+                this.render(dt);
+                if (this.frames % 12 === 0) this.updateHud();
+                requestAnimationFrame((next) => this.loop(next));
+            },
+
+            adapt(raw) {
+                if (raw > 34) this.slowRun++;
+                else if (raw < 22) this.slowRun--;
+                this.slowRun = Math.max(-30, Math.min(30, this.slowRun));
+                if (!this.autoTier || this.frames % 60 !== 0) return;
+                let want = this.tier;
+                if (this.avgMs > 42 || this.slowRun > 6) want = 0;
+                else if (this.avgMs > 27) want = Math.min(want, 1);
+                else if (this.avgMs < 18 && this.slowRun < -4) want = Math.min(3, this.tier + 1);
+                if (want !== this.tier) {
+                    this.tier = want;
+                    const cap = ULTRA_TIERS[want].dpr;
+                    if (cap !== ultraDprCap) { ultraDprCap = cap; resizeCanvas(); }
+                    this.signalLine = `◈ LOD SHIFT // ${ULTRA_TIERS[want].name}`;
+                    this.refreshControls();
+                }
+            },
+
+            reveal() {
+                let best = null, score = 0;
+                for (let i = 0; i < 60; i++) {
+                    const e = graphEdges[Math.floor(rng() * graphEdges.length)];
+                    if (!e || !graphNodes[e.source] || !graphNodes[e.target]) continue;
+                    const a = graphNodes[e.source], b = graphNodes[e.target];
+                    const cross = a.stratum !== b.stratum ? 1.6 : 1;
+                    const s = cross * (0.3 + e.strength) * (0.4 + (a.uncertainty + b.uncertainty) / 2) * rng();
+                    if (s > score) { score = s; best = e; }
+                }
+                if (!best) return;
+                this.revealEdge = best;
+                this.revealT = 0;
+                const a = graphNodes[best.source], b = graphNodes[best.target];
+                this.signalLine = `◈ REVELATION // ${a.title.slice(0, 16)} ↔ ${b.title.slice(0, 16)}`;
+            },
+
+            // ---- simulation ------------------------------------------------------
+            physics(dt) {
+                const f = ULTRA_FIELDS[this.field];
+                const p = this.params;
+                const turb = (p.turbulence / 100) * f.jitter * (0.5 + 0.9 * graphMetrics.weather.turbulence);
+                const drift = (0.25 + 1.5 * this.dream) * f.speed;
+                const cells = this._cells;
+                const CELL = 78;
+                for (const arr of cells.values()) arr.length = 0;
+                for (const n of graphNodes) {
+                    const key = ((n.x / CELL + 512) | 0) * 4096 + ((n.y / CELL + 512) | 0);
+                    let arr = cells.get(key);
+                    if (!arr) cells.set(key, arr = []);
+                    arr.push(n);
+                }
+                const focus = this.focusId != null ? graphNodes[this.focusId] : null;
+                const rel = graphMetrics.relevance;
+                const strata = graphMetrics.strata;
+
+                for (const n of graphNodes) {
+                    const cx = ((n.x / CELL + 512) | 0), cy = ((n.y / CELL + 512) | 0);
+                    for (let gx = cx - 1; gx <= cx + 1; gx++) {
+                        for (let gy = cy - 1; gy <= cy + 1; gy++) {
+                            const arr = cells.get(gx * 4096 + gy);
+                            if (!arr) continue;
+                            for (const m of arr) {
+                                if (m.id <= n.id) continue;
+                                const dx = m.x - n.x, dy = m.y - n.y;
+                                const d2 = dx * dx + dy * dy + 0.01;
+                                const d = Math.sqrt(d2);
+                                const sameStratum = m.stratum === n.stratum;
+                                if (d < 92) {
+                                    const force = (f.repel * 90) / d2;
+                                    const fx = (dx / d) * force, fy = (dy / d) * force;
+                                    n.vx -= fx * dt; n.vy -= fy * dt;
+                                    m.vx += fx * dt; m.vy += fy * dt;
+                                }
+                                if (sameStratum && d > 26 && d < 190) {
+                                    // swarm cohesion inside a cognitive region
+                                    const pull = ((d - 26) / 190) * f.cohesion * 0.0022;
+                                    n.vx += dx * pull * dt; n.vy += dy * pull * dt;
+                                    m.vx -= dx * pull * dt; m.vy -= dy * pull * dt;
+                                }
+                            }
+                        }
+                    }
+                    // semantic gravity: every node is held by its stratum's centre of mass
+                    const S = strata[n.stratum];
+                    if (S && S.count > 1) {
+                        n.vx += (S.x - n.x) * 0.00022 * f.grav * dt;
+                        n.vy += (S.y - n.y) * 0.00022 * f.grav * dt;
+                    }
+                    // focus-reactive expansion / convergence: the thought-cluster closes
+                    // around the selection while unrelated matter drifts outward
+                    if (focus && n.id !== focus.id) {
+                        const dx = n.x - focus.x, dy = n.y - focus.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) + 0.01;
+                        const r = rel[n.id] != null ? rel[n.id] : 0.1;
+                        const pull = r > 0.4 ? -0.0009 * r * Math.min(1, d / 320) : 0.00022 * (1 - r);
+                        n.vx += (dx / d) * pull * d * dt;
+                        n.vy += (dy / d) * pull * d * dt;
+                    }
+                    // uncertainty jitter + slow curl drift (dream amplifies)
+                    const j = n.uncertainty * turb * 0.055;
+                    if (j > 0) {
+                        n.vx += (rng() - 0.5) * j * dt;
+                        n.vy += (rng() - 0.5) * j * dt;
+                    }
+                    n.vx += Math.sin(this.time * 0.00012 * f.speed + n.phase + n.y * 0.004) * drift * 0.02 * dt;
+                    n.vy += Math.cos(this.time * 0.00014 * f.speed + n.phase * 1.7 + n.x * 0.004) * drift * 0.02 * dt;
+                    const damp = Math.pow(0.9, dt);
+                    n.vx *= damp; n.vy *= damp;
+                    const vmax = 3.4 + 4 * turb;
+                    if (n.vx > vmax) n.vx = vmax; else if (n.vx < -vmax) n.vx = -vmax;
+                    if (n.vy > vmax) n.vy = vmax; else if (n.vy < -vmax) n.vy = -vmax;
+                    n.x += n.vx * dt; n.y += n.vy * dt;
+                    // activation cools slowly unless re-touched (recency map)
+                    n.activation = Math.max(0.06, n.activation - 0.0006 * dt);
+                }
+
+                for (const e of graphEdges) {
+                    const a = graphNodes[e.source], b = graphNodes[e.target];
+                    if (!a || !b) continue;
+                    const dx = b.x - a.x, dy = b.y - a.y;
+                    const d = Math.sqrt(dx * dx + dy * dy) + 0.01;
+                    const rest = 34 + 62 * (1 - e.strength);
+                    const k = (d - rest) * 0.0013 * (0.5 + e.strength) * dt;
+                    a.vx += (dx / d) * k; a.vy += (dy / d) * k;
+                    b.vx -= (dx / d) * k; b.vy -= (dy / d) * k;
+                    e.activation = Math.max(0.05, e.activation - 0.0005 * dt);
+                    e._len = d;
+                }
+            },
+
+            refreshEdges() {
+                for (const e of graphEdges) {
+                    const a = graphNodes[e.source], b = graphNodes[e.target];
+                    if (!a || !b) continue;
+                    const cross = a.stratum !== b.stratum;
+                    const hex = cross ? ((STRATA_BY_KEY[a.stratum] || ZAZIOPATH_STRATA[0]).hex) : (a.color || '#00f7ff');
+                    e._stroke = hexA(hex, 0.06 + 0.24 * e.strength);
+                    e._hot = hexA(e.kind === 'wire' ? '#e69f00' : hex, 0.3 + 0.45 * e.strength);
+                    e._cross = cross;
+                    e._bend = (rng() - 0.5) * 0.6;
+                    e._phase = rng();
+                    e._sp = 0.4 + rng();
+                }
+            },
+
+            ambient(dt) {
+                const f = ULTRA_FIELDS[this.field];
+                const tier = ULTRA_TIERS[this.tier];
+                const dens = this.params.density / 55;
+                let alive = 0, traffic = 0;
+                for (const p of this.parts) {
+                    if (!p.alive) continue;
+                    if (p.k === 'dust') alive++;
+                    else if (p.k === 'traffic') traffic++;
+                }
+                const target = Math.round(250 * dens * f.dust * tier.dust * (1 + this.dream * 0.4));
+                const wcx = -camera.x / camera.zoom, wcy = -camera.y / camera.zoom;
+                const ww = viewW / camera.zoom, wh = viewH / camera.zoom;
+                for (let i = 0; i < 5 && alive < target; i++, alive++) {
+                    const tint = rng() < 0.35 && graphNodes.length
+                        ? (STRATA_BY_KEY[(graphNodes[Math.floor(rng() * graphNodes.length)] || {}).stratum] || ZAZIOPATH_STRATA[0]).hex
+                        : '#7dd3fc';
+                    this.spawn('dust', wcx + (rng() - 0.5) * ww * 1.1, wcy + (rng() - 0.5) * wh * 1.1, {
+                        vx: (rng() - 0.5) * 0.12, vy: (rng() - 0.5) * 0.12,
+                        life: 6000 + rng() * 9000, size: 0.5 + rng() * 1.4, col: tint,
+                    });
+                }
+                // edge traffic: one pulse per active edge, capped by tier and the slider,
+                // spawned proportionally to the edge's own activation and strength
+                const tcap = Math.round(150 * dens * f.traffic * tier.traffic * (0.5 + 0.5 * this.params.traffic / 60));
+                const chance = (0.02 + 0.16 * graphMetrics.weather.excitation + this.surge * 0.35) * (this.params.traffic / 60);
+                for (const e of graphEdges) {
+                    if (traffic >= tcap) break;
+                    if (!e._stroke) continue;
+                    if (rng() > e.activation * e.strength * chance + 0.0015) continue;
+                    traffic++;
+                    this.spawn('traffic', 0, 0, {
+                        e, t: 0, sp: 0.004 + 0.01 * e.activation * rng(),
+                        life: 4200, size: 1 + 1.6 * e.strength,
+                        col: e._cross ? '#e69f00' : (graphNodes[e.source] || {}).color || '#00f7ff',
+                    });
+                }
+                if (f.pattern === 'streak' && this.params.weather) {
+                    for (let i = 0; i < 2; i++) {
+                        const x = wcx + (rng() - 0.5) * ww, y = wcy + (rng() - 0.5) * wh;
+                        this.spawn('streak', x, y, {
+                            vx: (rng() - 0.5) * 6, vy: (rng() - 0.5) * 6,
+                            life: 260 + rng() * 420, size: 1, col: rng() > 0.5 ? '#00f7ff' : '#ff0055',
+                        });
+                    }
+                }
+            },
+
+            stepParticles(dt) {
+                const f = ULTRA_FIELDS[this.field];
+                const speed = f.speed * (0.6 + 0.8 * this.params.traffic / 60);
+                this.arrivals.length = 0;
+                for (const p of this.parts) {
+                    if (!p.alive) continue;
+                    p.life += dt * 16.667;
+                    if (p.life >= p.max) { p.alive = false; continue; }
+                    if (p.k === 'traffic') {
+                        p.t += p.sp * dt * speed * (0.6 + 0.8 * (p.e ? p.e.activation : 0.4));
+                        if (p.t >= 1) { p.alive = false; this.arrivals.push(p.e); }
+                        continue;
+                    }
+                    if (p.k === 'spark' || p.k === 'streak') { p.vx *= 0.965; p.vy *= 0.965; }
+                    else {
+                        p.vx += Math.sin(this.time * 0.0004 + p.y * 0.01) * 0.01 * dt;
+                        p.vy += Math.cos(this.time * 0.0005 + p.x * 0.01) * 0.01 * dt;
+                        p.vx *= 0.995; p.vy *= 0.995;
+                    }
+                    p.x += p.vx * dt; p.y += p.vy * dt;
+                }
+                for (const e of this.arrivals) {
+                    const b = e && graphNodes[e.target];
+                    if (!b) continue;
+                    b.activation = Math.min(1, b.activation + 0.05);
+                    if (ULTRA_TIERS[this.tier].decor) {
+                        this.spawn('spark', b.x, b.y, { vx: 0, vy: -0.15, life: 320, size: 1.1, col: e._cross ? '#e69f00' : b.color });
+                    }
+                }
+            },
+
+            // ---- rendering -------------------------------------------------------
+            render(dt) {
+                const ctx = ultraCtx;
+                const f = ULTRA_FIELDS[this.field];
+                const tier = ULTRA_TIERS[this.tier];
+                const w = graphMetrics.weather;
+                const p = this.params;
+
+                ctx.setTransform(ultraDpr, 0, 0, ultraDpr, 0, 0);
+                const trails = p.trails && tier.name !== 'SURVIVAL';
+                if (trails) {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = this.field === 'storm' ? 'rgba(3,5,9,0.36)' : 'rgba(3,5,9,0.27)';
+                    ctx.fillRect(0, 0, viewW, viewH);
+                } else {
+                    ctx.clearRect(0, 0, viewW, viewH);
+                }
+                if (p.weather) {
+                    this.drawNebula(tier, w);
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = trails ? 0.55 : 1;
+                    ctx.drawImage(this.nebula, 0, 0, viewW, viewH);
+                    ctx.globalAlpha = 1;
+                } else if (!trails) {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = '#030509';
+                    ctx.fillRect(0, 0, viewW, viewH);
+                }
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.translate(viewW / 2 + camera.x, viewH / 2 + camera.y);
+                ctx.scale(camera.zoom, camera.zoom);
+                this.drawEdges(tier, w);
+                this.drawParticles();
+                this.drawNodes(tier, w);
+                if (tier.labels) this.drawLabels();
+                ctx.restore();
+
+                ctx.globalCompositeOperation = 'lighter';
+                this.drawWeather(f, w);
+
+                // birth / focus shockwaves, drawn last so they read over everything
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.save();
+                ctx.translate(viewW / 2 + camera.x, viewH / 2 + camera.y);
+                ctx.scale(camera.zoom, camera.zoom);
+                for (const wv of this.waves) {
+                    const a = 1 - wv.life;
+                    if (a <= 0) continue;
+                    ctx.globalAlpha = a * 0.5;
+                    ctx.strokeStyle = wv.col;
+                    ctx.lineWidth = 1.4 * a + 0.4;
+                    ctx.beginPath();
+                    ctx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+                ctx.globalAlpha = 1;
+                ctx.globalCompositeOperation = 'source-over';
+                if (this.revealT < 1 && this.revealEdge) this.drawReveal();
+            },
+
+            drawNebula(tier, w) {
+                if (this.nebTick++ < tier.nebula) return;
+                this.nebTick = 0;
+                const nw = Math.max(48, Math.round(viewW / 3.5)), nh = Math.max(36, Math.round(viewH / 3.5));
+                const cv = this.nebula;
+                if (cv.width !== nw || cv.height !== nh) { cv.width = nw; cv.height = nh; }
+                const g = cv.getContext('2d');
+                const k = camera.zoom / 3.5;
+                const ox = (viewW / 2 + camera.x) / 3.5, oy = (viewH / 2 + camera.y) / 3.5;
+                g.globalCompositeOperation = 'source-over';
+                g.fillStyle = '#030509';
+                g.fillRect(0, 0, nw, nh);
+                g.globalCompositeOperation = 'lighter';
+                for (const s of ZAZIOPATH_STRATA) {
+                    const S = graphMetrics.strata[s.k];
+                    if (!S || !S.count) continue;
+                    const x = S.x * k + ox, y = S.y * k + oy;
+                    const rad = Math.max(10, (55 + 240 * S.intensity * (0.6 + 0.8 * graphMetrics.weather.cluster)) * k);
+                    const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+                    grd.addColorStop(0, hexA(s.hex, 0.07 + 0.15 * S.intensity));
+                    grd.addColorStop(0.5, hexA(s.hex, 0.035));
+                    grd.addColorStop(1, hexA(s.hex, 0));
+                    g.fillStyle = grd;
+                    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+                }
+                const blobs = [['#a855f7', w.inference], ['#00f7ff', w.excitation], ['#ff0055', w.tension]];
+                blobs.forEach(([hue, amount], i) => {
+                    if (amount < 0.04) return;
+                    const ph = this.time * 0.00005 + i * 2.1;
+                    const x = nw * (0.5 + 0.44 * Math.sin(ph + i));
+                    const y = nh * (0.5 + 0.42 * Math.cos(ph * 1.27 + i));
+                    const rad = 70 + 150 * amount;
+                    const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+                    grd.addColorStop(0, hexA(hue, 0.02 + 0.05 * amount));
+                    grd.addColorStop(1, hexA(hue, 0));
+                    g.fillStyle = grd;
+                    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+                });
+                this.nebTick = 0;
+            },
+
+            // One edge pass, four characters: SWARM draws taut links, CONSTELLATION
+            // straightens them, MYCELIAL curves every link into a tendril with a growth
+            // pulse crawling it, STORM supercharges traffic. Same edges throughout.
+            drawEdges(tier, w) {
+                const ctx = ultraCtx;
+                const rel = graphMetrics.relevance;
+                const focus = graphMetrics.focus;
+                const wireBoost = 1 + 0.5 * w.tension;
+                const pattern = ULTRA_FIELDS[this.field].pattern;
+                const curvy = pattern === 'tendril' || pattern === 'lines';
+                for (const e of graphEdges) {
+                    const a = graphNodes[e.source], b = graphNodes[e.target];
+                    if (!a || !b) continue;
+                    if (activeDomainFilter !== 'all' && a.domain !== activeDomainFilter && b.domain !== activeDomainFilter) continue;
+                    const ra = rel[a.id] != null ? rel[a.id] : 0.1;
+                    const rb = rel[b.id] != null ? rel[b.id] : 0.1;
+                    if (focus != null && ra < 0.15 && rb < 0.15) continue;
+                    const r = Math.max(ra, rb);
+                    const dim = focus == null ? 1 : 0.12 + 0.88 * r;
+                    ctx.strokeStyle = focus != null && r > 0.5 ? (e._hot || e._stroke) : (e._stroke || 'rgba(0,247,255,0.12)');
+                    ctx.lineWidth = Math.max(0.3, (0.3 + 1.4 * e.strength) * (this.params.glow / 60) * (e.kind === 'wire' ? wireBoost : 1));
+                    ctx.globalAlpha = Math.min(1, dim * (0.4 + 0.6 * e.activation));
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    const dx = b.x - a.x, dy = b.y - a.y;
+                    if (curvy) ctx.quadraticCurveTo((a.x + b.x) / 2 - dy * e._bend, (a.y + b.y) / 2 + dx * e._bend, b.x, b.y);
+                    else ctx.lineTo(b.x, b.y);
+                    ctx.stroke();
+                    if (e.kind === 'wire' && tier.decor) {
+                        ctx.globalAlpha *= 0.35;
+                        ctx.lineWidth *= 2.8;
+                        ctx.stroke();
+                    }
+                    if (pattern === 'tendril' && tier.decor && e._bend != null && r < 0.55) {
+                        const t = (this.time * 0.00006 * e._sp + e._phase) % 1;
+                        const cx = (a.x + b.x) / 2 - dy * e._bend, cy = (a.y + b.y) / 2 + dx * e._bend;
+                        const mt = 1 - t;
+                        ctx.globalAlpha = 0.32 * dim * Math.sin(t * Math.PI);
+                        ctx.drawImage(this.sprites[(STRATA_BY_KEY[a.stratum] || ZAZIOPATH_STRATA[0]).hex],
+                            mt * mt * a.x + 2 * mt * t * cx + t * t * b.x - 5,
+                            mt * mt * a.y + 2 * mt * t * cy + t * t * b.y - 5, 10, 10);
+                    }
+                }
+                ctx.globalAlpha = 1;
+            },
+
+            drawParticles() {
+                const ctx = ultraCtx;
+                for (const p of this.parts) {
+                    if (!p.alive) continue;
+                    const age = p.life / p.max;
+                    const fade = p.k === 'traffic' ? 1 : (1 - age);
+                    if (fade <= 0.02) continue;
+                    if (p.k === 'traffic') {
+                        const e = p.e, a = graphNodes[e.source], b = graphNodes[e.target];
+                        if (!a || !b) continue;
+                        const t = p.t;
+                        const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
+                        const s = p.size * (0.5 + 0.8 * Math.sin(t * Math.PI)) * 3;
+                        ctx.globalAlpha = 0.35 + 0.65 * Math.sin(t * Math.PI);
+                        ctx.drawImage(this.sprites[p.col] || this.sprites['#00f7ff'], x - s, y - s, s * 2, s * 2);
+                    } else if (p.k === 'streak') {
+                        ctx.globalAlpha = 0.45 * fade;
+                        ctx.strokeStyle = p.col;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p.x - p.vx * 7, p.y - p.vy * 7);
+                        ctx.stroke();
+                    } else {
+                        const s = p.size * (0.5 + fade);
+                        ctx.globalAlpha = fade * (p.k === 'spark' ? 0.85 : 0.35);
+                        ctx.drawImage(this.sprites[p.col] || this.sprites['#ffffff'], p.x - s, p.y - s, s * 2, s * 2);
+                    }
+                }
+                ctx.globalAlpha = 1;
+            },
+
+            drawNodes(tier, w) {
+                const ctx = ultraCtx;
+                const rel = graphMetrics.relevance;
+                const focus = graphMetrics.focus;
+                const glow = this.params.glow / 60;
+                const turb = (this.params.turbulence / 100) * ULTRA_FIELDS[this.field].jitter;
+                const time = this.time;
+                for (const n of graphNodes) {
+                    if (activeDomainFilter !== 'all' && n.domain !== activeDomainFilter) continue;
+                    const r = rel[n.id] != null ? rel[n.id] : 0.1;
+                    const dim = focus == null ? 1 : 0.18 + 0.82 * r;
+                    if (dim < 0.2) continue;
+                    const focused = this.focusId === n.id || this.hoverId === n.id;
+                    const jx = n.uncertainty * turb * Math.sin(time * 0.0011 * n.warp + n.phase) * 3;
+                    const jy = n.uncertainty * turb * Math.cos(time * 0.0013 * n.warp + n.phase * 1.7) * 3;
+                    const x = n.x + jx, y = n.y + jy;
+                    const cls = NODE_CLASSES[n.klass] || NODE_CLASSES.concept;
+                    const stratum = STRATA_BY_KEY[n.stratum] || ZAZIOPATH_STRATA[0];
+                    const pulse = 0.5 + 0.5 * Math.sin(time * 0.0016 / Math.max(0.45, n.warp) + n.phase);
+                    const act = Math.min(1, n.activation * (focused ? 1.7 : 1) + this.dream * 0.08);
+                    const hr = (n.radius * (2.1 + 3.2 * act + 1.4 * pulse) + 6) * glow * (focused ? 1.7 : 1);
+                    ctx.globalAlpha = Math.min(0.9, (0.1 + 0.5 * act + 0.12 * w.cluster) * dim);
+                    ctx.drawImage(this.sprites[stratum.hex] || this.sprites['#ffffff'], x - hr, y - hr, hr * 2, hr * 2);
+                    const cr = n.radius * (1.1 + 0.32 * pulse) * (1 + 0.55 * n.mass) * (focused ? 1.25 : 1);
+                    ctx.globalAlpha = Math.min(1, (0.5 + 0.5 * act) * dim);
+                    ctx.drawImage(this.sprites[n.color] || this.sprites['#00f7ff'], x - cr * 2, y - cr * 2, cr * 4, cr * 4);
+                    if (tier.decor && n.mass > 0.6) {
+                        ctx.globalAlpha = (0.12 + 0.3 * n.mass) * dim;
+                        ctx.strokeStyle = cls.hue;
+                        ctx.lineWidth = 0.7;
+                        ctx.beginPath();
+                        ctx.arc(x, y, cr + 5 + 2 * pulse, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    if (tier.decor && (n.radius > 3.4 || focused || this.dream > 0.25)) {
+                        this.drawClassGrammar(n, cls, x, y, cr, dim, focused);
+                    }
+                    if (focused) {
+                        ctx.globalAlpha = 0.45;
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1.1;
+                        ctx.beginPath();
+                        ctx.arc(x, y, cr + 12 + 3 * pulse, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                ctx.globalAlpha = 1;
+            },
+
+            drawClassGrammar(n, cls, x, y, cr, dim, focused) {
+                const ctx = ultraCtx;
+                ctx.globalAlpha = Math.min(0.85, (0.2 + 0.55 * n.activation) * dim);
+                ctx.strokeStyle = cls.hue;
+                ctx.lineWidth = focused ? 1.3 : 0.75;
+                const rad = cr + 4.5;
+                if (cls.shape === 'hex') {
+                    ctx.beginPath();
+                    for (let k = 0; k < 6; k++) {
+                        const a = k * Math.PI / 3 + this.time * 0.00006;
+                        const px = x + Math.cos(a) * rad, py = y + Math.sin(a) * rad;
+                        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                } else if (cls.shape === 'dash') {
+                    ctx.setLineDash([2, 4]);
+                    ctx.beginPath();
+                    ctx.arc(x, y, rad, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                } else if (cls.shape === 'ring') {
+                    ctx.beginPath();
+                    ctx.arc(x, y, rad, 0, Math.PI * 2);
+                    ctx.stroke();
+                } else if (cls.shape === 'burst') {
+                    const age = (performance.now() - n.birthAt) / 1000;
+                    if (age < 3.2) {
+                        ctx.globalAlpha *= Math.max(0, 1 - age / 3.2);
+                        ctx.beginPath();
+                        ctx.arc(x, y, rad + Math.min(26, age * 9), 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                } else if (cls.shape === 'open') {
+                    // A broken ring: an unresolved claim is never closed.
+                    const gap = 0.55 + 0.3 * Math.sin(this.time * 0.001 + n.phase);
+                    ctx.beginPath();
+                    ctx.arc(x, y, rad + 1, n.phase, n.phase + Math.PI * 2 - gap);
+                    ctx.stroke();
+                }
+            },
+
+            drawWeather(f, w) {
+                const ctx = ultraCtx;
+                if (f.flash > 0 && w.tension > 0.3 && this.params.weather) {
+                    const chance = 0.004 * f.flash * w.tension * (1 + this.surge);
+                    if (rng() < chance) this.flash = 0.45 + 0.55 * w.tension;
+                    if (this.flash > 0.01) {
+                        ctx.globalAlpha = this.flash * 0.12;
+                        ctx.fillStyle = '#ff0055';
+                        ctx.fillRect(0, 0, viewW, viewH);
+                        ctx.globalAlpha = 1;
+                    }
+                }
+                this.flash = Math.max(0, this.flash - 0.02);
+                if (this.vignette) {
+                    // A vignette darkens; additive compositing would erase it. The storm
+                    // flash above stays additive because it is light, not shadow.
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.globalAlpha = 0.32 + 0.26 * w.tension + 0.05 * Math.sin(this.time * 0.0007);
+                    ctx.drawImage(this.vignette, 0, 0, viewW, viewH);
+                    ctx.globalAlpha = 1;
+                    ctx.globalCompositeOperation = 'lighter';
+                }
+            },
+
+            drawLabels() {
+                if (!showLabels) return;
+                const ctx = ultraCtx;
+                const rel = graphMetrics.relevance;
+                const focus = graphMetrics.focus;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.font = '9px "JetBrains Mono", monospace';
+                for (const n of graphNodes) {
+                    if (activeDomainFilter !== 'all' && n.domain !== activeDomainFilter) continue;
+                    const r = rel[n.id] != null ? rel[n.id] : 0.1;
+                    const show = (focus != null && r > 0.3) || n.mass > 0.66 || (this.field === 'constellation' && n.klass === 'source');
+                    if (!show) continue;
+                    ctx.fillStyle = hexA(n.color, focus != null ? Math.min(0.95, 0.2 + 0.75 * r) : 0.7);
+                    ctx.fillText(n.title.slice(0, 28), n.x + n.radius + 5, n.y + 3);
+                }
+            },
+
+            drawReveal() {
+                const e = this.revealEdge;
+                const a = graphNodes[e.source], b = graphNodes[e.target];
+                if (!a || !b) return;
+                const ctx = ultraCtx;
+                const t = this.revealT;
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.translate(viewW / 2 + camera.x, viewH / 2 + camera.y);
+                ctx.scale(camera.zoom, camera.zoom);
+                ctx.globalAlpha = 0.7 * Math.sin(t * Math.PI);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.1;
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.stroke();
+                const px = a.x + (b.x - a.x) * t, py = a.y + (b.y - a.y) * t;
+                ctx.drawImage(this.sprites['#ffffff'], px - 9, py - 9, 18, 18);
+                ctx.restore();
+                ctx.globalAlpha = 1;
+            },
+
+            updateHud() {
+                const d = this.dom;
+                if (!d || !this.enabled) return;
+                const w = graphMetrics.weather;
+                d.fieldName.textContent = ULTRA_FIELDS[this.field].label;
+                d.fps.textContent = `${Math.round(1000 / Math.max(1, this.avgMs))}fps`;
+                d.signal.textContent = this.signalLine;
+                const bars = d.bars;
+                bars.excitation.style.width = `${Math.round(w.excitation * 100)}%`;
+                bars.tension.style.width = `${Math.round(w.tension * 100)}%`;
+                bars.inference.style.width = `${Math.round(w.inference * 100)}%`;
+                bars.source.style.width = `${Math.round(w.source * 100)}%`;
+                const seedHint = !zaziopathSeeded;
+                d.seedBtn.classList.toggle('ultra-chip-attn', seedHint);
+            },
         };
 
         // -------------------------------------------------------------
@@ -1335,7 +2779,9 @@
                     // Add new dynamic node in Force Graph
                     const randomDomains = ['memetics', 'semiotics', 'psychoacoustics', 'hyperstition'];
                     const pickedDomain = randomDomains[Math.floor(Math.random() * randomDomains.length)];
-                    graphEngine.injectNode(synthesizedNodeTitle, pickedDomain, `Ingested from ${file.name}. Parsed ${words.length} semantic vectors.`);
+                    graphEngine.injectNode(synthesizedNodeTitle, pickedDomain, `Ingested from ${file.name}. Parsed ${words.length} semantic vectors.`, {
+                        klass: 'ingested', origin: 'ingestion', ref: `FILE//${file.name}`, links: 4,
+                    });
 
                     polymathLLM.ingested.push({ file: file.name, text: String(content).slice(0, 2500) });
                     polymathLLM.ingested = polymathLLM.ingested.slice(-3);
@@ -1475,7 +2921,9 @@
                     `;
 
                     // Inject to Graph
-                    graphEngine.injectNode(mutantTitle, 'hyperstition', mutantAxiom);
+                    graphEngine.injectNode(mutantTitle, 'hyperstition', mutantAxiom, {
+                        klass: 'inferred', origin: 'synthesis', ref: 'COMBINATOR//' + d1.split(' ')[0], uncertainty: 0.7,
+                    });
                 }, 500);
             }
         };
@@ -1499,7 +2947,9 @@
             const domain = document.getElementById('custom-node-domain').value;
             const desc = document.getElementById('custom-node-desc').value.trim() || 'Synthetic node synthesized via manual OS override.';
 
-            graphEngine.injectNode(title, domain, desc);
+            graphEngine.injectNode(title, domain, desc, {
+                klass: 'inferred', origin: 'manual', ref: 'OPERATOR//MANUAL', uncertainty: 0.55,
+            });
             polymathLLM.appendChat('system', `Custom Node [${title}] successfully propagated into active neural swarm.`);
             closeInjectModal();
         }
@@ -1526,6 +2976,8 @@
         window.addEventListener('DOMContentLoaded', () => {
             polymathLLM.checkOllama();
             initGraphEngine();
+            graphMetrics.rebuild();
+            ultra.init();
             resizeCanvas();
             renderGraph();
             paletteGen.render();
@@ -1534,7 +2986,7 @@
             
             // Welcome system prompt in LLM
             setTimeout(() => {
-                polymathLLM.appendChat('system', 'NEURAL_OS initialized with 120+ active cross-domain dialectical nodes. Ready for hyperstitional marketing execution.');
+                polymathLLM.appendChat('system', `NEURAL_OS initialized with ${graphNodes.length} active cross-domain dialectical nodes across ${ZAZIOPATH_STRATA.length} Zaziopath strata. Press U for the ultra field.`);
             }, 500);
         });
     </script>

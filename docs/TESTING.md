@@ -27,14 +27,18 @@ Three principles decide what gets automated:
 ## 2. The automated tier — `npm test`
 
 `scripts/audit.mjs` reads `index.html` as text and applies 21 register checks plus 4 always-fatal
-rules. Runtime: ~0.3 s. Dependencies: none.
+rules. Runtime: ~0.4 s. Dependencies: none.
+
+A second script, `scripts/smoke.mjs`, executes the runtime itself against a DOM stub — 36 behavioural
+assertions, no dependencies, ~3 s of simulated time. Run both with `npm run verify`. It is documented
+in [§ 7.2](#72-the-smoke-harness--npm-run-smoke).
 
 ### 2.1 Always-fatal rules (never baselined, never tolerated)
 
 | Rule | What it proves | Why it is safe to automate |
 | --- | --- | --- |
 | No duplicate `id` | The DOM contract is unambiguous | HTML spec requirement; no judgement involved |
-| Every `getElementById('x')` resolves | No silent `null` dereference at runtime | Exact string match against 42 declared IDs |
+| Every `getElementById('x')` resolves | No silent `null` dereference at runtime | Exact string match against 68 declared IDs |
 | Every `restoreOrFocus('win-…')` target exists | The dock cannot point at a deleted window | Same mechanism |
 | Every inline handler calls a defined global | No `ReferenceError` on click | Method calls excluded; only bare globals must resolve |
 
@@ -173,9 +177,9 @@ This section exists so that "tests pass" is never mistaken for "it works".
 
 | Blind spot | Consequence | Mitigation |
 | --- | --- | --- |
-| **Rendered output** | A correct class name can still produce the wrong pixel | Manual matrix; headless harness planned for `9.5.0` |
+| **Rendered output** | A correct class name can still produce the wrong pixel | Manual matrix; the smoke harness exercises draw paths but cannot see pixels; headless harness planned |
 | **CSS cascade outcomes** | The audit knows a family is undefined; it cannot know what a utility resolves to | Contrast table in [`DESIGN.md`](DESIGN.md) is measured by formula, not by browser |
-| **Runtime state** | Nothing executes `index.html` in CI | Manual matrix; the 4 fatal rules catch the highest-severity static causes of runtime failure |
+| **Runtime state** | A real browser still does not execute `index.html` in CI | The smoke harness executes the runtime against a DOM stub; the manual matrix covers the browser |
 | **Timing and race conditions** | The ingestion pipeline has concurrent `FileReader` callbacks with no ordering guarantee | Manual multi-file test (#15) |
 | **Frame rate** | Costs are modelled from complexity, not measured | Harness in [`PERFORMANCE.md` § 6](PERFORMANCE.md#6-profiling-method) |
 | **Accessibility behaviour** | Static counts cannot prove an accessible name is *useful* | Manual AT pass planned in [`ACCESSIBILITY.md` § 9](ACCESSIBILITY.md#9-verification-plan) |
@@ -221,6 +225,7 @@ A change is complete when all of the following hold. This is the same list revie
 [`CONTRIBUTING.md`](../CONTRIBUTING.md#review-rubric).
 
 - [ ] `npm test` exits **0**.
+- [ ] `npm run smoke` exits **0** (or `npm run verify` runs both).
 - [ ] `npm start` serves the app and the change is visible in a browser.
 - [ ] Every task in the manual matrix that touches the changed subsystem passes.
 - [ ] The console is clean — no errors, no warnings introduced.
@@ -229,49 +234,84 @@ A change is complete when all of the following hold. This is the same list revie
 - [ ] No new runtime dependency, no build step, no network call from the runtime.
 - [ ] User-facing change is recorded in [`CHANGELOG.md`](../CHANGELOG.md).
 - [ ] If a documented signature changed, [`API.md`](API.md) is updated in the same commit.
-- [ ] Payload delta is understood (current headroom: 7,351 B to the warn threshold).
+- [ ] Payload delta is understood (current headroom: **9,343 B** to the warn threshold, 188,000 B).
 
 ---
 
-## 7. The road to behavioural tests
+## 7. Behavioural verification
 
-The audit covers statics; the manual matrix covers behaviour; nothing covers both automatically. The
-`9.5.0` plan closes that gap **without** compromising the zero-dependency runtime.
+Statics are covered by the audit and behaviour by the manual matrix; the space between them is now
+partly automated. **9.5.0 shipped a behavioural smoke harness**, and a browser-level harness remains
+planned.
 
-### 7.1 Determinism first
+### 7.1 Determinism — shipped in 9.5.0
 
-Behavioural snapshot testing requires a reproducible first frame. Today there are **19 unseeded
-`Math.random()` call sites** (`NOO-021`), so no two runs of the same commit produce the same graph.
-The prerequisite fix:
+`NOO-021` is retired: the runtime seeds a local `mulberry32` PRNG (`rng()`), and every call site that
+used to roll `Math.random()` — graph spawn, injection, the Zaziopath lattice, field decoration — now
+draws from it. The same commit produces the same boot graph every time: **90 nodes / 265 edges**, and
+**128 / 312** after the lattice seed. That reproducibility is the precondition for asserting counts
+at all.
 
 ```js
-// Mulberry32 — ~6 lines, no dependency, deterministic and fast.
-const rng = (seed) => () => {
-  seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
-  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-};
-const random = rng(0x9a4e);   // replaces all 19 Math.random() call sites
+function mulberry32(a) { /* … six lines … */ }
+const rng = mulberry32(0x9a4e);
 ```
 
-With a seeded generator, `?seed=` becomes a shareable, reproducible state — a feature (deterministic
-demos, stable screenshots, comparable bug reports) that happens to also unlock testing.
+What was *not* shipped: a `?seed=` URL parameter. The generator is real and shared; exposing it as a
+shareable seed remains a possible follow-up, but nothing in the runtime reads the URL today, and this
+document does not pretend otherwise.
 
-### 7.2 Headless harness (dev-only, outside the deployment path)
+### 7.2 The smoke harness — `npm run smoke`
+
+`scripts/smoke.mjs` executes the **real runtime** — the same inline script the browser runs — inside
+`node:vm` against a hand-written DOM and Canvas 2D stub.
+
+| Property | Design |
+| --- | --- |
+| Runner | `node:vm` plus ~120 lines of stubs; **zero dependencies**, no browser |
+| What is real | `index.html`'s runtime verbatim: engines, graph model, ultra field, metrics, controls |
+| What is stubbed | DOM queries + class lists, the 2D context (call counters), the rAF queue, `AudioContext`, `fetch` (always rejects → fallback path), `FileReader`, `setInterval` |
+| Time | `frames(n)` drains the rAF queue against a virtual clock; a boot report is printed before the verdict |
+| Assertions | **36**, every failure printed with its label and detail |
+| Boot report | node/edge counts at three points — boot · after the lattice seed · after the harness's own injection |
+| Trigger | the same CI job as the audit, on Node 18/20/22 |
+
+The assertions, by group:
+
+| Group | # | Representative claims |
+| --- | --- | --- |
+| Boot contract | 5 | 90 nodes at boot; ids are array indices; every node carries stratum + provenance + class; every edge carries strength + kind |
+| Standard renderer | 2 | the atlas paints fills and strokes; the ultra field is off by default |
+| Ultra lifecycle | 9 | the switch enables the field; entry seeds the lattice (8 strata, § 00c wires, the question); the deck is revealed; glow stamps and nebula gradients are drawn |
+| Field physics | 2 | the field moves the same node objects the atlas owns; the frame budget stays finite |
+| Submodes | 5 | each of SWARM · CONSTELLATION · SIGNAL STORM · MYCELIAL · DREAM steps without throwing |
+| Deck controls | 2 | the legend renders both registries; preset cycling keeps parameters in range |
+| Focus | 3 | the focused node is fully relevant; relevance reaches one hop; clearing focus returns neutral |
+| Ingestion | 3 | injection adds exactly one node and at least one edge; a birth event registers on the field |
+| Hotkeys | 2 | `1`–`5` selects a field; `U` returns to STANDARD |
+| Resilience | 3 | resize while live; STANDARD keeps running afterwards; payload counters stay truthful |
+
+**What the harness does not prove.** It is behavioural, not visual: the canvas is a stub that counts
+draw calls, so it can prove the field *asked* for a glow stamp but not that the stamp looks right.
+Audio is inert, `fetch` always fails (so Ollama is exercised only as the fallback path), and no
+browser, GPU or compositor is involved. It asserts the **construction bounds** — pool ceiling, tier
+table, physics grid — rather than measuring real frame time. Read it as "the runtime cannot break
+silently", not as a substitute for § 3 or the harness below.
+
+### 7.3 Headless harness (still planned, dev-only, outside the deployment path)
 
 | Property | Design |
 | --- | --- |
 | Runner | Playwright, pinned, in `devDependencies` — the **runtime** stays dependency-free |
-| Seed | `?seed=` URL parameter for deterministic layout |
-| Assertions | Boot without console errors; 7 windows present; node count matches the badge; filter reduces rendered nodes; injection increments the counter; transcript grows; ingestion of a fixture file adds exactly one node |
-| Visual | Screenshot with the seeded layout at three reference widths (1280 / 1440 / 1920) — the third is what would have caught `NOO-019` automatically |
-| Accessibility | Static helpers asserting accessible names on every `button`; the check `NOO-016` becomes a ratchet |
-| Trigger | Same CI workflow, second job; a failure in the harness is a failure of the build |
+| Seed | `?seed=` URL parameter (generator shipped, parameter not yet) for a deterministic layout |
+| Assertions | Boot without console errors; 7 windows present; node count matches the badge; filter reduces rendered nodes; injection increments the counter; transcript grows; ingestion of a fixture adds exactly one node; **the mode switch draws on the second canvas and returns losslessly** |
+| Visual | Seeded screenshots at 1280 / 1440 / 1920 — the third is what would have caught `NOO-019` automatically |
+| Accessibility | Assert an accessible name on every `button`; `NOO-016` becomes a ratchet again as coverage improves |
+| Trigger | Same CI workflow, second job; a harness failure is a build failure |
 
 **Deliberate constraint:** the harness never runs against production. `index.html` must remain
-openable from a filesystem with no tooling present — that is the project's thesis, and a test suite
-is not a reason to weaken it.
+openable from a filesystem with no tooling present — that is the project's thesis, and a test suite is
+not a reason to weaken it.
 
 ---
 

@@ -22,6 +22,108 @@ rather than enumerated. Everything from `9.4.1` forward is tracked here and enfo
 
 ---
 
+## [9.5.0] — 2026-10-03
+
+**One graph, two renderers.** This revision adds the ultra visualisation — a second, layered
+rendering system over the *same* node and edge arrays — and retires five register IDs. The standard
+atlas is unchanged in behaviour; ULTRA is a toggle beside it, not a replacement.
+
+### Added
+
+- **Ultra visualisation mode** (`RENDER: STANDARD | ULTRA`, hotkey `U`) — a Canvas 2D field composited
+  additively over a second canvas in the same viewport, reading the same `graphNodes` / `graphEdges`,
+  camera and selection as the standard atlas. Full reference:
+  [`docs/ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
+  - **Five fields** — `SWARM`, `CONSTELLATION`, `SIGNAL STORM`, `MYCELIAL`, `DREAM` — each a
+    parameterisation of the same data: force profile, edge grammar, particle mix, fog density.
+  - **Cognitive weather** — a second-order atmosphere derived from the graph every 30 frames
+    (excitation, tension, inference, source density, cluster intensity, turbulence) driving fog,
+    storm flashes, vignette breathing and traffic spawn rate, with a four-meter HUD readout.
+  - **Class grammar** — node halos encode the claim class: source (hexagon), source-backed concept
+    (ring), inferred synthesis (dashed ring), newly ingested (expanding birth rings), unresolved
+    question (broken ring).
+  - **Strata atmospheres** — the eight Zaziopath strata become real regions: aura plumes sized by
+    regional intensity, semantic gravity toward the stratum centre of mass, same-stratum swarm
+    cohesion, and stratum-hued tendrils in `MYCELIAL`.
+  - **Focus as thought-cluster** — selection computes a three-hop relevance map over the real edge
+    set: related nodes brighten, unrelated matter dims to 18 % and stops drawing edges, connected
+    edges thicken, and the cluster converges while unrelated matter drifts out. The terminal's
+    `selectedNode`, the Ollama context and the visual cluster are always the same entity.
+  - **Birth events** — ingestion, synthesis and manual authoring enter the field as a shockwave, spark
+    burst, weather spike and a halo that settles over ~3 s.
+  - **Idle dream state** — after ~11 s without input: slower drift, deeper fog, thinning traffic and a
+    periodic *revelation* that lights a high-tension connection and names both endpoints.
+  - **Adaptive LOD** — four tiers (`SURVIVAL` → `MAXIMAL`) scale DPR, particle caps, class grammar,
+    labels and nebula cadence from a frame-time EMA; a 900-slot reused particle pool, pre-baked glow
+    sprites (no `shadowBlur`), a uniform-grid broad phase (`O(n·k)`) and 5 Hz DOM updates bound cost.
+  - **Graceful degradation** — no 2D context, a slow device, or `prefers-reduced-motion` all have
+    defined behaviour (`SURVIVAL` tier, or `CONSTELLATION` at low turbulence with idle off).
+- **Zaziopath structure in the graph model** — `ZAZIOPATH_STRATA` (the vault's eight strata, glyphs and
+  Okabe–Ito hues), `NODE_CLASSES`, `STRATUM_OF`, and the seventeen-wire `ZAZIOPATH_WIRES` register
+  from § 00c with their published mechanisms. `graphEngine.seedZaziopath()` merges the lattice into the
+  live graph — the same arrays the standard renderer draws.
+- **Provenance on every node and edge** — `stratum`, `klass`, `provenance {origin, ref, recorded}`,
+  `uncertainty`, `activation`, `mass`, plus `strength` / `kind` / `inferred` / `mechanism` on edges.
+  Injection now records its origin (file name, combinator directive, operator) and links new nodes to
+  their three nearest conceptual neighbours.
+- **Derived metrics pass** (`graphMetrics`) — centrality/degree, mass, per-stratum membership,
+  centroids and intensity, the weather channels, and the focus relevance map. Recomputed on a cadence
+  and on topology change; never stored twice.
+- **Behavioural smoke harness** (`scripts/smoke.mjs`, `npm run smoke`, `npm run verify`) — runs the
+  runtime inside a dependency-free DOM/Canvas stub and asserts 36 behaviours: boot graph shape, both
+  renderers, lattice seeding, submodes, presets, legend, injection, focus relevance, hotkeys, resize
+  and the return to STANDARD. Wired into CI beside the audit.
+- **Documentation** — this file plus [`ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md); updates
+  across `README.md`, `ARCHITECTURE.md`, `API.md`, `DESIGN.md`, `PERFORMANCE.md`, `TESTING.md`,
+  `DECISIONS.md` (ADR-011), `ROADMAP.md`, `ACCESSIBILITY.md` and `MAINTAINABILITY.md`.
+- **Also in this revision:** optional localhost Ollama inference for the Polymath terminal (merged
+  before this entry) — see [`API.md`](docs/API.md#local-ollama-inference-optional) and
+  [`SECURITY.md`](SECURITY.md).
+
+### Changed
+
+- **Payload budget re-baselined, deliberately** — `SIZE_BUDGET` moves from `96,000 / 128,000 B` to
+  `188,000 / 224,000 B`, anchored to the new measured payload with ~5 % warn and ~25 % fail headroom.
+  `ROADMAP.md` (9.4.2) had already stated the budget would be re-baselined deliberately in 9.5.0 with
+  the reason recorded; the reason is the ultra renderer, which is the largest subsystem in the file
+  (~46 kB of ~179 kB). The ratchet against unbounded growth is preserved. See
+  [`PERFORMANCE.md` § 8](docs/PERFORMANCE.md#8-guardrails).
+- **Both canvases are now device-pixel-ratio scaled** (capped at 2×), with the camera transform kept
+  in CSS pixels so the pointer mapping, labels and zoom stay exact. `NOO-014` retired.
+- **The graph's initial layout is now seeded** (`mulberry32`) instead of `Math.random()`, so the boot
+  graph is reproducible: 90 nodes and 265 edges, twice in a row. `NOO-021` retired.
+- **Node-count chrome is truthful** — the status-bar badge matches the spawn count and the boot banner
+  reports the live node total. `NOO-010` retired.
+- **The alchemy domain gained the filter affordance it never had.** `NOO-011` retired.
+- **Graph controls carry ARIA labels** (17 attributes across the toolbar, mode switch, fields, sliders
+  and toggles). This is a partial answer to `NOO-016`: the audit's heuristic clears when any semantics
+  exist, but the deeper P1 items (live regions, region semantics, modal focus) remain open and are
+  still tracked in [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan).
+- `package.json` version → `9.5.0`; the status-bar label follows. CI now runs the smoke harness after
+  the audit.
+
+### Fixed
+
+- `NOO-011` — domain without a filter affordance (alchemy).
+- `NOO-014` — canvas not device-pixel-ratio scaled (both canvases).
+- `NOO-010` — node-count parity drift between chrome and engine (both directions).
+- `NOO-021` — RNG unseeded; the layout is now reproducible per run.
+- `NOO-007` — reduced from 4 to 2 as the transcript and ingestion paths were refactored to write text
+  nodes; the remaining two sinks are tracked.
+
+### Notes
+
+- **Selection behaviour is preserved and extended.** A click still appends the inspection line, sets
+  `polymathLLM.selectedNode` and fires `node-deepdive`; it now also opens the field's local cluster.
+  Clicking empty canvas clears the field focus and leaves the terminal's context untouched.
+- **Ultra mode seeds the Zaziopath lattice on first entry** (announced in the transcript). The 38
+  extra nodes live in the same arrays, so STANDARD draws them too after the seed.
+- **The graph simulation is still `O(n²)` in STANDARD** (`NOO-015`); the ultra field uses a uniform
+  grid. `NOO-020` (frame-rate-dependent integration) is unchanged in the standard integrator.
+- Deep links, hashes and persistence: still none, by [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend).
+
+---
+
 ## [Unreleased]
 
 ### Added

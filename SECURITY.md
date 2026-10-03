@@ -9,7 +9,8 @@
 
 | Version | Supported |
 | --- | --- |
-| `9.4.x` (current) | ✅ Security fixes and corrections |
+| `9.5.x` (current) | ✅ Security fixes and corrections |
+| `9.4.x` | ⚠️ Superseded by 9.5.0; corrections only |
 | < `9.4.1` | ❌ Pre-repository iterations; not distributed |
 
 The deployable artefact is a single `index.html`. There is no server component, no package published
@@ -66,7 +67,7 @@ Four template-literal assignments interpolate human-origin values without escapi
 server. The meaningful vectors are (a) a victim socially engineered into dropping an attacker-supplied
 filename, and (b) content-driven injection if the corpus ever becomes user-editable. Both are real but
 narrow — which is exactly why this is rated *high* in the register rather than *critical*, and why the
-fix is a scheduled `9.4.2` item rather than an emergency.
+remaining two sinks are scheduled for `9.6.0` (9.5.0 escaped two of the four).
 
 **Mitigation until the fix lands:** do not drop files with untrusted names into the ingestion window,
 and do not paste untrusted markup into the terminal. Hosting behind a CSP does **not** mitigate this
@@ -84,7 +85,7 @@ Three origins are loaded at page load, two of them unpinned:
 | `unpkg.com/lucide@latest` | `@latest` — resolves per request | The icon set can change under a fixed commit |
 | `fonts.googleapis.com` | n/a | Stylesheet + font files; CSS is not a script-execution vector, but it is a third-party request that reveals the visitor's IP to Google |
 
-**Mitigation:** pin the URLs immediately; self-host all three in `9.5.0` (which also enables the
+**Mitigation:** pin the URLs immediately; self-host all three in `9.6.0` (which also enables the
 hardened CSP with zero third-party origins). Subresource Integrity is **not** applicable to the
 Tailwind Play CDN (it generates content dynamically) — another argument for vendoring.
 

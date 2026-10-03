@@ -5,9 +5,10 @@
 
 **Format:** lightweight ADR (context → decision → consequences → alternatives).
 **Status values:** Accepted · Superseded · Deprecated.
-**Note:** these records were written retroactively at `v9.4.1`, documenting the constraints the
-project was actually built under rather than rationalising them after the fact. Every "negative"
-consequence listed below is reflected in the defect register and the roadmap.
+**Note:** ADR-001…010 were written retroactively at `v9.4.1`, documenting the constraints the project
+was actually built under rather than rationalising them after the fact; ADR-011 was written with the
+9.5.0 change that motivated it. Every "negative" consequence listed below is reflected in the defect
+register and the roadmap.
 
 | ID | Decision | Status |
 | --- | --- | --- |
@@ -21,6 +22,7 @@ consequence listed below is reflected in the defect register and the roadmap.
 | [ADR-008](#adr-008--satirical-corpus-with-explicit-disclosure) | Satirical corpus with explicit disclosure | Accepted |
 | [ADR-009](#adr-009--semantic-accent-system-on-a-flat-surface-ramp) | Semantic accent system on a flat surface ramp | Accepted |
 | [ADR-010](#adr-010--sequential-boot-with-direct-coupling) | Sequential boot with direct coupling | Accepted |
+| [ADR-011](#adr-011--a-second-renderer-for-ultra-mode--same-graph-additive-canvas-2d) | A second renderer for Ultra Mode — same graph, additive Canvas 2D | Accepted |
 
 ---
 
@@ -36,13 +38,14 @@ appears on screen has already spent that budget.
 
 ### Decision
 Ship the entire application as **one `index.html`** containing markup, the token configuration, the
-CSS primitives and all ten engines.
+CSS primitives and all eleven engines.
 
 ### Consequences
 
 **Positive**
 - `git clone` → open the file → it runs. There is no step where the artefact is not working.
-- The whole system fits in a reviewable object: 1,477 lines, 88,649 B, no generated code.
+- The whole system fits in a reviewable object: 2,994 lines, 178,657 B, no generated code. (Ultra
+  mode roughly doubled it in 9.5.0 — see [ADR-011](#adr-011--a-second-renderer-for-ultra-mode--same-graph-additive-canvas-2d).)
 - Constraint-driven design: because everything is visible at once, there is nowhere to hide
   unnecessary abstraction, and every engine was written to fit the same metaphor.
 - Deployment is a file copy — Pages, Netlify, an S3 bucket, a USB stick.
@@ -52,7 +55,7 @@ CSS primitives and all ten engines.
   load-bearing.
 - No tree-shaking, code splitting, or lazy loading; the payload is the payload.
 - Editor tooling cannot follow symbol references across the document as reliably as across modules.
-- Related register items: `NOO-017` (per-window listeners), `NOO-021` (denormalised colour cache).
+- Related register items: `NOO-017` (per-window listeners), `NOO-020` (frame-rate coupling).
 
 ### Alternatives considered
 - **Multi-file ES modules with no bundler.** Rejected: browsers would need a server for a module
@@ -106,7 +109,7 @@ that utilities cannot express (CRT overlay, backdrop-filter glass, glow, hatchin
 **Status:** Accepted
 
 ### Context
-Seven windows, ten engines, one shared canvas, no server. The instinct on a project this size is to
+Seven windows, eleven engines, one shared canvas, no server. The instinct on a project this size is to
 reach for React or Svelte — but the coordination problem here is *local* (drag, zoom, append), not
 *synchronisation* of shared derived state.
 
@@ -142,12 +145,14 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
 **Status:** Accepted
 
 ### Context
-The atlas renders 90 nodes, ≈270 edges, animated continuously, with glow, labels, hover emphasis and
-zoom-dependent level of detail.
+The atlas renders 90–130 nodes and 265–312 edges, animated continuously, with glow, labels, hover
+emphasis and zoom-dependent level of detail.
 
 ### Decision
 Render with **Canvas 2D** in a single `requestAnimationFrame` loop. Keep the simulation state in
-plain arrays (`graphNodes`, `graphEdges`) and use the DOM only for the inspector overlay.
+plain arrays (`graphNodes`, `graphEdges`) and use the DOM only for the inspector overlay. The 9.5.0
+ultra field extends the same choice to the second renderer
+([ADR-011](#adr-011--a-second-renderer-for-ultra-mode--same-graph-additive-canvas-2d)).
 
 ### Consequences
 
@@ -159,10 +164,12 @@ plain arrays (`graphNodes`, `graphEdges`) and use the DOM only for the inspector
 
 **Negative**
 - **Nothing is accessible**: the graph is opaque to assistive technology and to the keyboard
-  (`NOO-016`). A DOM/SVG renderer would have given basic semantics for free.
+  (`NOO-016`). A DOM/SVG renderer would have given basic semantics for free. (The 9.5.0 controls
+  cleared the automated count with 17 `aria-*`, but the canvas itself still has no text alternative.)
 - Hit-testing must be implemented by hand (linear scan per pointer move) rather than delegated to
   the platform — and the same loop is where a spatial index is needed (`NOO-015`).
-- The canvas is not DPR-scaled, so it is soft on HiDPI displays (`NOO-014`).
+- The canvas was not DPR-scaled, so it was soft on HiDPI displays (`NOO-014`, retired in 9.5.0 —
+  both canvases now scale at a 2× cap).
 
 ### Alternatives considered
 - **SVG.** Rejected: 270+ elements with per-node glow and per-frame position updates would force style
@@ -369,20 +376,20 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 **Status:** Accepted
 
 ### Context
-Ten engines, one document, seven windows. The textbook answer is an event bus and a central
+Eleven engines, one document, seven windows. The textbook answer is an event bus and a central
 orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
 
 ### Decision
 Initialise in a fixed order inside a single `DOMContentLoaded` handler. Couple engines **directly**
-through method calls, three shared state surfaces (`graphNodes`, `graphEdges`, `camera`) and append-only
-DOM. No event bus, no store, no pub/sub.
+through method calls, four shared surfaces (`graphNodes`, `graphEdges`, `camera`, `graphMetrics`) and
+append-only DOM. No event bus, no store, no pub/sub.
 
 ### Consequences
 
 **Positive**
 - The control flow of a click is readable end-to-end in one direction, with no indirection to trace.
-- Ordering is explicit and visible rather than emergent: `graph` before `polymathLLM`, window wiring
-  before anything.
+- Ordering is explicit and visible rather than emergent: `graphMetrics` before `graphEngine` before
+  `ultra` before `polymathLLM`, window wiring before anything.
 - Failure is obvious and local: an engine that throws takes down its own path, not a shared bus.
 
 **Negative**
@@ -399,7 +406,57 @@ DOM. No event bus, no store, no pub/sub.
 - **Global store with subscriptions.** Rejected for the same reason, and because the canvas render
   loop deliberately bypasses any reactive layer.
 - **Revisit trigger.** If the engine count passes ~15 or any engine needs shared *derived* state, this
-  decision should be reopened rather than extended.
+  decision should be reopened rather than extended. (The ultra field added an eleventh engine and a
+  derived-state surface in 9.5.0 without crossing either threshold: `graphMetrics` is rebuilt in
+  place, never subscribed to.)
+
+---
+
+## ADR-011 · A second renderer for Ultra Mode — same graph, additive Canvas 2D
+
+**Status:** Accepted · **Related:** ADR-001 (single file) · ADR-002 (no build) · ADR-004 (Canvas 2D)
+
+### Context
+9.5.0 adds ULTRA VISUALIZATION MODE: swarms, glow, signal traffic, particle dust, cognitive weather
+and an idle dream state. The brief was explicit that this is an *alternate renderer over the same
+unified graph data* — not a new graph, not a separate dataset, and not a replacement for the readable
+atlas. The implementation options were a WebGL/Three.js path, a PixiJS path, or more Canvas 2D.
+
+### Decision
+Add a **second Canvas 2D renderer (`ultra`)** in the same document, layered on its own canvas above
+the atlas, reading the identical `graphNodes` / `graphEdges` records through the derived
+`graphMetrics` pass. The mode switch changes which loop owns the frame; both renderers share
+`pickNodeAt()` for hit-testing and the same terminal deep-dive. Every visual property is computed
+from a measured graph property (degree centrality, provenance, uncertainty, activation, stratum),
+never from decoration scripts.
+
+### Consequences
+
+**Positive**
+- Zero new dependencies, no build step: one chip toggles the renderer, consistent with ADR-001/002.
+- One data model by construction — there is no second dataset to drift, and the smoke harness asserts
+  that the field moves the very same node objects the atlas owns.
+- Additive compositing (`globalCompositeOperation = 'lighter'`) plus pre-baked glow sprites buys
+  nebula/dust behaviour without shaders and without the standard renderer's per-node `shadowBlur`.
+- Switching is lossless: camera, selection, filters and window state survive, so STANDARD remains the
+  readable view it always was.
+
+**Negative**
+- The file absorbed its largest single payload increase (~86 KB), which is why the audit budget was
+  re-baselined in the same change; ADR-007's ratchet still governs findings.
+- Two loops and two canvases are two things to reason about. "One loop owns the frame" is documented
+  and asserted by the smoke harness, not enforced by the type system.
+- The field is still a canvas: `prefers-reduced-motion` is honoured at entry, but assistive
+  technology sees nothing of it (`NOO-016` remains open as a capability, not as an audit count).
+
+### Alternatives considered
+- **WebGL / Three.js / PixiJS.** Rejected: a hard CDN dependency and, for Three.js, a scene-graph
+  rewrite of the graph model — both against the brief's constraint to keep the existing structure.
+- **Replace the standard renderer.** Rejected: the readable atlas is a product requirement, not a
+  legacy state. ULTRA is an *alternate* view.
+- **CSS/DOM particles.** Rejected: style recalculation per particle and no additive blending.
+- **A second canvas with its own node list.** Rejected outright: two structures to keep in sync is
+  precisely the failure mode the brief named.
 
 ---
 

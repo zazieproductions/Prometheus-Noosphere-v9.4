@@ -36,8 +36,14 @@ const refreshBaseline = argv.includes('--refresh-baseline');
 
 /* ------------------------------------------------------------------ *
  * Budgets — document payload
- * ------------------------------------------------------------------ */
-const SIZE_BUDGET = { warn: 96_000, fail: 128_000 };
+ * ------------------------------------------------------------------ *
+ * Revised deliberately in 9.5.0, as the 9.4.2 roadmap said it would be: the ultra
+ * visualisation is a *second rendering system* inside the same document, and it takes
+ * the payload from 92,746 B to roughly 180 kB. The budget still exists to catch
+ * unbounded growth — it is now anchored to the new measured baseline with ~5 % warn
+ * and ~25 % fail headroom, rather than to a number that no longer describes the file.
+ */
+const SIZE_BUDGET = { warn: 188_000, fail: 224_000 };
 
 /* ------------------------------------------------------------------ *
  * Reference tables

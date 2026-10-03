@@ -7,11 +7,11 @@
 **A single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis.**
 
 [![CI](https://img.shields.io/github/actions/workflow/status/zazieproductions/Prometheus-Noosphere-v9.4/ci.yml?branch=main&label=audit&style=flat-square)](https://github.com/zazieproductions/Prometheus-Noosphere-v9.4/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/badge/version-9.4.1-00f7ff?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-9.5.0-00f7ff?style=flat-square)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-a855f7?style=flat-square)](LICENSE)
 [![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-00ff9d?style=flat-square)](#technology-stack)
 [![Build](https://img.shields.io/badge/build%20step-none-ffaa00?style=flat-square)](#quick-start)
-[![Payload](https://img.shields.io/badge/index.html-86.6%20KiB%20%C2%B7%201%2C477%20lines-ff0055?style=flat-square)](docs/PERFORMANCE.md)
+[![Payload](https://img.shields.io/badge/index.html-174%20KiB%20%C2%B7%202%2C994%20lines-ff0055?style=flat-square)](docs/PERFORMANCE.md)
 [![PRs](https://img.shields.io/badge/PRs-welcome-00f7ff?style=flat-square)](CONTRIBUTING.md)
 [![Conventional Commits](https://img.shields.io/badge/commits-conventional-ffaa00?style=flat-square)](CONTRIBUTING.md#commit-convention)
 
@@ -43,9 +43,11 @@
 
 ## What this is
 
-NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders seven draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to ten cooperating client-side engines: a force-directed graph laboratory, a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator.
+NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders seven draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to eleven cooperating client-side engines: a force-directed graph laboratory with two renderers (a readable standard atlas and an ultra swarm/neural field over the same data), a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator.
 
 It is a **front-end craft project** — the reference implementation for a set of opinions about what a zero-build, zero-dependency, zero-backend interface can look like when the constraints are treated as the design brief rather than as obstacles.
+
+**One graph, two renderers.** `RENDER: STANDARD | ULTRA` in the graph window switches between the readable force atlas and a layered additive field — swarm motion, strata auras, edge traffic, particles, cognitive weather, dream states — driven by the *same* nodes, edges, provenance and selection state. Ultra mode never builds a second knowledge structure; see [`docs/ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
 
 Everything in this repository is **local, self-contained and non-networked**: no API keys, no telemetry, no persistence, no cookies, no build step, no package manager required. The generation engine is deterministic; the graph simulation is procedural rather than seeded (`NOO-021`).
 
@@ -65,17 +67,19 @@ Everything in this repository is **local, self-contained and non-networked**: no
 
 Honest framing matters more than a pitch. **NOÖSPHERE // OS is fiction — a satirical artefact.** The corpus satirises the vocabulary of growth hacking, semiotic marketing and "memetic warfare" by pushing it to absurd, self-incriminating extremes. It is a piece of critical design, in the tradition of the language it mocks.
 
-- **The "Polymath LLM" is not a language model.** It is a deterministic template-composition engine over a fixed vocabulary table ([`docs/API.md`](docs/API.md#polymathllm--template-composition-engine)). It performs no inference, calls no API, and produces recognisably finite variation. That is the joke *and* the engineering: a "recursive cognition core" that is honestly one vocabulary table and one template literal.
+- **The "Polymath LLM" is not a language model.** It is a deterministic template-composition engine over a fixed vocabulary table ([`docs/API.md`](docs/API.md#engine-polymathllm--local-inference-with-template-fallback)). It performs no inference, calls no API, and produces recognisably finite variation. That is the joke *and* the engineering: a "recursive cognition core" that is honestly one vocabulary table and one template literal.
 - **Nothing here is marketing advice.** Techniques named in the corpus (infrasound coercion, subliminal indoctrination, paraconsistent PR warfare, "cognitive friction arbitrage") are parodied as sinister, not documented as playbooks. They are not effective, tested, or endorsed.
+- **The ultra field is not decoration.** Every property it renders — size, halo, jitter, traffic, aura, turbulence — is read from a field on a node or edge that the standard atlas draws too. It is a second renderer, not a second dataset. Where a mapping is a heuristic (centrality as "mass", cross-stratum tension as "contradiction pressure") the document says so.
 - **No analytics, no tracking, no uploads.** Dropped files are read with `FileReader` and never leave the tab. There is no `fetch`, `XMLHttpRequest` or `WebSocket` anywhere in the runtime.
 
 ---
 
 ## Screenshot
 
-> A capture is not committed yet: the default layout is corrected in `9.4.2` (`NOO-019`) and the
-> screenshot will be regenerated from a **seeded** run when determinism lands in `9.5.0`
-> ([`TESTING.md` § 7](docs/TESTING.md#7-the-road-to-behavioural-tests)). Until then, run it locally in
+> A capture is not committed yet: `NOO-019` (viewport-aware layout) is still open, and the boot graph
+> is now seeded (`NOO-021` retired in 9.5.0) — the screenshot will be regenerated from a reproducible
+> run once the layout is corrected
+> ([`TESTING.md` § 7](docs/TESTING.md#7-behavioural-verification)). Until then, run it locally in
 > five seconds and look at the real thing — it is one file.
 
 ```bash
@@ -98,6 +102,11 @@ Seven windowed subsystems, each owned by exactly one engine.
 | `win-aesthetic` | Aesthetic Hexonomy & Sound Lab | `paletteGen` / `soundLab` | Curated palette rotation with clipboard export of CSS custom properties; Web Audio oscillator synthesis at 432/528/40 Hz |
 | `win-notes` | Grimoire // Aphoristic Fragments | `grimoire` | Client-side substring search across titles, bodies and tags; fragment dispatch into the terminal |
 | `win-synthesizer` | Hyper-Idea Combinator | `ideaCombinator` | Dialectical cross-product of two domain vectors into a synthesised axiom, injected as a graph node |
+
+**Second renderer:** the same `win-graph` viewport hosts `#ultra-canvas` and the `ultra` engine —
+five fields (`SWARM · CONSTELLATION · SIGNAL STORM · MYCELIAL · DREAM`), a cognitive-weather layer,
+class-shaped halos, adaptive LOD, and the Zaziopath stratum lattice. See
+[`ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
 
 **Global systems:** window manager (drag, z-order, minimise, maximise, grid realignment), CRT/glass chrome, acoustic event vocabulary, 1 Hz system clock, quick-injection modal.
 
@@ -133,6 +142,7 @@ Upload `index.html`. That is the entire deployable artefact. See [`docs/DEPLOYME
 
 ```bash
 npm test               # static integrity audit; exits non-zero on regression
+npm run smoke          # behavioural smoke harness (DOM/Canvas stub, no browser)
 npm run audit:report   # same, plus reports/audit.json + reports/audit.md
 ```
 
@@ -143,7 +153,7 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 ## Architecture at a glance
 
 ```
-                          index.html  (1 document · 1,477 lines)
+                          index.html  (1 document · 2,994 lines)
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  <head>            tailwind.config  →  design tokens (colour/type/shadow)     │
 │                    <style>          →  CRT, glass, glow, scrollbar, hatching   │
@@ -152,29 +162,34 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 │  workspace         <main id="workspace">  —  absolutely positioned windows    │
 │                    └── .glass-panel ×7   ← every window: one draggable shell  │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│  runtime           single <script>      —  10 engines, ordered by dependency  │
+│  runtime           single <script>      —  11 engines, ordered by dependency  │
 │                                                                              │
 │   1 sound        Web Audio oscillator + event vocabulary  ◄── all engines     │
 │   2 window mgr   drag · z-order · minimise · maximise · re-align              │
 │   3 graph        force simulation · camera · HUD · domain filter              │
+│   3b ultra       swarm field · strata auras · weather · adaptive LOD          │
 │   4 polymathLLM  vocabulary → composition → role-typed transcript             │
 │   5 ingestion    FileReader → tokens → node synthesis → graph injection       │
 │   6 palette      curated palettes → swatches → clipboard CSS vars             │
 │   7 grimoire     fragment corpus → substring index → terminal dispatch        │
 │   8 combinator   domain cross-product → axiom → graph injection               │
 │   9 modal        manual node authoring                                        │
-│  10 telemetry    1 Hz clock + bounded random-walk drift                        │
+│  11 telemetry    1 Hz clock + bounded random-walk drift                        │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Boot sequence** — `DOMContentLoaded` → `initGraphEngine()` (90 nodes, ≈270 edges) →
-`resizeCanvas()` → `renderGraph()` (self-scheduling `requestAnimationFrame` loop) →
-`paletteGen.render()` → `grimoire.render()` → `lucide.createIcons()` → welcome banner.
+**Boot sequence** — `DOMContentLoaded` → `initGraphEngine()` (90 nodes, 265 edges from a seeded
+generator) → `graphMetrics.rebuild()` → `ultra.init()` → `resizeCanvas()` → `renderGraph()`
+(self-scheduling `requestAnimationFrame` loop) → `paletteGen.render()` → `grimoire.render()` →
+`lucide.createIcons()` → welcome banner. Entering ULTRA seeds the Zaziopath lattice into the same
+graph (8 strata anchors + 29 § 00c entities + 1 unresolved question = 38 nodes, 47 edges).
 Every window is wired to `makeDraggable` at parse time, before any engine initialises.
 
-**Data flow** — engines communicate through three shared surfaces only: direct method calls, the
-live `graphNodes` / `graphEdges` arrays, and appended DOM in the terminal transcript. There is no
-event bus and no global store; the coupling graph is deliberately shallow and acyclic.
+**Data flow** — engines communicate through four shared surfaces only: direct method calls, the
+live `graphNodes` / `graphEdges` arrays, the derived `graphMetrics` pass, and appended DOM in the
+terminal transcript. Both renderers read the same arrays, and `pickNodeAt()` is the single hit-test
+they share. There is no event bus and no global store; the coupling graph is deliberately shallow and
+acyclic.
 
 Full treatment, including data models, the physics derivation, the camera transform and the
 extension seams: **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)**.
@@ -187,22 +202,24 @@ Measured from `HEAD` by [`scripts/audit.mjs`](scripts/audit.mjs) — reproduce w
 
 | Metric | Value |
 | --- | --- |
-| Application payload | **88,649 B** (86.6 KiB) · **1,477 lines** · 1 document |
+| Application payload | **178,657 B** (174 KiB) · **2,994 lines** · 1 document |
 | Contribution of assets | 0 B — no images, fonts or audio are vendored |
 | Runtime dependencies installed | **0** |
 | Build steps | **0** |
 | Windowed subsystems | **7** |
-| Engines / modules | **10** |
+| Engines / modules | **11** |
 | Semantic domains | **5** (memetics · semiotics · psychoacoustics · hyperstition · alchemical OS) |
-| Boot graph | **90 nodes**, ≈**270** procedural edges, from **15** seed archetypes |
-| Physics cost at boot | **4,005** pair evaluations per frame |
+| Boot graph | **90 nodes**, **265** seeded-procedural edges, from **15** seed archetypes |
+| Zaziopath lattice | **38 nodes** (8 strata · 29 § 00c entities · 1 unresolved question), **47 edges** (17 wires · 30 containment) — boot 90/265 → **128 nodes / 312 edges** |
+| Ultra fields | **5** (`SWARM · CONSTELLATION · SIGNAL STORM · MYCELIAL · DREAM`) × **4** LOD tiers |
+| Physics cost at boot | **4,005** pair evaluations per frame (standard) · uniform-grid `O(n·k)` (ultra) |
 | Palette states | **5** × 5 swatches |
 | Knowledge fragments | **7** |
 | Combinator space | **5 × 5** = 25 dialectical pairings |
 | Icon references | **48** across **27** distinct names (26 resolve; `dread` does not — `NOO-006`) |
-| Accessibility attributes | **0** (tracked as `NOO-016`) |
-| Automated checks | **21** register IDs + 4 always-fatal DOM contract rules |
-| Tracked findings | **38**, all within `scripts/audit-baseline.json` |
+| Accessibility attributes | **17** `aria-*` on the graph and ultra controls; 14 icon-only buttons app-wide remain unlabelled (partial `NOO-016`) |
+| Automated checks | **21** register IDs + 4 always-fatal DOM contract rules + **36** smoke assertions |
+| Tracked findings | **30**, all within `scripts/audit-baseline.json` |
 
 ---
 
@@ -213,8 +230,9 @@ Prometheus-Noosphere-v9.4/
 ├── index.html                     # the entire application
 ├── package.json                   # tooling entry points only — no dependencies
 ├── scripts/
-│   ├── audit.mjs                  # 18-check static integrity audit (dependency-free)
+│   ├── audit.mjs                  # 21-check static integrity audit (dependency-free)
 │   ├── audit-baseline.json        # accepted finding counts — the ratchet
+│   ├── smoke.mjs                  # 36-assertion behavioural harness (node:vm + DOM stub)
 │   └── serve.mjs                  # zero-dependency static server for local dev
 ├── docs/
 │   ├── ARCHITECTURE.md            # runtime topology, data models, physics, seams
@@ -222,6 +240,7 @@ Prometheus-Noosphere-v9.4/
 │   ├── DESIGN.md                  # token system, motion, chrome grammar, rationale
 │   ├── DECISIONS.md               # architecture decision records (ADR-001…)
 │   ├── ACCESSIBILITY.md           # WCAG 2.2 audit with measured contrast ratios
+│   ├── ULTRA-VISUALIZATION.md     # the ultra renderer: contract, mappings, LOD, limits
 │   ├── PERFORMANCE.md             # frame budget, complexity analysis, optimisation ladder
 │   ├── TESTING.md                 # verification strategy and manual matrix
 │   ├── DEPLOYMENT.md              # static hosting, CSP, caching, release checklist
@@ -252,7 +271,7 @@ Prometheus-Noosphere-v9.4/
 **Browser support:** current evergreen Chromium, Firefox and Safari. `backdrop-filter` and the
 Web Audio API are required for full fidelity; clipboard export degrades silently via optional
 chaining. Internet access is needed at load time for the three CDN dependencies — see
-[`docs/MAINTAINABILITY.md`](docs/MAINTAINABILITY.md#dependency-policy) for the rationale and the
+[`docs/MAINTAINABILITY.md`](docs/MAINTAINABILITY.md#2-dependency-policy) for the rationale and the
 planned self-hosting path.
 
 ---
@@ -266,8 +285,10 @@ count and a roadmap slot.
 `npm test` runs 21 register checks plus four always-fatal DOM contract rules (duplicate IDs,
 dangling `getElementById` references, `restoreOrFocus` targets that do not exist, inline handlers
 calling undefined globals). It is a **ratchet**: findings may not exceed their baseline, and
-improvements are reported so the baseline can be tightened. The current state is green with
-38 tracked findings.
+improvements are reported so the baseline can be tightened. `npm run smoke` complements it with a
+dependency-free behavioural harness. The current state is green with 30 tracked findings across 16
+register IDs — five IDs retired in 9.5.0 (`NOO-010`, `NOO-011`, `NOO-014`, `NOO-016` partial,
+`NOO-021`) and two reduced (`NOO-007`).
 
 | Severity | Register IDs | Findings | Themes |
 | --- | --- | --- | --- |
@@ -277,7 +298,7 @@ improvements are reported so the baseline can be tightened. The current state is
 | Info | 1 | 2 | dead animation config |
 
 The full register — what each finding means, its user impact and its remediation — lives in
-[`docs/ARCHITECTURE.md` § Defect register](docs/ARCHITECTURE.md#defect-register).
+[`docs/ARCHITECTURE.md` § Defect register](docs/ARCHITECTURE.md#17-defect-register).
 
 ---
 
@@ -285,6 +306,7 @@ The full register — what each finding means, its user impact and its remediati
 
 | Document | Purpose | Read it when |
 | --- | --- | --- |
+| [ULTRA-VISUALIZATION.md](docs/ULTRA-VISUALIZATION.md) | The second renderer: data contract, visual mappings, submodes, cognitive weather, LOD, verification | You are using, tuning or extending ULTRA mode |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Runtime topology, engine inventory, data models, physics derivation, extension seams, defect register | You want to understand or modify how it works |
 | [API.md](docs/API.md) | Signatures for every engine method, global and handler; the DOM contract; the tooling API | You are writing code against it |
 | [DESIGN.md](docs/DESIGN.md) | Token system, typography, motion rules, chrome grammar, aesthetic rationale | You are extending the visual language |
@@ -307,30 +329,27 @@ Condensed from [`docs/ROADMAP.md`](docs/ROADMAP.md); every item is traceable to 
 
 ```mermaid
 flowchart LR
-    subgraph NOW["Now · 9.4.2 — correctness"]
-      A["NOO-019 reachable layout"] --> B["NOO-001 colour families"]
-      B --> C["NOO-006 icon name"]
-      C --> D["NOO-007 escape sinks"]
-      D --> E["Parity: NOO-009 · 010 · 011 · 012"]
+    subgraph SHIPPED["Shipped · 9.5.0 — ultra mode"]
+      A["Ultra renderer over one graph"] --> B["NOO-014 HiDPI · NOO-021 seeded RNG"]
+      B --> C["NOO-010 · 011 parity · smoke harness"]
     end
-    subgraph NEXT["Next · 9.5.0 — fidelity"]
-      F["NOO-014 HiDPI canvas"] --> G["NOO-018 link preview"]
-      G --> H["NOO-008 self-host vendors"]
-      H --> I["NOO-020 fixed-step physics"]
-      I --> J["prefers-reduced-motion"]
+    subgraph NOW["Now · 9.6.0 — correctness carryover"]
+      D["NOO-019 reachable layout"] --> E["NOO-001 · 006 · 007 fixes"]
+      E --> F["NOO-009 · 012 · 013 parity"]
+      F --> G["NOO-018 metadata · NOO-008 vendoring"]
     end
     subgraph LATER["Later · 10.0.0 — structure"]
-      K["NOO-015 spatial index"] --> L["NOO-016 keyboard + AT model"]
-      L --> M["Optional module extraction"]
+      H["NOO-015 standard broad phase"] --> I["NOO-016 keyboard + AT model"]
+      I --> J["Optional module extraction"]
     end
-    NOW --> NEXT --> LATER
+    SHIPPED --> NOW --> LATER
 ```
 
 | Horizon | Theme | Headline items |
 | --- | --- | --- |
-| **Now — 9.4.2** | Correctness | `NOO-019` responsive default layout · `NOO-001` undefined Tailwind family · `NOO-006` invalid icon · `NOO-007` HTML escaping · content/number parity (`NOO-009`…`NOO-012`) |
-| **Next — 9.5.0** | Fidelity & trust | `NOO-014` HiDPI canvas · `NOO-018` favicon/OG/description · `NOO-008` self-hosted vendors · `NOO-020` fixed-step integration · `prefers-reduced-motion` |
-| **Later — 10.0.0** | Structure & access | `NOO-015` spatial index + worker physics · `NOO-016` keyboard and screen-reader model · ES-module extraction behind an optional bundler |
+| **Now — 9.6.0** | Correctness carryover | `NOO-019` reachable layout · `NOO-001` undefined colour family · `NOO-006` invalid icon · `NOO-007` remaining escaping · `NOO-009`/`NOO-013` honesty · `NOO-012` dock · `NOO-018` link preview · `NOO-008` vendor pinning · `NOO-020` fixed-step standard physics |
+| **Shipped — 9.5.0** | Fidelity & trust, plus the ultra renderer | **Delivered:** ultra visualisation (second renderer over one graph) · `NOO-014` HiDPI canvas · `NOO-011` alchemy filter · `NOO-021` seeded RNG + `mulberry32` · `prefers-reduced-motion` handled in the field · behavioural smoke harness. **Carried to 9.6.0:** `NOO-018` favicon/OG/description · `NOO-008` self-hosted vendors · `NOO-020` fixed-step integration |
+| **Later — 10.0.0** | Structure & access | `NOO-015` standard-atlas spatial index + worker physics · `NOO-016` keyboard and screen-reader model · ES-module extraction behind an optional bundler |
 
 ---
 
@@ -376,7 +395,7 @@ The corpus text — aphorisms, generated directives, "field reports" — is **sa
 presented as critical design. It is licensed with the code, and it is not advice.
 
 <div align="center">
-<sub>Built as a single file, on purpose. <code>NOÖSPHERE // OS v9.4.1</code></sub>
+<sub>Built as a single file, on purpose. <code>NOÖSPHERE // OS v9.5.0</code></sub>
 </div>
 
 ### Local inference (optional, no API keys)

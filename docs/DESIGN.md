@@ -103,6 +103,41 @@ affected borders fall back to `currentColor`.
 | **Fix** | Rename to `neon-crimson-*`, or promote `crimson` to a top-level family |
 | **Design lesson** | A nested token namespace is only safe if every utility author knows the full path. When accent families are semantic roles, flattening them (`crimson`, `cyan`, …) removes an entire class of silent failure. |
 
+### 2.5 The Zaziopath palette — regions and claim classes
+
+Ultra Mode adds two palettes that are **territories, not accents**. Both come from the Zaziopath
+vault README, and both obey one rule: **hue is never the only channel** — every stratum is paired
+with its glyph and label, every class with a halo shape.
+
+| Stratum | Glyph | Hex | Vault home |
+| --- | --- | --- | --- |
+| INDEX / META | ◈ | `#8b93a7` | §00–§03 · §10 · §13–§14 |
+| IDENTITY | ◉ | `#0072b2` | §04 |
+| SHADOW | ◐ | `#cc79a7` | §02 · §05 |
+| SIGNAL / EVIDENCE | ▤ | `#e69f00` | §07 · §07a · §11 |
+| RECURSION LAB | ∞ | `#009e73` | §06 |
+| STEWARDSHIP | △ | `#56b4e9` | §08–§09 |
+| SPECIMENS | ⚠ | `#d55e00` | §12 |
+| MYTHOGRAPHY | ☾ | `#f0e442` | §05 · lore files |
+
+These eight are the Okabe–Ito colour-blind-safe set, with one deliberate deviation: INDEX is lifted
+from the vault's `#231F20` to `#8b93a7`, because the original sits within ~2 % of the `void`
+substrate and would make its region invisible — a palette rule outranked by a legibility rule.
+
+Claim classes are the second palette, and they **reuse the accent lanes rather than inventing hues**:
+
+| Class | Glyph / halo shape | Hue | Reused lane |
+| --- | --- | --- | --- |
+| Source document | ▤ hexagon | `#e69f00` | amber — evidence |
+| Source-backed concept | ◉ ring | `#00f7ff` | cyan — system focus |
+| Inferred / synthesis | ∞ dashed | `#a855f7` | violet — secondary concept |
+| Newly ingested | ⇣ burst | `#00ff9d` | emerald — live |
+| Unresolved question | ? open | `#ff0055` | crimson — alert |
+
+So the vocabulary is compositional, not additive: **fill = semantic domain · aura = stratum ·
+halo shape = claim class · halo brightness = activity**. Adding a class means reusing a lane and a
+new shape; adding a stratum means a new region, glyph and legend row.
+
 ---
 
 ## 3. Typography
@@ -118,7 +153,7 @@ Three families, three registers. Mixing them is meaningful, never incidental.
 ### Rules
 
 - **Monospace is the default, not a garnish.** The interface is an instrument; it sets like one.
-- **Cinzel is rationed to a single element** (`NOÖSPHERE // OS v9.4.1` in the status bar). The moment
+- **Cinzel is rationed to a single element** (`NOÖSPHERE // OS v9.5.0` in the status bar). The moment
   a third register appears twice, the hierarchy collapses — the rule is one use, forever.
 - **Small is the base case.** Body copy sits at 9–12 px with `tracking-wider`/`tracking-widest` on
   labels. This is a deliberate instrument aesthetic and it is the primary accessibility debt
@@ -175,10 +210,11 @@ Motion is functional, short, and never the only carrier of meaning.
    sub-second loops, and both are 1–4 px elements.
 3. **Nothing animates layout that the user is not dragging.** Windows use `transition-all
    duration-75` for programmatic moves only.
-4. **`prefers-reduced-motion` is not yet honoured** — scoped to `9.5.0` alongside `NOO-014`/`NOO-018`
-   and recorded in [`ROADMAP.md`](ROADMAP.md). Until then the CRT overlay and ambient loops are
-   unconditional, and the two scanline/pulse animations sit unused, which removes two of the three
-   worst offenders by accident rather than design.
+4. **`prefers-reduced-motion` is honoured by the ultra field, not by the whole interface.** Entering
+   ULTRA with the media query set forces LOD 1, turbulence 15, dream off and the CONSTELLATION field,
+   and announces it in the transcript. The standard renderer's ambient loops and the CRT overlay are
+   still unconditional, so the accessibility roadmap item stays open —
+   see [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
 
 ### Frame-rate coupling (a motion concern, not just a physics one)
 
@@ -186,6 +222,24 @@ The graph integrates by a fixed increment per frame with no `deltaTime`, so the 
 tempo is display-dependent: approximately **2.4× faster at 144 Hz than at 60 Hz** (`NOO-020`). For a
 decorative simulation this is imperceptible in isolation, but it means the interface has no single
 "feel" — and on a portfolio piece, "feels different on a good monitor" is a defect worth naming.
+
+### The ultra field — a second, bounded motion system
+
+The field is the one place where motion is the primary output, so it carries a written policy of its
+own:
+
+| Principle | Implementation |
+| --- | --- |
+| Delta-time, not frames | the field integrates with `dt`, so its tempo is display-independent (`NOO-020` remains open for the standard integrator) |
+| Motion is meaning | jitter ∝ uncertainty, pulse speed ∝ activation, drift exists only in idle (§ 7) |
+| Bounded by construction | 900-slot particle pool, 4 LOD tiers, and SURVIVAL allocates no particles at all |
+| One loop at a time | while ULTRA owns the frame the standard loop yields; STANDARD resumes where it left |
+| Calm is a first-class mode | CONSTELLATION is near-static and the TRAILS chip removes persistence entirely |
+| Idle is a ramp, not a loop | dream begins after ~45 s without input, ramps over ~6 s, and is cut instantly by any pointer or key event |
+| `prefers-reduced-motion` honoured | on entry: LOD 1, turbulence 15, dream off, CONSTELLATION field |
+
+Non-disruption is part of the policy: the field never moves the camera, never reorders the graph, and
+selection, hover and the deep-dive panel behave identically in both renderers.
 
 ---
 
@@ -224,6 +278,12 @@ is mechanical precisely so this class of typo cannot ship silently again.
 **Windows in the dock:** six of seven. `win-synthesizer` has no launcher (`NOO-012`), which
 compounds `NOO-019` — it is the one window that can be lost entirely on a smaller display.
 
+**The renderer split.** The graph window is the only window carrying two renderers: its toolbar adds
+a STANDARD/ULTRA segmented control and a live mode badge, and its content stack holds two canvases —
+the atlas and a pointer-transparent field above it. The ultra deck is a second toolbar row inside the
+same window rather than a settings panel: every control is a field, a weather term or a density
+parameter, and the readout above it prints live graph state only.
+
 ---
 
 ## 7. Colour-in-motion semantics
@@ -241,6 +301,20 @@ The accent system carries live state. The mapping is fixed and worth knowing bef
 
 Because the mapping is stable, the UI can be understood at a glance without reading it — which is
 what allows the copy to be as dense as it is.
+
+The ultra field extends the same discipline to its own signals:
+
+| Visual | Data behind it | Lane |
+| --- | --- | --- |
+| Halo brightness | activation — recency, ingestion, focus, excitation | cyan |
+| Halo shape | claim class (source · concept · inferred · ingested · question) | § 2.5 |
+| Region aura | stratum membership and regional intensity | stratum palette |
+| Jitter / turbulence | uncertainty of inferred and unresolved claims | violet / crimson |
+| Focus dimming | 3-hop relevance from the selection | — (unrelated matter drops to 10 %) |
+| Weather meters | excitation · tension · inference · source density | cyan · crimson · violet · emerald |
+
+Every one of these reads the same `graphNodes` / `graphEdges` arrays as STANDARD; the complete
+mapping table lives in [`ULTRA-VISUALIZATION.md`](ULTRA-VISUALIZATION.md).
 
 ---
 
@@ -291,6 +365,7 @@ Rejected on purpose. Each entry names the alternative that was chosen instead.
 | New accent hues | Colour is a semantic channel; adding one breaks the mapping | Reuse a role, or express hierarchy with elevation |
 | A second display face | Three registers already cover ritual, editorial and instrument | Ration Cinzel |
 | Animated background gradients | Decorative motion that competes with telemetry | Static dot hatching + a single CRT overlay |
+| Effects without a data source | Eye candy implies meaning the graph does not have | Every property maps to a measured graph property (`ULTRA-VISUALIZATION.md` § 4) |
 | Glass on everything | Blur on glass is legibility; blur on blur is noise | Glass only for floating windows |
 | Icons as the sole label | Icon-only affordances fail recognition and accessibility | Icon + monospace label together |
 | Personalised empty states | Cuteness dilutes the instrument metaphor | Terse, honest status |
@@ -311,7 +386,8 @@ flowchart TD
 ```
 
 Non-negotiables for any contribution: tokens by name, accents in their lanes, interaction feedback
-≤ 150 ms, and `npm test` green with the delta baselined.
+≤ 150 ms, and `npm test` green with the delta baselined. A new stratum is a glyph + a hex + a legend
+row (§ 2.5); a new claim class must reuse an existing accent lane and declare a halo shape.
 
 ---
 
