@@ -67,7 +67,8 @@ const PAGE = readFileSync(join(ROOT, 'index.html'), 'utf8')
   .replace(/<script src="https:\/\/unpkg\.com\/lucide@latest"><\/script>/, '')
   .replace(/<link[^>]*fonts\.googleapis[^>]*>/g, '')
   .replace(/<link[^>]*shell\/synapse-shell\.css[^>]*>/, '')
-  .replace(/<script src="shell\/synapse-shell\.js" defer><\/script>/, '');
+  .replace(/<script src="shell\/synapse-shell\.js" defer><\/script>/, '')
+  .replace(/<script src="uplink-client\.js" defer><\/script>/, '');
 
 const SHELL_SOURCE = readFileSync(join(ROOT, 'shell', 'synapse-shell.js'), 'utf8');
 

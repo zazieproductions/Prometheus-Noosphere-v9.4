@@ -2,7 +2,7 @@
   "name": "noosphere-os",
   "version": "9.5.0",
   "private": true,
-  "description": "NOÖSPHERE // OS — a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis, with SYNAPSE SHELL: a real local host terminal.",
+  "description": "NOÖSPHERE // OS — a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis, with SYNAPSE SHELL and Local-First WEB UPLINK.",
   "keywords": [
     "creative-coding",
     "canvas",
@@ -37,11 +37,12 @@
     "audit:json": "node scripts/audit.mjs --json",
     "audit:report": "node scripts/audit.mjs --write-report",
     "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
-    "test": "node scripts/audit.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs",
+    "test": "node scripts/audit.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs && node scripts/test-uplink.mjs",
     "test:audit": "node scripts/audit.mjs",
     "test:shell": "node scripts/test-shell.mjs",
     "test:ui": "node scripts/test-ui.mjs",
-    "ci": "node scripts/audit.mjs --write-report"
+    "test:uplink": "node scripts/test-uplink.mjs",
+    "ci": "node scripts/audit.mjs --write-report && node scripts/test-uplink.mjs"
   },
   "dependencies": {
     "@xterm/addon-fit": "0.11.0",
