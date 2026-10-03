@@ -3,7 +3,7 @@
 > Every public surface in NOÖSPHERE // OS: global functions, engine methods, the DOM contract that
 > binds them together, the inline handler map, and the tooling API.
 
-**Version:** 9.5.0 · **Source of truth:** [`index.html`](../index.html) and [`scripts/`](../scripts)
+**Version:** 9.5.0 · **Source of truth:** [`index.html`](../index.html), [`shell/`](../shell), [`server/`](../server) and [`scripts/`](../scripts)
 
 ---
 
@@ -64,6 +64,136 @@ Loading order matters: `sound` → `window manager` → `data tables` → `graph
 → `ultra` → `polymathLLM` → `ingestion` → `paletteGen` → `grimoire` → `ideaCombinator` → `modal` →
 `telemetry` → initialisation. See
 [`ARCHITECTURE.md` § Boot sequence](ARCHITECTURE.md#5-boot-sequence).
+
+---
+
+## Global functions
+
+### Audio
+
+#### `initAudio() → void`
+Lazily constructs the singleton `AudioContext`. Safe to call repeatedly; subsequent calls are no-ops
+while `audioCtx` is truthy. Called by the first mutation that needs sound, so browser autoplay
+policy is never violated.
+
+#### `playBeep(freq = 880, type = 'sine', duration = 0.08, vol = 0.04) → void`
+
+| Parameter | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `freq` | `number` | `880` | Oscillator frequency in Hz |
+| `type` | `OscillatorType` | `'sine'` | `sine` · `square` · `triangle` · `sawtooth` |
+| `duration` | `number` | `0.08` | Seconds; exponential decay to `0.0001` |
+| `vol` | `number` | `0.04` | Peak gain |
+
+**Side effects:** creates one oscillator + gain node per call; short-circuits and returns silently
+when `audioEnabled` is `false` or Web Audio throws.
+**Cost:** `O(1)`.
+This is the single acoustic primitive: all ten engines emit through it, which is why the interface
+sounds like one instrument.
+
+#### `toggleAudio() → void`
+Flips `audioEnabled`, re-renders `#audio-toggle-btn` (icon + label), hydrates the new icon via
+`lucide.createIcons()` and plays a confirmation tone when re-enabling.
+
+---
+
+### Window manager
+
+#### `bringToFront(win: HTMLElement) → void`
+Raises `win` by `highestZ += 2`, removes `.window-active` from every `.glass-panel`, applies it to
+`win`, and plays a 950 Hz tick. **Cost:** `O(W)` where `W` = window count (7) — dominated by the
+class sweep.
+
+#### `makeDraggable(win: HTMLElement) → void`
+Attaches the full drag behaviour to a window shell. Called once per `.glass-panel` at parse time.
+
+| Handler | Trigger | Behaviour |
+| --- | --- | --- |
+| `mousedown` on `.win-header` | pointer down on the drag handle | Begins the drag; ignores events originating on a `<button>`; adds `body.no-select` |
+| `mousemove` on `document` | drag in progress | Sets `left`/`top` from the pointer delta, clamped to `≥ 0` |
+| `mouseup` on `document` | drag end | Clears the drag flag and `body.no-select` |
+| `mousedown` on the shell | any click into the window | Focus (z-order) |
+
+**Side effects:** two permanent `document` listeners per window (8 × 2 = 16) — tracked as
+`NOO-017`. No-ops when the window has no `.win-header`.
+
+#### `minimizeWindow(id: string) → void`
+Sets `display: none` on the window. State lives in the `display` property alone; there is no
+separate visibility model. Plays a 440 Hz triangle.
+
+#### `restoreOrFocus(id: string) → void`
+Clears `display` if the window was hidden, then calls `bringToFront`. **This is the only function
+the dock calls** — every dock button is a `restoreOrFocus('<win-id>')`.
+
+#### `maximizeWindow(id: string) → void`
+Toggles a maximised state, snapshotting `width`/`height`/`top`/`left` into `dataset.origW/origH/origT/origL`
+on first activation and restoring them verbatim on the second. Maximised geometry is
+`top:10px; left:10px; width:calc(100% − 20px); height:calc(100% − 70px)`.
+**Caveat:** the snapshot is not re-validated on viewport resize — see `NOO-019`.
+
+#### `resetWindowPositions() → void`
+Reapplies the authored 7-window grid (1760 × 880 px), un-hides every window, clears `dataset.maximized`
+and plays a settle tone. Bound to **RE-ALIGN** in the header.
+
+---
+
+### Canvas
+
+#### `resizeCanvas() → void`
+Sizes the backing store to the canvas's parent element (`width`/`height` properties, *not* CSS
+pixels). Bound to `window.resize`.
+**Caveat:** no `devicePixelRatio` scaling — the canvas is CSS-pixel sized, so it is soft on HiDPI
+displays (`NOO-014`).
+
+#### `updatePhysics() → void`
+One integration step: pairwise repulsion, centre gravity, edge springs, damping. **Cost:**
+`O(n²) + O(E)` — 4,005 pair evaluations at boot (`NOO-015`). Documented in
+[`ARCHITECTURE.md` § The force simulation](ARCHITECTURE.md#8-the-force-simulation).
+
+#### `renderGraph() → void`
+Clears, applies the camera transform, draws edges then nodes then labels, then schedules the next
+frame via `requestAnimationFrame(renderGraph)`. **Self-scheduling — call once to start the loop; it
+never stops.** Draw order is edges → nodes → labels, which is what keeps labels unobstructed.
+
+---
+
+### Ingestion
+
+#### `handleFileDrop(e: DragEvent) → void`
+Drop-zone handler: cancels the default, clears the hover highlight and forwards `e.dataTransfer.files`
+to `processFiles`.
+
+#### `handleFileInput(e: Event) → void`
+File-picker equivalent: forwards `e.target.files` to `processFiles`.
+
+#### `processFiles(files: FileList | File[]) → void`
+
+| Stage | Detail |
+| --- | --- |
+| Status | `#ingest-status-text` → amber "INGESTING n ARTIFACT(S)…" |
+| Per file | `FileReader.readAsText`; on load, tokenise on whitespace, keep tokens `> 5` chars |
+| Title | First two long tokens joined by `_`, or the filename uppercased |
+| Domain | Uniform sample over `memetics` · `semiotics` · `psychoacoustics` · `hyperstition` |
+| Graph | `graphEngine.injectNode(title, domain, 'Ingested from <file>. Parsed n semantic vectors.')` |
+| Feed | One row per artefact in `#ingestion-history`, with a synthetic synapse delta |
+| Transcript | `polymathLLM.appendChat('system', 'Artifact Ingested: […]')` |
+| Settle | After 600 ms: status → emerald "CORPUS SYNCHRONIZED" + tone |
+
+**Side effects:** nodes enter the live simulation immediately. **Failure mode:** binary files (PDF)
+produce mojibake; the drop-zone copy advertises PDF support that the tokeniser cannot honour.
+
+---
+
+### Modal
+
+#### `quickInjectModal() → void` / `closeInjectModal() → void`
+Toggle `#quick-inject-modal` between `hidden` and `flex`. Focus is not moved on open — part of
+`NOO-016`.
+
+#### `injectCustomNodeAction() → void`
+Reads `#custom-node-title`, `#custom-node-domain`, `#custom-node-desc`, applies defaults for empty
+title/description, calls `graphEngine.injectNode(...)`, appends a system transcript line and closes
+the modal. Domain options: `memetics` · `semiotics` · `psychoacoustics` · `hyperstition`.
 
 ---
 
@@ -357,14 +487,14 @@ restores the authored defaults exactly.
 
 ## DOM contract
 
-68 declared IDs, 45 of them resolved by `getElementById` and 0 dangling. An element is written by
+71 declared IDs, 51 of them resolved by `getElementById` and 0 dangling. An element is written by
 exactly one owner unless stated; the audit's four fatal rules enforce uniqueness and referential
 integrity on every run.
 
 | ID | Element | Owner | Written by | Notes |
 | --- | --- | --- | --- | --- |
 | `workspace` | `<main>` | — | — | Positioning context only |
-| `win-graph` … `win-synthesizer` | `<div>` ×7 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
+| `win-graph` … `win-shell` | `<div>` ×8 | window manager | `makeDraggable`, minimise/maximise/realign | All share `.glass-panel` + `.win-header` |
 | `neural-canvas` | `<canvas>` | graph | `resizeCanvas` | Backing store sized to parent |
 | `ultra-canvas` | `<canvas>` | ultra | `ultra.render` | Second canvas, pointer-transparent overlay |
 | `mode-btn-standard` `mode-btn-ultra` | `<button>` ×2 | graph | `setDisplayMode` | `mode-btn-on` marks the active renderer |
@@ -513,29 +643,120 @@ automated count by 17 `aria-*` attributes; the remaining accessibility work is t
 
 ### `scripts/serve.mjs`
 
-Zero-dependency static server.
+The local workstation server: static files, the local inference proxy, the SYNAPSE SHELL bridge and
+the agent endpoint, all in one process.
 
 ```bash
-node scripts/serve.mjs [--port 4173] [--host 0.0.0.0]
-# environment fallbacks: PORT, HOST
+node scripts/serve.mjs [--port 4173] [--host 0.0.0.0] [--no-shell]
+                       [--shell-remote-token <secret>] [--zaziopath <path>]
+                       [--log-dir <path>] [--ollama <url>]
+# environment fallbacks: PORT, HOST, NOOSPHERE_SHELL=off,
+#   NOOSPHERE_SHELL_REMOTE_TOKEN, NOOSPHERE_ZAZIOPATH, NOOSPHERE_OLLAMA_URL
 ```
 
 | Property | Behaviour |
 | --- | --- |
 | Default bind | `0.0.0.0:4173` — reachable from containers and remote sandboxes |
 | Directory index | `/` → `index.html` |
-| MIME map | html · js · mjs · css · json · svg · png/jpeg/webp · ico · woff2 · txt · md |
+| MIME map | html · js · mjs · css · json · svg · png/jpeg/webp · ico · woff2 · txt · log · md |
 | Traversal | Resolved paths must stay inside the project root; dotfile segments are refused (`403`) |
-| Caching | `cache-control: no-store` — the server is a development tool |
+| Caching | `cache-control: no-store` — the server is a workstation tool |
 | Headers | No `X-Frame-Options` and no `frame-ancestors` directive, so embedding works |
-| Shutdown | `SIGINT` / `SIGTERM` close the listener cleanly |
+| Vendor assets | `/vendor/xterm.js`, `/vendor/xterm.css`, `/vendor/addon-fit.js` from `node_modules` (404 + install hint when absent) |
+| Shell routes | `/api/shell/*`, `/ws/shell`, `/api/noosphere/agent/*` — refused unless the request passes the loopback gate |
+| Shutdown | `SIGINT` / `SIGTERM` close every PTY, then the listener; `process.on('exit')` force-kills survivors |
+
+---
+
+## SYNAPSE SHELL transport API
+
+Full behaviour: [`SHELL.md`](SHELL.md). Every route below is **local-machine only**; a refusal is
+`403 {"error":"Local access only","reason":"host-not-loopback"|…}` with no CORS headers. Body limit
+128 KB; all responses `cache-control: no-store`.
+
+### HTTP
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| `GET` | `/api/shell/status` | — | host, shell path, platform, node, cwd, zaziopath, limits, sessions, model availability, tool list (empty unless ≥ ASSIST), `expose` |
+| `GET` | `/api/shell/sessions` | — | `{ sessions, ai }` |
+| `POST` | `/api/shell/sessions` | `{cwd?, cols?, rows?}` | `{session}` (201) |
+| `DELETE` | `/api/shell/sessions/:id` | — | close + reap the process tree |
+| `POST` | `/api/shell/sessions/:id/restart` | — | new PTY, same id/label/cwd |
+| `POST` | `/api/shell/sessions/:id/write` | `{data}` | raw bytes to the PTY (this executes) |
+| `POST` | `/api/shell/sessions/:id/insert` | `{text}` | text at the prompt, `\r`/`\n` stripped (never executes) |
+| `POST` | `/api/shell/sessions/:id/exec` | `{command, timeoutMs?}` | run + observe; **403 unless AUTONOMOUS** |
+| `POST` | `/api/shell/sessions/:id/resize` | `{cols, rows}` | PTY `TIOCSWINSZ`; clamped 20–500 × 5–200 |
+| `POST` | `/api/shell/sessions/:id/interrupt` | `{reason?}` | sends `\u0003`; resolves an in-flight exec |
+| `POST` | `/api/shell/sessions/:id/kill` | — | `SIGTERM` → `SIGKILL` over the tree |
+| `POST` | `/api/shell/sessions/:id/save` | — | writes `logs/sessions/<ts>-<id>.log`, returns the path |
+| `GET` | `/api/shell/sessions/:id/read` | `?from=&maxChars=` | bounded scrollback + absolute offsets |
+| `GET` | `/api/shell/processes` | — | processes descending from a NOÖSPHERE PTY + host total |
+| `GET` | `/api/shell/ports` | — | listening TCP sockets (`lsof` → `ss` → explanation) |
+| `POST` | `/api/shell/processes/kill` | `{pid, signal?}` | **403** unless the pid belongs to a NOÖSPHERE tree |
+| `POST` | `/api/shell/ai` | `{mode?}`, `{limits?}` | sets/reads AI SHELL control; returns the tool list |
+| `GET` | `/api/noosphere/agent/status` | — | mode, limits, model, tools, active runs |
+| `POST` | `/api/noosphere/agent/stop` | `{runId?\|sessionId?}` | aborts runs, sends Ctrl+C; never 404s on a stale handle |
+| `POST` | `/api/noosphere/agent/run` | `{goal, sessionId?, limits?}` | **`text/event-stream`** of loop events; abort by disconnecting |
+
+### WebSocket — `/ws/shell?session=pty-01&v=1`
+
+Attaching with an unknown or missing `session` creates a new PTY. Frames are JSON text.
+
+| Direction | Frame | Meaning |
+| --- | --- | --- |
+| → client | `{t:'ready', session, ai, status}` | attached; includes pid, cwd, geometry |
+| → client | `{t:'data', data}` | decoded terminal output (UTF-8 safe across chunk boundaries) |
+| → client | `{t:'cwd', cwd}` | working-directory change (OSC 7 or polled) |
+| → client | `{t:'resized', cols, rows}` | geometry acknowledged |
+| → client | `{t:'exit', code, signal}` | shell process ended |
+| → client | `{t:'error'\|'unavailable'\|'pong'}` | refusals and keepalive |
+| ← client | `{t:'input', data}` | keystrokes (≤ 64 KB per frame) |
+| ← client | `{t:'insert', data}` | paste without executing newlines |
+| ← client | `{t:'resize'\|'interrupt'\|'kill'\|'ping'}` | control |
+
+Backpressure: if a client queues > 8 MB the PTY is paused; it resumes below 1 MB. Output is never
+dropped.
+
+### Agent SSE events
+
+`start` · `thinking` · `action` · `observation` · `rejected` · `awaiting-human` · `finish` · `error` ·
+`done` (terminal event: `{runId, steps, stopped, aborted, ms, summary}`), where `stopped` ∈
+`finished · max-steps · max-runtime · error · stop-requested · client-disconnected · awaiting-human`.
+
+### `window.synapseShell` (client engine)
+
+| Member | Purpose |
+| --- | --- |
+| `boot()` | fetch status, load xterm, render the console or the offline panel |
+| `newSession(cwd?)` · `attach(session)` · `select(id)` · `closeSession(id)` · `restartActive()` | session lifecycle |
+| `setMode('off'\|'assist'\|'autonomous')` | the AI SHELL control surface |
+| `runAgent()` · `stopAgent()` | the loop, streamed into the step log |
+| `togglePanel('processes'\|'ports'\|'none')` · `killProcess(pid)` | visibility and termination |
+| `saveSession(record)` · `copyAll(record)` · `copySelection(record)` | artefacts and clipboard |
+| `reconcile()` | every 5 s: attach sessions opened elsewhere, drop dead ones |
+| `toast(message, tone)` · `agentLog(entry)` | chrome feedback |
+
+### Server modules (Node)
+
+| Module | Exported surface |
+| --- | --- |
+| `server/gate.mjs` | `classify(req, url, {remoteToken})` → `{allowed, local, reason}` · `classifyStrict(req, url)` · `LOOPBACK_PEERS` |
+| `server/shell.mjs` | `createShellHub(options)` → hub (`status`, `create`, `list`, `get`, `describe`, `write`, `insert`, `exec`, `read`, `resize`, `interrupt`, `kill`, `close`, `restart`, `closeAll`, `killAllSync`, `save`, `processes`, `ports`, `killProcess`, `aiState`, `setAiMode`, `setLimits`, `permits`, `attach`) · `stripAnsi` · `clampText` · `resolveShell` · `DEFAULT_LIMITS` |
+| `server/agent.mjs` | `runAgent({hub, goal, sessionId, limits, onEvent, signal})` · `activeRuns()` · `stopRuns({runId, sessionId})` · `TOOLS` |
+| `server/ollama.mjs` | `MODEL` · `baseUrl()` · `chat({messages, …})` · `listModels()` · `hasModel()` · `extractJson(text)` |
+| `server/procinfo.mjs` | `snapshot()` · `descendants(rows, roots)` · `listeners()` · `signalPids(pids, signal)` · `killTree(pids, {graceMs})` |
+| `server/routes.mjs` | `createRouter({hub, remoteToken, meta})` → `{handleHttp, handleUpgrade, gate}` |
 
 ### npm scripts
 
 | Command | Equivalent |
 | --- | --- |
-| `npm start` / `npm run serve` | `node scripts/serve.mjs` |
-| `npm test` | `node scripts/audit.mjs` |
+| `npm start` / `npm run serve` | `node scripts/serve.mjs` (UI + inference proxy + PTY bridge) |
+| `npm run start:no-shell` | `node scripts/serve.mjs --no-shell` |
+| `npm test` | `audit → test-shell → test-ui` |
+| `npm run test:shell` | `node scripts/test-shell.mjs` (29 PTY/gate/agent integration tests) |
+| `npm run test:ui` | `node scripts/test-ui.mjs` (5 browser degradation tests) |
 | `npm run audit:json` | `node scripts/audit.mjs --json` |
 | `npm run audit:report` | `node scripts/audit.mjs --write-report` |
 | `npm run audit:baseline` | `node scripts/audit.mjs --refresh-baseline` |

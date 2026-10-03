@@ -1,7 +1,9 @@
 # Security Policy
 
-> Threat model, the vulnerability classes that actually apply to a static, dependency-free,
-> backend-free browser artefact, and how to report a problem.
+> Threat model, the vulnerability classes that actually apply to a static, dependency-free browser
+> artefact *and* to the optional local workstation mode that adds a real host shell, and how to
+> report a problem. Those two shapes have different answers; this document keeps them separate
+> instead of averaging them.
 
 ---
 
@@ -11,10 +13,20 @@
 | --- | --- |
 | `9.5.x` (current) | ✅ Security fixes and corrections |
 | `9.4.x` | ⚠️ Superseded by 9.5.0; corrections only |
-| < `9.4.1` | ❌ Pre-repository iterations; not distributed |
+| < `9.5.0` | ❌ Superseded; re-copy the file to upgrade |
+The deployable artefact is a single `index.html`. There is no package published to a registry and no
+update mechanism — a deployment is a file, and a fix is a new commit.
 
-The deployable artefact is a single `index.html`. There is no server component, no package published
-to a registry, and no update mechanism — a deployment is a file, and a fix is a new commit.
+**Two shapes exist, and they do not share a threat model:**
+
+| Shape | What runs | Shell |
+| --- | --- | --- |
+| **Published artefact** — GitHub Pages, any static host, `file://` | One HTML document, three CDN requests, no backend | Not present. The window reports `SHELL UNAVAILABLE`; the PTY bridge does not exist. |
+| **Local workstation** — `npm start` on your own machine | The document plus `scripts/serve.mjs`: static server, local inference proxy, PTY bridge, agent loop | **A real PTY running as your account.** Powerful by design; see § "The local shell boundary" below. |
+
+Everything in *§ Threat model* applies to the static shape. The local shape adds the sections that
+follow it, and is the only configuration in which the shell, the inference proxy and the agent loop
+exist at all.
 
 ---
 
@@ -40,6 +52,9 @@ Being explicit about what this project *is* removes most of the usual advisory s
 | Node authoring | Modal title and description | Interpolated into transcript and tooltip text | **`NOO-007`** |
 | CDN scripts | Tailwind, Lucide, Google Fonts | Loaded by URL, two unpinned | `NOO-008` |
 | Dev server (`scripts/serve.mjs`) | HTTP paths | Traversal and dotfile refusal, bound to `0.0.0.0` | Low |
+| **Host shell (local mode)** | Terminal input/output, and anything AI SHELL AUTONOMOUS decides | No sandbox by design; the account's own permissions are the only boundary. Network access is refused to non-loopback clients ([`docs/SHELL.md` § 4](docs/SHELL.md#4-the-trust-boundary)) | **Accepted — this is the feature** |
+| **Agent loop (local mode)** | A local model's tool calls | Fixed tool vocabulary, validated before execution; output is fenced as data, never as instructions; OFF/ASSIST/AUTONOMOUS modes | Medium, bounded |
+| **Saved sessions** | Scrollback written to `logs/sessions/*.log` | Explicit user action only, never automatic; `logs/` is gitignored | Low |
 
 **Threats considered and not applicable:** CSRF (no state-changing server), SQL injection (no
 database), authentication bypass (no auth), server-side request forgery (no server), deserialisation
@@ -67,8 +82,7 @@ Four template-literal assignments interpolate human-origin values without escapi
 server. The meaningful vectors are (a) a victim socially engineered into dropping an attacker-supplied
 filename, and (b) content-driven injection if the corpus ever becomes user-editable. Both are real but
 narrow — which is exactly why this is rated *high* in the register rather than *critical*, and why the
-remaining two sinks are scheduled for `9.6.0` (9.5.0 escaped two of the four).
-
+remaining two sinks are scheduled for `9.5.1` (9.5.0 escaped two of the four).
 **Mitigation until the fix lands:** do not drop files with untrusted names into the ingestion window,
 and do not paste untrusted markup into the terminal. Hosting behind a CSP does **not** mitigate this
 — the current architecture requires `'unsafe-inline'`
@@ -96,6 +110,44 @@ Tailwind Play CDN (it generates content dynamically) — another argument for ve
 work. **It is a development tool: do not expose it to the public internet.** Production hosting
 guidance lives in [`DEPLOYMENT.md`](docs/DEPLOYMENT.md), with a CSP that supports embedding under an
 explicit origin allowlist.
+
+The wide bind is now deliberate in a second sense as well: static files stay reachable so that a
+container, VM or preview can load the interface, while every shell route, the `/ws/shell` upgrade and
+the agent loop are gated **per request** on loopback evidence (peer, `Host`, `Origin`, absence of
+forwarding headers, `Sec-Fetch-Site`). Binding the whole server to `127.0.0.1` is still available
+(`--host 127.0.0.1`) and is the belt-and-braces choice for a machine that never needs a remote
+preview.
+
+### 4 · The local shell is not sandboxed (`docs/SHELL.md`)
+
+Stated plainly because the opposite would be easy to imply: SYNAPSE SHELL is a real login shell
+running as your user, with your `PATH`, your permissions and your filesystem. It can read, write,
+delete, install, network and escalate exactly as far as your account can. There is no allowlist, no
+denylist, no virtual filesystem and no per-command confirmation — those were considered and refused,
+because each of them would be a cosmetic control that implies safety it cannot deliver.
+
+What *is* enforced:
+
+| Control | Mechanism |
+| --- | --- |
+| Remote clients cannot reach the PTY | Five-signal loopback gate on every shell request and on the WebSocket upgrade; no CORS headers ever emitted |
+| A foreign page cannot hijack the socket | `Host`/`Origin` equality plus `Sec-Fetch-Site`, which a cross-site page cannot forge |
+| A proxy cannot launder a remote request | Any `X-Forwarded-*`/`Forwarded`/`CF-*`/… header is a refusal |
+| Remote access is never implicit | `--shell-remote-token`, chosen and supplied by the operator, off by default, printed loudly at boot |
+| The model cannot reach the shell while OFF | The tool surface is not exposed and `/exec` + `/agent/run` return 403 |
+| A proposed command cannot execute itself in ASSIST | Newline/`
+` bytes are stripped from model writes, and the loop stops after the first proposal |
+| The model cannot invent tools | Tool names are validated against a fixed vocabulary before any PTY interaction |
+| Page/file text cannot command the agent | Tool output is returned inside a JSON envelope marked as data, with an explicit system-prompt rule |
+| The account's secrets are not touched | No credential storage, no `sudo` automation, no password capture: `sudo` prompts behave exactly as in Terminal.app |
+
+### 5 · Autonomous mode is privileged by design
+
+AUTONOMOUS is the only configuration in which a model may run commands without per-command
+confirmation, and it is never on by default, never persisted across a server restart, and never
+enabled by a model. Bounds (MAX STEPS, MAX RUNTIME, STOP ON ERROR) are enforced in the loop, and
+STOP AGENT / INTERRUPT / KILL PROCESS are always available without the model's cooperation. Treat
+enabling it as equivalent to handing someone your unlocked laptop: a deliberate, understood act.
 
 ---
 
@@ -139,13 +191,18 @@ documented, and not vulnerabilities**:
 | **Widget/iframe embedding** | The artefact is designed to be embeddable; use `frame-ancestors` at the host if you need to restrict it |
 | **Denial of service by opening a large file** | Client-side, self-inflicted, no server impact |
 | **Missing security headers on a host you configured** | Host configuration is the operator's responsibility; guidance is provided in [`DEPLOYMENT.md` § 5](docs/DEPLOYMENT.md#5-content-security-policy) |
+| **"The shell can delete my files"** | It is a shell. That is the documented, intended behaviour ([`SHELL.md` § 1](docs/SHELL.md#1-what-this-is)) |
+| **"The agent ran a command I did not expect"** | AUTONOMOUS mode was enabled by the operator; the mode *is* the authorisation, and STOP AGENT exists ([`SHELL.md` § 6](docs/SHELL.md#6-ai-shell-control-off--assist--autonomous)) |
+| **Lan/remote clients being refused** | The refusal is the security control, not a bug ([`SHELL.md` § 4](docs/SHELL.md#4-the-trust-boundary)) |
+| **A model making a wrong decision** | The loop is a bounded tool loop over a real shell with the user's authority; correctness of model judgement is not a security property of this project |
 
 ---
 
 ## Privacy statement
 
 There is no data collection. No cookies, no fingerprints, no analytics, no beacons, no error
-reporting, and no network requests originating from the runtime. Files dropped into the ingestion
+reporting, and no network requests originating from the runtime (for the published artefact — the
+local modes below are the explicit exception). Files dropped into the ingestion
 window are read with `FileReader` inside the tab and are never transmitted, stored or retained. The
 only third-party requests are the three CDN dependencies described above, which are made by the
 browser at page load and governed by their vendors' own policies.
@@ -166,3 +223,13 @@ behavior. Do not expose either server to untrusted users. Model outputs are rend
 not HTML. The historical static-only privacy statement above applies to file-open and
 GitHub Pages simulation mode, not to local inference mode. The separate Ollama installation
 and its configuration are the user's responsibility.
+
+### Host shell privacy boundary
+
+SYNAPSE SHELL changes what the *machine* can be asked to do, not who can ask. Nothing about terminal
+activity is transmitted by NOÖSPHERE: scrollback is in-memory by default, saved only when the user
+presses SAVE SESSION, and never auto-ingested into the corpus. The shell itself can of course make
+network requests (`curl`, `git`, `ssh`, `brew`) — that capability belongs to the account and to the
+commands the user or an authorised agent chose to run, and it is the same capability the user already
+has in Terminal.app. The gate ensures that a browser on another machine, a preview proxy or a
+cross-origin page cannot be the one choosing those commands.

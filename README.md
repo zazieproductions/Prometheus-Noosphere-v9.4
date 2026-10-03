@@ -11,8 +11,7 @@
 [![License](https://img.shields.io/badge/license-MIT-a855f7?style=flat-square)](LICENSE)
 [![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-00ff9d?style=flat-square)](#technology-stack)
 [![Build](https://img.shields.io/badge/build%20step-none-ffaa00?style=flat-square)](#quick-start)
-[![Payload](https://img.shields.io/badge/index.html-174%20KiB%20%C2%B7%202%2C994%20lines-ff0055?style=flat-square)](docs/PERFORMANCE.md)
-[![PRs](https://img.shields.io/badge/PRs-welcome-00f7ff?style=flat-square)](CONTRIBUTING.md)
+[![Payload](https://img.shields.io/badge/index.html-177%20KiB%20%C2%B7%203%2C022%20lines-ff0055?style=flat-square)](docs/PERFORMANCE.md)[![PRs](https://img.shields.io/badge/PRs-welcome-00f7ff?style=flat-square)](CONTRIBUTING.md)
 [![Conventional Commits](https://img.shields.io/badge/commits-conventional-ffaa00?style=flat-square)](CONTRIBUTING.md#commit-convention)
 
 **[Live demo](https://zazieproductions.github.io/Prometheus-Noosphere-v9.4/)** · **[Architecture](docs/ARCHITECTURE.md)** · **[Engine API](docs/API.md)** · **[Design rationale](docs/DESIGN.md)** · **[Roadmap](docs/ROADMAP.md)** · **[Changelog](CHANGELOG.md)**
@@ -27,6 +26,7 @@
 - [What this is not](#what-this-is-not)
 - [Screenshot](#screenshot)
 - [Feature map](#feature-map)
+- [SYNAPSE SHELL — the local host terminal](#synapse-shell--the-local-host-terminal)
 - [Quick start](#quick-start)
 - [Architecture at a glance](#architecture-at-a-glance)
 - [Verified metrics](#verified-metrics)
@@ -43,13 +43,19 @@
 
 ## What this is
 
-NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders seven draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to eleven cooperating client-side engines: a force-directed graph laboratory with two renderers (a readable standard atlas and an ultra swarm/neural field over the same data), a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator.
-
+NOÖSPHERE // OS is a **browser-resident desktop environment** built inside one HTML document. It renders eight draggable, minimisable, focus-aware windows over a simulated systems desktop, and wires them to eleven cooperating client-side engines — a force-directed graph laboratory with two renderers (a readable standard atlas and an ultra swarm/neural field over the same data), a template-composition language engine, a corpus ingestion pipeline, an analytics viewport, an aesthetic synthesiser with Web Audio output, a searchable knowledge base, and a dialectical idea combinator — plus a twelfth, `window.synapseShell`, loaded only in local workstation mode, which puts a real host terminal in the eighth window.
 It is a **front-end craft project** — the reference implementation for a set of opinions about what a zero-build, zero-dependency, zero-backend interface can look like when the constraints are treated as the design brief rather than as obstacles.
 
 **One graph, two renderers.** `RENDER: STANDARD | ULTRA` in the graph window switches between the readable force atlas and a layered additive field — swarm motion, strata auras, edge traffic, particles, cognitive weather, dream states — driven by the *same* nodes, edges, provenance and selection state. Ultra mode never builds a second knowledge structure; see [`docs/ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
 
 Everything in this repository is **local, self-contained and non-networked**: no API keys, no telemetry, no persistence, no cookies, no build step, no package manager required. The generation engine is deterministic; the graph simulation is procedural rather than seeded (`NOO-021`).
+
+**One deliberate exception, added in `9.5.0`: the local workstation.** `npm start` additionally boots
+a small Node process that serves the document, proxies local Ollama inference, and — for same-machine
+clients only — bridges a **real host shell** into the desktop as a draggable terminal
+([`docs/SHELL.md`](docs/SHELL.md)). The published artefact is unchanged and remains backend-free: on
+GitHub Pages or any static host the shell window reports `SHELL UNAVAILABLE` and nothing else
+degrades. Both shapes are documented honestly; neither is described as sandboxed.
 
 **Design constraints that shaped every decision:**
 
@@ -70,7 +76,7 @@ Honest framing matters more than a pitch. **NOÖSPHERE // OS is fiction — a sa
 - **The "Polymath LLM" is not a language model.** It is a deterministic template-composition engine over a fixed vocabulary table ([`docs/API.md`](docs/API.md#engine-polymathllm--local-inference-with-template-fallback)). It performs no inference, calls no API, and produces recognisably finite variation. That is the joke *and* the engineering: a "recursive cognition core" that is honestly one vocabulary table and one template literal.
 - **Nothing here is marketing advice.** Techniques named in the corpus (infrasound coercion, subliminal indoctrination, paraconsistent PR warfare, "cognitive friction arbitrage") are parodied as sinister, not documented as playbooks. They are not effective, tested, or endorsed.
 - **The ultra field is not decoration.** Every property it renders — size, halo, jitter, traffic, aura, turbulence — is read from a field on a node or edge that the standard atlas draws too. It is a second renderer, not a second dataset. Where a mapping is a heuristic (centrality as "mass", cross-stratum tension as "contradiction pressure") the document says so.
-- **No analytics, no tracking, no uploads.** Dropped files are read with `FileReader` and never leave the tab. There is no `fetch`, `XMLHttpRequest` or `WebSocket` anywhere in the runtime.
+- **No analytics, no tracking, no uploads.** Dropped files are read with `FileReader` and never leave the tab. The static artefact makes no `fetch`, `XMLHttpRequest` or `WebSocket` call; in local workstation mode the only socket is same-origin, opened by the shell window against the local bridge, and refused outright unless the request is provably from the same machine.
 
 ---
 
@@ -91,7 +97,7 @@ cd Prometheus-Noosphere-v9.4 && npm start   # → http://localhost:4173
 
 ## Feature map
 
-Seven windowed subsystems, each owned by exactly one engine.
+Eight windowed subsystems, each owned by exactly one engine.
 
 | Window | Subsystem | Engine | What it demonstrates |
 | --- | --- | --- | --- |
@@ -102,6 +108,7 @@ Seven windowed subsystems, each owned by exactly one engine.
 | `win-aesthetic` | Aesthetic Hexonomy & Sound Lab | `paletteGen` / `soundLab` | Curated palette rotation with clipboard export of CSS custom properties; Web Audio oscillator synthesis at 432/528/40 Hz |
 | `win-notes` | Grimoire // Aphoristic Fragments | `grimoire` | Client-side substring search across titles, bodies and tags; fragment dispatch into the terminal |
 | `win-synthesizer` | Hyper-Idea Combinator | `ideaCombinator` | Dialectical cross-product of two domain vectors into a synthesised axiom, injected as a graph node |
+| `win-shell` | SYNAPSE SHELL // Host Compute Interface | `window.synapseShell` (client) + `server/shell.mjs` (bridge) | A **real PTY**: xterm.js ⇄ WebSocket ⇄ node-pty ⇄ your `$SHELL`, with AI SHELL control modes (OFF · ASSIST · AUTONOMOUS) over a bounded local-model agent loop. Local clients only. |
 
 **Second renderer:** the same `win-graph` viewport hosts `#ultra-canvas` and the `ultra` engine —
 five fields (`SWARM · CONSTELLATION · SIGNAL STORM · MYCELIAL · DREAM`), a cognitive-weather layer,
@@ -109,6 +116,39 @@ class-shaped halos, adaptive LOD, and the Zaziopath stratum lattice. See
 [`ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md).
 
 **Global systems:** window manager (drag, z-order, minimise, maximise, grid realignment), CRT/glass chrome, acoustic event vocabulary, 1 Hz system clock, quick-injection modal.
+
+---
+
+## SYNAPSE SHELL — the local host terminal
+
+The headline addition of `9.5.0`. Under `npm start` the desktop gains a window that is not a
+simulation of a terminal but a terminal:
+
+```
+browser (xterm.js)  ⇄  WebSocket  ⇄  node-pty (forkpty)  ⇄  $SHELL (zsh)  ⇄  macOS
+```
+
+* **Your shell, your environment.** `$SHELL` (fallback `/bin/zsh`) started as a login shell with the
+  environment NOÖSPHERE inherited — your `PATH`, aliases, prompts and rc files. `git`, `brew`,
+  `ollama`, `ffmpeg`, `python3`, `npm`, `ssh`, `docker`, `sudo`, pipes, redirection, subshells,
+  globbing and full-screen TUIs all work because nothing is intercepted.
+* **No sandbox, no allowlist, no virtual filesystem.** It runs as your account with your account's
+  permissions. That is the design, and it is stated that way in [`docs/SHELL.md`](docs/SHELL.md).
+* **Multiple sessions.** `SHELL 01`, `SHELL 02`, … each with its own PTY, cwd, process state, tab and
+  close/restart controls. Live `CWD`, `PID`, `PTY` and mode readouts in the window chrome.
+* **AI SHELL control — the mode is the authorisation.** `OFF` exposes no tool at all; `ASSIST` lets
+  the local model type a command into the input buffer *without* pressing Enter, for you to execute;
+  `AUTONOMOUS` lets it run, observe and iterate inside editable bounds (MAX STEPS, MAX RUNTIME,
+  STOP ON ERROR). The current state is unmistakable in the UI, and STOP AGENT / INTERRUPT /
+  KILL PROCESS / RESTART never require the model's cooperation.
+* **Local only, enforced.** Static files stay on `0.0.0.0` so previews can load the UI; every shell
+  route and the WebSocket upgrade require loopback peer + loopback `Host` + matching `Origin` + no
+  forwarding headers. LAN, tunnels, previews and cross-origin pages get `403`, and the browser shows
+  `SHELL UNAVAILABLE`. Remote access exists only through `--shell-remote-token`, typed by you.
+* **Degrades, never crashes.** Without `node-pty`, without xterm, without a server at all, the window
+  says `SYNAPSE SHELL // OFFLINE` (with the reason) and the rest of NOÖSPHERE is untouched.
+
+Read [`docs/SHELL.md`](docs/SHELL.md) before enabling AUTONOMOUS. It is the honest version.
 
 ---
 
@@ -127,12 +167,16 @@ No server, no build, no install. The document is the application.
 ### Option 2 — the bundled zero-dependency dev server
 
 ```bash
-npm start              # → http://localhost:4173
+npm install            # optional: enables SYNAPSE SHELL (node-pty, xterm.js, ws)
+npm start              # → http://localhost:4173   (UI + Ollama proxy + PTY bridge, one process)
 # or: node scripts/serve.mjs --port 8080 --host 0.0.0.0
+# or: npm run start:no-shell        # never spawn a PTY
 ```
 
-`scripts/serve.mjs` is ~90 lines of `node:http` with MIME mapping, path-traversal refusal and
-dotfile blocking. It exists so that `npm start` works before you install anything.
+`scripts/serve.mjs` serves the document with MIME mapping, path-traversal refusal and dotfile
+blocking, proxies local Ollama inference, and bridges SYNAPSE SHELL. It works without
+`npm install` — you get the full desktop and `SYNAPSE SHELL // LOCAL PTY UNAVAILABLE` instead of a
+terminal. Nothing about the static artefact requires Node.js at all.
 
 ### Option 3 — any static host
 
@@ -153,14 +197,14 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 ## Architecture at a glance
 
 ```
-                          index.html  (1 document · 2,994 lines)
+                          index.html  (1 document · 3,023 lines)
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  <head>            tailwind.config  →  design tokens (colour/type/shadow)     │
 │                    <style>          →  CRT, glass, glow, scrollbar, hatching   │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  chrome            <header>  system status bar   ·  <footer> dock + telemetry │
 │  workspace         <main id="workspace">  —  absolutely positioned windows    │
-│                    └── .glass-panel ×7   ← every window: one draggable shell  │
+│                    └── .glass-panel ×8   ← every window: one draggable shell  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  runtime           single <script>      —  11 engines, ordered by dependency  │
 │                                                                              │
@@ -174,7 +218,8 @@ Node.js ≥ 18 is required **only** for tooling. The application itself requires
 │   7 grimoire     fragment corpus → substring index → terminal dispatch        │
 │   8 combinator   domain cross-product → axiom → graph injection               │
 │   9 modal        manual node authoring                                        │
-│  11 telemetry    1 Hz clock + bounded random-walk drift                        │
+│  10 telemetry    1 Hz clock + bounded random-walk drift                        │
+│  11 synapseShell host PTY window (external module; local bridge only)          │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -183,6 +228,16 @@ generator) → `graphMetrics.rebuild()` → `ultra.init()` → `resizeCanvas()` 
 (self-scheduling `requestAnimationFrame` loop) → `paletteGen.render()` → `grimoire.render()` →
 `lucide.createIcons()` → welcome banner. Entering ULTRA seeds the Zaziopath lattice into the same
 graph (8 strata anchors + 29 § 00c entities + 1 unresolved question = 38 nodes, 47 edges).
+
+**Local workstation layer** (`npm start`, not part of the published artefact):
+
+```
+scripts/serve.mjs ─┬─ static files (0.0.0.0, preview-friendly)
+                   ├─ /api/noosphere            → 127.0.0.1:11434 (Ollama proxy)
+                   ├─ /api/shell/*, /ws/shell   → server/shell.mjs (node-pty) ← gate: loopback only
+                   └─ /api/noosphere/agent/*    → server/agent.mjs (bounded tool loop)
+```
+
 Every window is wired to `makeDraggable` at parse time, before any engine initialises.
 
 **Data flow** — engines communicate through four shared surfaces only: direct method calls, the
@@ -202,12 +257,12 @@ Measured from `HEAD` by [`scripts/audit.mjs`](scripts/audit.mjs) — reproduce w
 
 | Metric | Value |
 | --- | --- |
-| Application payload | **178,657 B** (174 KiB) · **2,994 lines** · 1 document |
-| Contribution of assets | 0 B — no images, fonts or audio are vendored |
-| Runtime dependencies installed | **0** |
-| Build steps | **0** |
-| Windowed subsystems | **7** |
-| Engines / modules | **11** |
+| Application payload | **181,219 B** (177 KiB) · **3,023 lines** · 1 document |
+| Contribution of assets | 0 B vendored — the local shell loads xterm from `node_modules`, never a CDN |
+| Runtime dependencies installed | **0** for the static artefact · 3 + 1 optional for the local shell (`@xterm/xterm`, `@xterm/addon-fit`, `ws`, optional `node-pty`) |
+| Build steps | **0** — the shell's JavaScript is served from `node_modules` at runtime, not bundled |
+| Windowed subsystems | **8** |
+| Engines / modules | **11** in-document engines (ten original + the ultra renderer) + **1** external module (`window.synapseShell`) + **5** server modules (`shell`, `agent`, `routes`, `gate`, `procinfo`) |
 | Semantic domains | **5** (memetics · semiotics · psychoacoustics · hyperstition · alchemical OS) |
 | Boot graph | **90 nodes**, **265** seeded-procedural edges, from **15** seed archetypes |
 | Zaziopath lattice | **38 nodes** (8 strata · 29 § 00c entities · 1 unresolved question), **47 edges** (17 wires · 30 containment) — boot 90/265 → **128 nodes / 312 edges** |
@@ -218,8 +273,10 @@ Measured from `HEAD` by [`scripts/audit.mjs`](scripts/audit.mjs) — reproduce w
 | Combinator space | **5 × 5** = 25 dialectical pairings |
 | Icon references | **48** across **27** distinct names (26 resolve; `dread` does not — `NOO-006`) |
 | Accessibility attributes | **17** `aria-*` on the graph and ultra controls; 14 icon-only buttons app-wide remain unlabelled (partial `NOO-016`) |
-| Automated checks | **21** register IDs + 4 always-fatal DOM contract rules + **36** smoke assertions |
+| Automated checks | **21** register IDs + 4 always-fatal DOM contract rules + **36** smoke assertions + **34** shell behavioural tests (29 PTY integration, 5 browser) |
 | Tracked findings | **30**, all within `scripts/audit-baseline.json` |
+| Shell sessions | up to **8** concurrent PTYs, one browser tab each, independent cwd/process state |
+| Shell trust boundary | loopback peer + loopback `Host` + matching `Origin` + no forwarded headers + `Sec-Fetch-Site` |
 
 ---
 
@@ -228,13 +285,27 @@ Measured from `HEAD` by [`scripts/audit.mjs`](scripts/audit.mjs) — reproduce w
 ```
 Prometheus-Noosphere-v9.4/
 ├── index.html                     # the entire application
-├── package.json                   # tooling entry points only — no dependencies
+├── package.json                   # tooling + optional shell dependencies
 ├── scripts/
 │   ├── audit.mjs                  # 21-check static integrity audit (dependency-free)
 │   ├── audit-baseline.json        # accepted finding counts — the ratchet
 │   ├── smoke.mjs                  # 36-assertion behavioural harness (node:vm + DOM stub)
-│   └── serve.mjs                  # zero-dependency static server for local dev
+│   ├── serve.mjs                  # local workstation server: static + Ollama proxy + PTY bridge
+│   ├── test-shell.mjs             # 29 PTY/agent/gate integration tests (live server, real shell)
+│   └── test-ui.mjs                # 5 browser tests for the shell window's degradation paths
+├── server/                        # the local bridge (never shipped to a static host)
+│   ├── shell.mjs                  # PTY hub: spawn, write, resize, interrupt, kill, read, save
+│   ├── agent.mjs                  # bounded reason → act → observe loop (mode-aware)
+│   ├── routes.mjs                 # HTTP control plane, WebSocket upgrade, agent SSE
+│   ├── gate.mjs                   # the loopback/Host/Origin/forwarded-header gate
+│   ├── ollama.mjs                 # local inference client (llama3.1:8b)
+│   └── procinfo.mjs               # process and port visibility
+├── shell/
+│   ├── synapse-shell.js           # browser half: xterm.js, tabs, quick actions, agent console
+│   └── synapse-shell.css          # self-contained window styling (no CDN dependency)
+├── logs/                          # SAVE SESSION artefacts (gitignored, opt-in only)
 ├── docs/
+│   ├── SHELL.md                   # SYNAPSE SHELL: trust boundary, AI modes, controls
 │   ├── ARCHITECTURE.md            # runtime topology, data models, physics, seams
 │   ├── API.md                     # engine methods, DOM contract, handler map
 │   ├── DESIGN.md                  # token system, motion, chrome grammar, rationale
@@ -247,7 +318,7 @@ Prometheus-Noosphere-v9.4/
 │   ├── MAINTAINABILITY.md         # stewardship, dependency policy, extraction plan
 │   ├── ROADMAP.md                 # now / next / later, tied to register IDs
 │   └── assets/noosphere-banner.png
-├── .github/                       # CI workflow, issue forms, PR template
+├── .github/                       # CI workflows (audit · behavioural), issue forms, PR template
 ├── CHANGELOG.md                   # Keep a Changelog
 ├── CONTRIBUTING.md                # setup, conventions, review rubric
 ├── SECURITY.md                    # threat model and disclosure policy
@@ -266,6 +337,9 @@ Prometheus-Noosphere-v9.4/
 | Iconography | Lucide (SVG, CDN) | Consistent 24 px stroke geometry; icons are declarative `data-lucide` attributes |
 | Type | Cinzel (display) · Syne (UI) · JetBrains Mono (data) | Ritual / editorial / instrument — three registers, three families |
 | Audio | Web Audio API oscillators | A few hundred bytes of code instead of vendored samples |
+| Terminal | `@xterm/xterm` + `@xterm/addon-fit` (served locally) | A real terminal emulator doing ANSI, alternate screen, selection and resize — not a `<textarea>` pretending |
+| PTY | `node-pty` (optional dependency) | The only way to get a genuine host shell: `forkpty`, real signals, real TTY semantics |
+| Transport | `ws` (WebSocket) | Bidirectional byte streaming with backpressure; refused for non-local clients |
 | Tooling | Node.js ≥ 18, stdlib only | The audit and dev server must not introduce a dependency tree the app refuses to have |
 
 **Browser support:** current evergreen Chromium, Firefox and Safari. `backdrop-filter` and the
@@ -282,17 +356,19 @@ This repository treats **documentation as a first-class deliverable** and **debt
 register** rather than a surprise. Every known defect has a stable ID, a severity, a baseline
 count and a roadmap slot.
 
-`npm test` runs 21 register checks plus four always-fatal DOM contract rules (duplicate IDs,
-dangling `getElementById` references, `restoreOrFocus` targets that do not exist, inline handlers
-calling undefined globals). It is a **ratchet**: findings may not exceed their baseline, and
-improvements are reported so the baseline can be tightened. `npm run smoke` complements it with a
-dependency-free behavioural harness. The current state is green with 30 tracked findings across 16
-register IDs — five IDs retired in 9.5.0 (`NOO-010`, `NOO-011`, `NOO-014`, `NOO-016` partial,
-`NOO-021`) and two reduced (`NOO-007`).
-
+`npm test` runs in three tiers: the **static audit** (21 register checks plus four always-fatal DOM
+contract rules — duplicate IDs, dangling `getElementById` references, `restoreOrFocus` targets that do
+not exist, inline handlers calling undefined globals), the **behavioural smoke harness** (36
+assertions executing the real runtime against a DOM stub, dependency-free), and the **shell suites**
+(29 PTY integration tests against a live server and a real shell, plus 5 browser tests proving the
+desktop still boots when the shell cannot). The audit is a **ratchet**: findings may not exceed their
+baseline, and improvements are reported so the baseline can be tightened. The current state is green
+with **30 tracked findings across 16 register IDs** — five IDs retired in 9.5.0 (`NOO-010`,
+`NOO-011`, `NOO-014`, `NOO-016` partial, `NOO-021`) and `NOO-007` reduced 4 → 2 — and the behavioural
+suites skip cleanly on a bare checkout instead of failing.
 | Severity | Register IDs | Findings | Themes |
 | --- | --- | --- | --- |
-| High | 4 | 14 | undefined colour family (`NOO-001`) · unescaped `innerHTML` sinks (`NOO-007`) · absent accessibility semantics (`NOO-016`) · unreachable default window geometry (`NOO-019`) |
+| High | 4 | 12 | undefined colour family (`NOO-001`) · unescaped `innerHTML` sinks (`NOO-007`) · absent accessibility semantics (`NOO-016`) · unreachable default window geometry (`NOO-019`) |
 | Medium | 7 | 8 | undefined animation · unresolvable icon · unpinned CDNs · HiDPI canvas · `O(n²)` physics · frame-rate-dependent integration · missing link-preview metadata |
 | Low | 9 | 14 | invalid utilities, content/number parity drift, undocked window, static "live" gauges, listener multiplication, unseeded RNG |
 | Info | 1 | 2 | dead animation config |
@@ -313,6 +389,7 @@ The full register — what each finding means, its user impact and its remediati
 | [DECISIONS.md](docs/DECISIONS.md) | ADRs: single-file, no build, CDN delivery, canvas, procedural data, no persistence | You are questioning a foundational choice |
 | [ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | WCAG 2.2 AA audit with measured contrast ratios, remediation plan | You are fixing `NOO-016` or reviewing inclusion |
 | [PERFORMANCE.md](docs/PERFORMANCE.md) | Frame budget, complexity model, profiling method, optimisation ladder | You are touching the render loop |
+| [SHELL.md](docs/SHELL.md) | SYNAPSE SHELL: real-PTY architecture, the local-only trust boundary, AI SHELL modes, agent tools, emergency controls, troubleshooting | You are using, auditing or extending the host shell |
 | [TESTING.md](docs/TESTING.md) | Verification strategy, what is covered, manual test matrix, definition of done | You are opening a pull request |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Static hosting recipes, CSP for CDN deps, caching, rollback | You are shipping it |
 | [MAINTAINABILITY.md](docs/MAINTAINABILITY.md) | Dependency policy, code-health metrics, extraction plan, stewardship | You are inheriting this repository |
@@ -325,30 +402,35 @@ The full register — what each finding means, its user impact and its remediati
 
 ## Roadmap
 
-Condensed from [`docs/ROADMAP.md`](docs/ROADMAP.md); every item is traceable to a register ID.
+Condensed from [`docs/ROADMAP.md`](docs/ROADMAP.md); every item is traceable to a register ID or an ADR consequence.
 
 ```mermaid
 flowchart LR
-    subgraph SHIPPED["Shipped · 9.5.0 — ultra mode"]
+    subgraph SHIPPED["Shipped · 9.5.0 — ultra mode + SYNAPSE SHELL"]
       A["Ultra renderer over one graph"] --> B["NOO-014 HiDPI · NOO-021 seeded RNG"]
       B --> C["NOO-010 · 011 parity · smoke harness"]
+      S1["PTY bridge + loopback gate"] --> S2["AI SHELL: OFF · ASSIST · AUTONOMOUS"]
     end
-    subgraph NOW["Now · 9.6.0 — correctness carryover"]
+    subgraph NOW["Now · 9.5.1 — correctness"]
       D["NOO-019 reachable layout"] --> E["NOO-001 · 006 · 007 fixes"]
       E --> F["NOO-009 · 012 · 013 parity"]
-      F --> G["NOO-018 metadata · NOO-008 vendoring"]
+    end
+    subgraph NEXT["Next · 9.6.0 — fidelity & trust"]
+      N1["NOO-008 vendor pinning · NOO-018 metadata"] --> N2["NOO-020 fixed-step physics"]
+      N2 --> N3["prefers-reduced-motion · a11y P1 · headless harness"]
     end
     subgraph LATER["Later · 10.0.0 — structure"]
       H["NOO-015 standard broad phase"] --> I["NOO-016 keyboard + AT model"]
       I --> J["Optional module extraction"]
     end
-    SHIPPED --> NOW --> LATER
+    SHIPPED --> NOW --> NEXT --> LATER
 ```
 
 | Horizon | Theme | Headline items |
 | --- | --- | --- |
-| **Now — 9.6.0** | Correctness carryover | `NOO-019` reachable layout · `NOO-001` undefined colour family · `NOO-006` invalid icon · `NOO-007` remaining escaping · `NOO-009`/`NOO-013` honesty · `NOO-012` dock · `NOO-018` link preview · `NOO-008` vendor pinning · `NOO-020` fixed-step standard physics |
-| **Shipped — 9.5.0** | Fidelity & trust, plus the ultra renderer | **Delivered:** ultra visualisation (second renderer over one graph) · `NOO-014` HiDPI canvas · `NOO-011` alchemy filter · `NOO-021` seeded RNG + `mulberry32` · `prefers-reduced-motion` handled in the field · behavioural smoke harness. **Carried to 9.6.0:** `NOO-018` favicon/OG/description · `NOO-008` self-hosted vendors · `NOO-020` fixed-step integration |
+| **Shipped — 9.5.0** | Ultra renderer + host shell | **Delivered:** ultra visualisation (second renderer over one graph) · SYNAPSE SHELL (PTY bridge, AI SHELL modes, loopback gate) · `NOO-010`/`NOO-011`/`NOO-014`/`NOO-021` retired · seeded RNG · HiDPI canvases · alchemy filter · 36-assertion smoke harness · 29 + 5 shell tests |
+| **Now — 9.5.1** | Correctness | `NOO-019` reachable layout · `NOO-001` undefined colour family · `NOO-006` invalid icon · `NOO-007` remaining escaping · `NOO-009`/`NOO-013` honesty · `NOO-012` dock |
+| **Next — 9.6.0** | Fidelity & trust | `NOO-008` vendored/pinned dependencies · `NOO-018` link-preview metadata · `NOO-020` fixed-step standard physics · accessibility P1 (live regions, window semantics, modal focus) · headless harness |
 | **Later — 10.0.0** | Structure & access | `NOO-015` standard-atlas spatial index + worker physics · `NOO-016` keyboard and screen-reader model · ES-module extraction behind an optional bundler |
 
 ---
@@ -398,7 +480,11 @@ presented as critical design. It is licensed with the code, and it is not advice
 <sub>Built as a single file, on purpose. <code>NOÖSPHERE // OS v9.5.0</code></sub>
 </div>
 
-### Local inference (optional, no API keys)
+### Local workstation mode (optional, no API keys)
+
+`npm start` runs one process that serves the interface, proxies local Ollama inference, and bridges
+SYNAPSE SHELL (a real PTY) — all local-only. `npm install` is required only for the shell; the
+inference proxy and the interface work without it.
 
 The original Polymath terminal used vocabulary templates and did **not** perform inference.
 To enable real local responses, install Ollama separately and install **only** `llama3.1:8b`

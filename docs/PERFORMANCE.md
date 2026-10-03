@@ -16,7 +16,7 @@ Two claims are worth defending, and one is worth retracting.
 
 | Claim | Status | Evidence |
 | --- | --- | --- |
-| The application payload is small and auditable | ✅ **Measured** — 178,657 B, 2,994 lines, 0 vendored assets | `npm test` |
+| The application payload is small and auditable | ✅ **Measured** — 181,219 B, 3,023 lines, 0 vendored assets | `npm test` |
 | The ultra field's cost is bounded by construction | ⚠️ **Modelled** — pool (900), LOD tiers (4) and grid (`O(n·k)`) bound it; per-frame ms **unverified** without a browser ([§ 3.3](#33-the-ultra-field-cost-model-modelled)) | source |
 | The total delivery cost is small | ⚠️ **Unverified** — third-party CDN cost not measured here ([§ 7](#7-load-cost-and-its-measurement-gap)) | Requires network |
 | "Canvas 60 fps" (window badge) | ⚠️ **Aspirational** — the badge is authored copy, and several costs below are frame-budget-relevant | [§ 3](#3-frame-budget-model) |
@@ -30,8 +30,8 @@ design statement, not a measurement, and this document is where that distinction
 
 | Metric | Value | Source |
 | --- | --- | --- |
-| Application payload | **178,657 B** (174.5 KiB) | `scripts/audit.mjs` |
-| Lines | **2,994** | `scripts/audit.mjs` |
+| Application payload | **181,219 B** (177 KiB) | `scripts/audit.mjs` |
+| Lines | **3,023** | `scripts/audit.mjs` |
 | Runtime dependencies installed | **0** | `package.json` |
 | Vendored assets (images/fonts/audio) | **0 B** | Repository contains one data-free PNG in `docs/` |
 | Network calls from the runtime | **0** | No `fetch` / `XMLHttpRequest` / `WebSocket` in the source |
@@ -46,16 +46,15 @@ design statement, not a measurement, and this document is where that distinction
 
 | Threshold | Bytes | Current | Headroom |
 | --- | --- | --- | --- |
-| Warn | 188,000 | 178,657 | +9,343 B |
-| Fail | 224,000 | 178,657 | +45,343 B |
-
+| Warn | 188,000 | 181,219 | +6,781 B |
+| Fail | 224,000 | 181,219 | +42,781 B |
 The budget exists because a single-file application is a *design asset*: it stays reviewable in one
 sitting. The band was re-baselined in 9.5.0 from `96,000 / 128,000` in the same change that added the
 ultra renderer — the largest single addition the file has taken. The new numbers are anchored to the
 measured payload rather than to round figures: **warn at ≈ +5 %**, **fail at ≈ +25 %**. Past the warn
 threshold the question is unchanged — whether the single-file delivery decision still pays for
 itself — and it is a signal to reconsider that decision, not merely to raise a number. See
-[`DECISIONS.md` ADR-011](DECISIONS.md).
+[`DECISIONS.md` ADR-015](DECISIONS.md).
 
 ---
 
@@ -248,7 +247,7 @@ optimisation to our 178 KB can offset.
 
 1. **Our payload is not the load cost.** Optimising a 88 KB file while a browser-side CSS compiler
    runs at startup is optimising the wrong thing — which is precisely the argument for the self-hosting
-   path in [`ROADMAP.md`](ROADMAP.md) (`9.5.0`, `NOO-008`) and the reason ADR-002 is recorded as a
+   path in [`ROADMAP.md`](ROADMAP.md) (`9.6.0`, `NOO-008`) and the reason ADR-002 is recorded as a
    trade-off rather than a win.
 2. **Unreachable CDNs degrade the artefact.** With no network, `index.html` renders as unstyled
    semantic HTML: every utility class is a no-op. The application still *functions* (all behaviour is

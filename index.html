@@ -12,6 +12,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 
+    <!-- SYNAPSE SHELL — host terminal front-end, kept external so the single-file budget holds -->
+    <link rel="stylesheet" href="shell/synapse-shell.css">
+    <script src="shell/synapse-shell.js" defer></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -692,12 +696,36 @@
             </div>
         </div>
 
+        <!-- 8. WINDOW: SYNAPSE SHELL — REAL HOST PTY (xterm.js ⇄ node-pty).
+             Interior built by shell/synapse-shell.js. Local clients only. -->
+        <div id="win-shell" class="glass-panel absolute rounded-lg flex flex-col overflow-hidden border border-neon-emerald/30 window-active shadow-2xl transition-all duration-75"
+             style="top: 15px; left: 15px; width: 720px; height: 470px; z-index: 30;">
+            <!-- Window Header -->
+            <div class="win-header bg-slate-950/80 px-3 py-2 border-b border-emerald-900/60 flex items-center justify-between cursor-move select-none">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="terminal" class="w-4 h-4 text-neon-emerald"></i>
+                    <span class="font-mono text-xs font-bold tracking-wider text-neon-emerald">SYNAPSE SHELL</span>
+                    <span class="font-mono text-[10px] text-slate-500 hidden md:inline">// HOST COMPUTE INTERFACE · LOCAL ONLY</span>
+                </div>
+                <div class="flex items-center space-x-1.5">
+                    <button onclick="minimizeWindow('win-shell')" class="p-1 hover:text-amber-400 text-slate-400" title="Minimise"><i data-lucide="minus" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="maximizeWindow('win-shell')" class="p-1 hover:text-emerald-400 text-slate-400" title="Maximise"><i data-lucide="square" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+            <!-- Terminal Host: sessions, tabs, quick actions and the agent panel -->
+            <div id="shell-root" class="flex-1 flex flex-col overflow-hidden min-h-0"></div>
+        </div>
     </main>
 
     <!-- BOTTOM TASKBAR / DOCK -->
     <footer class="h-10 border-t border-cyan-950 bg-obsidian/95 backdrop-blur-md px-4 flex items-center justify-between text-xs font-mono z-50 fixed bottom-0 left-0 right-0">
         <!-- Dock Icons -->
         <div class="flex items-center space-x-2">
+            <button onclick="restoreOrFocus('win-shell')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-emerald-700/60 text-neon-emerald">
+                <i data-lucide="terminal" class="w-3.5 h-3.5"></i>
+                <span class="text-[11px] font-bold hidden sm:inline">SYNAPSE SHELL</span>
+                <span id="shell-mode-badge" class="bg-emerald-950/70 border border-emerald-700/60 text-[10px] px-1.5 py-0.5 rounded text-emerald-300 font-mono">PTY // PROBING</span>
+            </button>
             <button onclick="restoreOrFocus('win-graph')" class="dock-btn flex items-center space-x-1.5 px-2.5 py-1 rounded bg-surface hover:bg-surface-bright border border-cyan-900/60 text-neon-cyan">
                 <i data-lucide="network" class="w-3.5 h-3.5"></i>
                 <span class="text-[11px] font-bold hidden sm:inline">Graph Vault</span>
@@ -921,6 +949,7 @@
 
         function resetWindowPositions() {
             const defaults = [
+                { id: 'win-shell', top: 15, left: 15, w: 720, h: 470 },
                 { id: 'win-graph', top: 15, left: 15, w: 620, h: 500 },
                 { id: 'win-terminal', top: 15, left: 650, w: 560, h: 500 },
                 { id: 'win-aesthetic', top: 15, left: 1225, w: 440, h: 500 },

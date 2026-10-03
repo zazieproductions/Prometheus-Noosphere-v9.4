@@ -3,8 +3,7 @@
 > Shipping a one-file application — locally, to GitHub Pages, and to any static host — including the
 > Content-Security-Policy the current architecture actually requires.
 
-**Deployable artefact:** `index.html` — one file, 178,657 B, no build step.
-**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
+**Deployable artefact:** `index.html` — one file, 181,219 B, no build step.**Prerequisites:** none for the runtime. Node.js ≥ 18 only for tooling.
 
 ---
 
@@ -12,13 +11,23 @@
 
 | Ships | Does not ship |
 | --- | --- |
-| `index.html` — the entire application | `scripts/` — audit and dev server (tooling) |
+| `index.html` — the entire application | `scripts/` — audit, tests and the local server (tooling) |
+| `shell/synapse-shell.js` + `.css` — the shell window's assets (loaded only if present) | `server/` — the PTY bridge, agent loop and gate (local only) |
 | A 404 page, if the host needs one | `docs/` — documentation, not linked by the app |
 | Optionally a `<meta>`/header CSP (§ 5) | `.github/` — workflow and templates |
+| | `logs/` — saved terminal sessions (gitignored) |
 
-Nothing in `scripts/` or `docs/` is required at runtime, and the application never fetches anything
-from its own origin beyond the document itself. That means the deployment target only has to serve
-one static file correctly.
+Nothing in `scripts/`, `server/` or `docs/` is required at runtime, and the application never fetches
+anything from its own origin beyond the document itself. That means the deployment target only has to
+serve static files correctly.
+
+**On a static host, SYNAPSE SHELL reports `SHELL UNAVAILABLE`.** There is no bridge to answer, no
+WebSocket to open and no PTY to spawn; the window says so explicitly and the rest of the desktop is
+unaffected. This is by design, not a deployment mistake: the shell is a *host* interface and a static
+host is not a host. To use it, run `npm start` on your own machine and open `http://localhost:4173`.
+If you deploy `shell/` but not `server/`, the window shows `SHELL UNAVAILABLE // BRIDGE UNREACHABLE`;
+if you omit `shell/` entirely, the window markup renders empty, which is why shipping the two files
+is recommended.
 
 ---
 
@@ -28,19 +37,27 @@ one static file correctly.
 # A — zero setup
 open index.html                     # macOS · xdg-open · start (Windows)
 
-# B — bundled dev server (recommended: correct MIME types, no file:// quirks)
+# B — local workstation (recommended: correct MIME types, no file:// quirks, host shell)
+npm install                         # optional; enables SYNAPSE SHELL (node-pty, xterm.js, ws)
 npm start                           # → http://localhost:4173
 node scripts/serve.mjs --port 8080 --host 0.0.0.0
+npm run start:no-shell              # the same server, with the PTY bridge disabled
 
 # C — verify before shipping
-npm test                            # static integrity audit; must exit 0
+npm test                            # audit + PTY integration + browser tests; must exit 0
 ```
 
 `file://` works, but some browsers restrict clipboard access on insecure origins — the palette's
 "copy hex" action degrades silently because it is optional-chained. Use the dev server when
 demonstrating clipboard behaviour.
 
-**Environment variables:** `PORT` and `HOST` are honoured as fallbacks to the flags.
+**Environment variables:** `PORT`, `HOST`, `NOOSPHERE_OLLAMA_URL`, `NOOSPHERE_ZAZIOPATH`,
+`NOOSPHERE_SHELL=off` and `NOOSPHERE_SHELL_REMOTE_TOKEN` are honoured as fallbacks to the flags. The
+shell routes are loopback-only regardless of the bind address — see
+[`SHELL.md` § The trust boundary](SHELL.md#4-the-trust-boundary).
+
+**What actually leaves the machine:** nothing, unless you run a command that networks (which is what
+a shell is for) or move `NOOSPHERE_OLLAMA_URL` off loopback. Saved sessions stay local in `logs/`.
 
 ---
 
@@ -204,7 +221,6 @@ upgrade-insecure-requests
 `frame-ancestors`, and header-delivered policies are applied before the document starts parsing.
 
 ### 5.3 Hardened policy (after the vendor-pinning refactor, `9.6.0`)
-
 Removing the three constraints above is a bounded piece of work, not a rewrite:
 
 | Step | Change | Removes |
@@ -280,7 +296,7 @@ git push origin main --follow-tags
 # 5 · Verify live
 #    - hard-reload the deployed URL (bypass cache)
 #    - console: zero errors, zero unexpected network calls
-#    - all seven windows present; RE-ALIGN restores the grid
+#    - all eight windows present (SYNAPSE SHELL included); RE-ALIGN restores the grid
 #    - header shows the expected version string
 ```
 
@@ -289,7 +305,7 @@ git push origin main --follow-tags
 | `npm test` | `✔ PASS`, findings ≤ baseline |
 | Payload | < 188,000 B (warn threshold) |
 | Console | Clean |
-| Windows | 7 · dock 6 · modal 1 |
+| Windows | 8 · dock 7 · modal 1 |
 | Tag | `v<version>` pushed and visible in Releases |
 | Pages deployment | Green, and the live version string matches the tag |
 

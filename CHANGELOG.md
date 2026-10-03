@@ -22,13 +22,27 @@ rather than enumerated. Everything from `9.4.1` forward is tracked here and enfo
 
 ---
 
+## [Unreleased]
+
+Nothing yet. The next entry is planned as `9.5.1` — the correctness horizon in
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
+
+---
+
 ## [9.5.0] — 2026-10-03
 
-**One graph, two renderers.** This revision adds the ultra visualisation — a second, layered
-rendering system over the *same* node and edge arrays — and retires five register IDs. The standard
-atlas is unchanged in behaviour; ULTRA is a toggle beside it, not a replacement.
+**One graph, two renderers — and a real terminal in the workstation.** This revision adds the ultra
+visualisation, a second, layered rendering system over the *same* node and edge arrays, and
+**SYNAPSE SHELL**, a host terminal available only when NOÖSPHERE is started locally with `npm start`.
+It retires four register IDs and clears a fifth from the automated count; the standard atlas is
+unchanged in behaviour. ULTRA is a toggle beside it, not a replacement, and the published
+single-file artefact keeps its shape — **181,219 bytes, 3,023 lines, one file**, zero installed
+dependencies on the static path. Everything the previous `Unreleased` block contained (repository
+scaffolding, the documentation set and the hardened dev server) ships here too.
 
 ### Added
+
+#### Ultra visualisation mode
 
 - **Ultra visualisation mode** (`RENDER: STANDARD | ULTRA`, hotkey `U`) — a Canvas 2D field composited
   additively over a second canvas in the same viewport, reading the same `graphNodes` / `graphEdges`,
@@ -75,68 +89,77 @@ atlas is unchanged in behaviour; ULTRA is a toggle beside it, not a replacement.
   and the return to STANDARD. Wired into CI beside the audit.
 - **Documentation** — this file plus [`ULTRA-VISUALIZATION.md`](docs/ULTRA-VISUALIZATION.md); updates
   across `README.md`, `ARCHITECTURE.md`, `API.md`, `DESIGN.md`, `PERFORMANCE.md`, `TESTING.md`,
-  `DECISIONS.md` (ADR-011), `ROADMAP.md`, `ACCESSIBILITY.md` and `MAINTAINABILITY.md`.
+  `DECISIONS.md` (ADR-015), `ROADMAP.md`, `ACCESSIBILITY.md` and `MAINTAINABILITY.md`.
 - **Also in this revision:** optional localhost Ollama inference for the Polymath terminal (merged
   before this entry) — see [`API.md`](docs/API.md#local-ollama-inference-optional) and
   [`SECURITY.md`](SECURITY.md).
 
-### Changed
+#### SYNAPSE SHELL
 
-- **Payload budget re-baselined, deliberately** — `SIZE_BUDGET` moves from `96,000 / 128,000 B` to
-  `188,000 / 224,000 B`, anchored to the new measured payload with ~5 % warn and ~25 % fail headroom.
-  `ROADMAP.md` (9.4.2) had already stated the budget would be re-baselined deliberately in 9.5.0 with
-  the reason recorded; the reason is the ultra renderer, which is the largest subsystem in the file
-  (~46 kB of ~179 kB). The ratchet against unbounded growth is preserved. See
-  [`PERFORMANCE.md` § 8](docs/PERFORMANCE.md#8-guardrails).
-- **Both canvases are now device-pixel-ratio scaled** (capped at 2×), with the camera transform kept
-  in CSS pixels so the pointer mapping, labels and zoom stay exact. `NOO-014` retired.
-- **The graph's initial layout is now seeded** (`mulberry32`) instead of `Math.random()`, so the boot
-  graph is reproducible: 90 nodes and 265 edges, twice in a row. `NOO-021` retired.
-- **Node-count chrome is truthful** — the status-bar badge matches the spawn count and the boot banner
-  reports the live node total. `NOO-010` retired.
-- **The alchemy domain gained the filter affordance it never had.** `NOO-011` retired.
-- **Graph controls carry ARIA labels** (17 attributes across the toolbar, mode switch, fields, sliders
-  and toggles). This is a partial answer to `NOO-016`: the audit's heuristic clears when any semantics
-  exist, but the deeper P1 items (live regions, region semantics, modal focus) remain open and are
-  still tracked in [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan).
-- `package.json` version → `9.5.0`; the status-bar label follows. CI now runs the smoke harness after
-  the audit.
+- **SYNAPSE SHELL — a real host terminal** (`9.5.0` headline). One process (`npm start`) now bridges
+  a genuine PTY into a draggable NOÖSPHERE window:
+  `xterm.js ⇄ WebSocket ⇄ node-pty (forkpty) ⇄ $SHELL`, started as a login shell in the repository
+  root with the environment of the account that launched it. There is no command allowlist, no
+  denylist, no virtual filesystem, no command parsing and no simulated output; `git`, `brew`, `ollama`,
+  `ffmpeg`, `python3`, `npm`, `ssh`, `docker`, `sudo`, pipes, redirection, subshells, globbing, job
+  control and full-screen TUIs work because nothing intervenes. Documented — including the absence of
+  a sandbox — in the new [`docs/SHELL.md`](docs/SHELL.md).
+  - **Multiple sessions**: independent PTYs (`SHELL 01`, `SHELL 02`, …) with their own cwd, process
+    state, tab, and close/restart controls; live `HOST / SHELL / PTY / PID / CWD / AI` instrumentation
+    in the window chrome.
+  - **AI SHELL control with three explicit modes.** `OFF` exposes no tool at all (the endpoints 403);
+    `ASSIST` lets the local model type a command into the input buffer *without* pressing Enter (the
+    newline is stripped, and the loop stops after the first proposal); `AUTONOMOUS` permits a bounded
+    agent loop. The mode *is* the authorisation — there are no per-command confirmation dialogs — and
+    the current state is unmistakable in the strip, the mode badge and the dock.
+  - **Bounded autonomous loop** (`server/agent.mjs`): `reason → one tool call → observe → reason`, with
+    user-editable MAX STEPS (≤ 50), MAX RUNTIME, STOP ON ERROR and an output cap. Tools:
+    `shell_exec`, `shell_write`, `shell_read`, `shell_cwd`, `shell_interrupt`, `shell_new_session`,
+    `shell_close_session`, `finish`. Tool names are validated against that vocabulary before anything
+    touches the PTY, and shell/file/web text is returned to the model fenced as *data, not
+    instructions*.
+  - **Local-only trust boundary, enforced per request** (`server/gate.mjs`): loopback peer + loopback
+    `Host` + matching `Origin` + no forwarding headers + `Sec-Fetch-Site`. LAN clients, tunnels,
+    remote previews and cross-site pages receive `403` and the window shows `SHELL UNAVAILABLE`; no
+    CORS headers are ever emitted. Remote access exists only through an operator-supplied
+    `--shell-remote-token`, which is off by default and announced loudly at boot.
+  - **Human controls without friction**: NEW SHELL, RESTART, CLEAR, INTERRUPT (^C), KILL PROCESS
+    (SIGTERM → SIGKILL over the session tree), COPY OUTPUT, SAVE SESSION, PROCESSES/PORTS panels,
+    STOP AGENT. No confirmation dialogs during normal operation.
+  - **Zaziopath coupling**: every session receives `$NOOSPHERE_ZAZIOPATH`, so corpus searches, analysis
+    scripts, graph rebuilds and report generation run from the terminal against the same corpus the
+    rest of NOÖSPHERE reasons about.
+  - **Opt-in session logging**: scrollback is an in-memory ring by default; SAVE SESSION writes a
+    provenance-headed artefact to `logs/sessions/` (gitignored) only when asked.
+- **Behavioural test suites** — `scripts/test-shell.mjs` (29 integration tests against a live server,
+  real PTYs and a scripted model stub: shell semantics, UTF-8/ANSI fidelity, Ctrl+C, resize, session
+  independence, cwd tracking, restart, orphan-free shutdown, all five gate refusals over HTTP *and*
+  the WebSocket upgrade, the OFF/ASSIST/AUTONOMOUS contracts, unknown-tool refusal, MAX STEPS, STOP
+  AGENT, process ownership, ports, saving) and `scripts/test-ui.mjs` (5 jsdom tests proving the
+  desktop still boots and reports `SYNAPSE SHELL // OFFLINE` when the bridge is absent, remote, or
+  PTY-less). Both skip cleanly on a bare checkout; `npm test` now runs audit → shell → UI.
+- **Server modules** — `server/shell.mjs` (PTY hub), `server/agent.mjs` (bounded loop),
+  `server/routes.mjs` (HTTP + WS + SSE), `server/gate.mjs` (trust boundary), `server/ollama.mjs`
+  (local inference client), `server/procinfo.mjs` (process/port visibility).
+- **Browser assets** — `shell/synapse-shell.js` and `shell/synapse-shell.css`: the shell window's
+  runtime, kept outside `index.html` so the payload budget holds for static-host visitors
+  ([ADR-011](docs/DECISIONS.md)).
+- **Documentation** — new [`docs/SHELL.md`](docs/SHELL.md); `SECURITY.md` gained the local-workstation
+  threat model and the shell boundary; `ARCHITECTURE.md` § 19, `API.md`'s transport reference,
+  `TESTING.md` § 2.4–2.5 + § 3.6, `DEPLOYMENT.md`'s local-workstation recipe and ADR-011…014 were
+  added in the same change.
 
-### Fixed
-
-- `NOO-011` — domain without a filter affordance (alchemy).
-- `NOO-014` — canvas not device-pixel-ratio scaled (both canvases).
-- `NOO-010` — node-count parity drift between chrome and engine (both directions).
-- `NOO-021` — RNG unseeded; the layout is now reproducible per run.
-- `NOO-007` — reduced from 4 to 2 as the transcript and ingestion paths were refactored to write text
-  nodes; the remaining two sinks are tracked.
-
-### Notes
-
-- **Selection behaviour is preserved and extended.** A click still appends the inspection line, sets
-  `polymathLLM.selectedNode` and fires `node-deepdive`; it now also opens the field's local cluster.
-  Clicking empty canvas clears the field focus and leaves the terminal's context untouched.
-- **Ultra mode seeds the Zaziopath lattice on first entry** (announced in the transcript). The 38
-  extra nodes live in the same arrays, so STANDARD draws them too after the seed.
-- **The graph simulation is still `O(n²)` in STANDARD** (`NOO-015`); the ultra field uses a uniform
-  grid. `NOO-020` (frame-rate-dependent integration) is unchanged in the standard integrator.
-- Deep links, hashes and persistence: still none, by [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend).
-
----
-
-## [Unreleased]
-
-### Added
+#### Repository and documentation set
 
 - **Documentation set** (`docs/`) — a complete engineering dossier:
-  - `ARCHITECTURE.md` — runtime topology, ten-engine inventory, data models, the force-simulation
+  - `ARCHITECTURE.md` — runtime topology, engine inventory, data models, the force-simulation
     derivation, camera transform, window manager, extension seams, verified invariants, the full
     defect register, and a glossary translating the interface's vocabulary into engineering terms.
   - `API.md` — every global function and engine method with signatures, side effects and complexity;
-    the 42-element DOM contract; the inline handler map; the tooling API.
+    the full DOM contract; the inline handler map; the tooling API.
   - `DESIGN.md` — token system, typography registers, elevation and texture, motion policy, chrome
     grammar, colour-in-motion semantics, voice rules, and the anti-pattern list.
-  - `DECISIONS.md` — ten architecture decision records (`ADR-001`…`ADR-010`) covering single-file
+  - `DECISIONS.md` — architecture decision records (`ADR-001`…`ADR-015`) covering single-file
     delivery, the no-build constraint, vanilla JS, Canvas 2D, deterministic content, no persistence,
     ratcheted tooling, the satirical framing, the semantic accent system and direct coupling.
   - `ACCESSIBILITY.md` — a measured WCAG 2.2 AA gap analysis with contrast ratios computed by
@@ -168,24 +191,90 @@ atlas is unchanged in behaviour; ULTRA is a toggle beside it, not a replacement.
 
 ### Changed
 
-- **`README.md`** rewritten as a technical overview: honest framing first, verified metrics, a
-  feature map, the architecture in one diagram, a documentation index, and status reporting driven by
-  the audit rather than by prose.
+- **Payload budget re-baselined, deliberately** — `SIZE_BUDGET` moves from `96,000 / 128,000 B` to
+  `188,000 / 224,000 B`, anchored to the new measured payload with ~5 % warn and ~25 % fail headroom.
+  `ROADMAP.md` (9.4.2) had already stated the budget would be re-baselined deliberately in 9.5.0 with
+  the reason recorded; the reason is the ultra renderer, which is the largest subsystem in the file
+  (~46 kB of ~179 kB). The ratchet against unbounded growth is preserved. See
+  [`PERFORMANCE.md` § 8](docs/PERFORMANCE.md#8-guardrails).
+- **Both canvases are now device-pixel-ratio scaled** (capped at 2×), with the camera transform kept
+  in CSS pixels so the pointer mapping, labels and zoom stay exact. `NOO-014` retired.
+- **The graph's initial layout is now seeded** (`mulberry32`) instead of `Math.random()`, so the boot
+  graph is reproducible: 90 nodes and 265 edges, twice in a row. `NOO-021` retired.
+- **Node-count chrome is truthful** — the status-bar badge matches the spawn count and the boot banner
+  reports the live node total. `NOO-010` retired.
+- **The alchemy domain gained the filter affordance it never had.** `NOO-011` retired.
+- **Graph controls carry ARIA labels** (17 attributes across the toolbar, mode switch, fields, sliders
+  and toggles). This is a partial answer to `NOO-016`: the audit's heuristic clears when any semantics
+  exist, but the deeper P1 items (live regions, region semantics, modal focus) remain open and are
+  still tracked in [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan).
+- `package.json` version → `9.5.0`; the status-bar label follows. CI now runs the smoke harness after
+  the audit.
+
+- **`scripts/serve.mjs`** is now the local workstation server rather than a bare static server: it
+  keeps the existing static behaviour and inference proxy, and adds vendor assets (`/vendor/xterm.*`
+  from `node_modules`), the PTY bridge (`/api/shell/*`, `/ws/shell`), the agent endpoint
+  (`/api/noosphere/agent/*`) and shutdown that reaps every spawned PTY. The previous zero-dependency
+  promise still holds for the static path: without `npm install` the server starts, serves and
+  reports `SYNAPSE SHELL // OFFLINE`.
+- **`package.json`** — added the shell's pinned dependencies (`@xterm/xterm` 6.0.0,
+  `@xterm/addon-fit` 0.11.0, `ws` 8.22.0), `node-pty` 1.1.0 as an **optional** dependency (see
+  [ADR-012](docs/DECISIONS.md)), `jsdom` as dev-only, and new scripts (`start:no-shell`, `test:shell`,
+  `test:ui`; `npm test` now runs all three suites).
+- **`index.html`** — added the eighth window (`#win-shell`, chrome only), its dock launcher, the
+  window in the grid-realignment defaults, and two asset tags. The shell's runtime is external, so the
+  document's growth is dominated by the ultra renderer — **181,219 B, under the re-baselined 188,000 B
+  warn threshold**. Every existing window contract, id and handler is unchanged.
+- **Documentation** — README, ARCHITECTURE, API, SECURITY, TESTING, DEPLOYMENT and DECISIONS updated
+  for the new subsystem; `docs/SHELL.md` added.
+- **`scripts/audit-baseline.json`** refreshed: `NOO-007` (unescaped `innerHTML` interpolation) had
+  already dropped from 4 to 2 sites in `index.html` before this change, and the baseline was stale.
+  The ratchet is tightened rather than left as unearned headroom.
+
+### Fixed
+
+- `NOO-011` — domain without a filter affordance (alchemy).
+- `NOO-014` — canvas not device-pixel-ratio scaled (both canvases).
+- `NOO-010` — node-count parity drift between chrome and engine (both directions).
+- `NOO-021` — RNG unseeded; the layout is now reproducible per run.
+- `NOO-007` — reduced from 4 to 2 as the transcript and ingestion paths were refactored to write text
+  nodes; the remaining two sinks are tracked.
 
 ### Notes
 
-- **The application runtime is unchanged in this release.** `index.html` is byte-identical; the
-  9.4.1 behaviour, appearance and defects are exactly as published. Everything above is
-  documentation and tooling.
-- **The register is now the canonical record of known defects** — 21 IDs across 38 findings. Items
-  are scheduled in `ROADMAP.md`; severe items (`NOO-001`, `NOO-007`, `NOO-016`, `NOO-019`) are
-  prioritised in `9.4.2` and `9.5.0`.
+- **Selection behaviour is preserved and extended.** A click still appends the inspection line, sets
+  `polymathLLM.selectedNode` and fires `node-deepdive`; it now also opens the field's local cluster.
+  Clicking empty canvas clears the field focus and leaves the terminal's context untouched.
+- **Ultra mode seeds the Zaziopath lattice on first entry** (announced in the transcript). The 38
+  extra nodes live in the same arrays, so STANDARD draws them too after the seed.
+- **The graph simulation is still `O(n²)` in STANDARD** (`NOO-015`); the ultra field uses a uniform
+  grid. `NOO-020` (frame-rate-dependent integration) is unchanged in the standard integrator.
+- Deep links, hashes and persistence: still none, by [ADR-006](docs/DECISIONS.md#adr-006--no-persistence-no-backend).
+
+- **The published artefact's behaviour is preserved.** `index.html` gained one window's chrome, its
+  dock launcher, an entry in the grid-realignment defaults and two asset tags; every existing
+  engine, id, handler and window contract is unchanged. The shell's runtime is external
+  ([ADR-011](docs/DECISIONS.md)) and inert on a static host, where the window reports
+  `SHELL UNAVAILABLE`.
+- **SYNAPSE SHELL is not sandboxed** — deliberately, and by design
+  ([ADR-013](docs/DECISIONS.md)). It runs with your account's authority because that is what a
+  terminal is. The boundary is the network, not the filesystem: read
+  [`SECURITY.md` § 4](SECURITY.md#4--the-local-shell-is-not-sandboxed-docsshellmd) and
+  [`docs/SHELL.md`](docs/SHELL.md) before exposing the bridge to anything but `localhost`.
+- **`AUTONOMOUS` is off by default, never persisted, and revocable without the model's
+  cooperation** (STOP AGENT / INTERRUPT / KILL PROCESS / RESTART). It is an authorisation you grant,
+  not one the model can claim ([ADR-014](docs/DECISIONS.md)).
+- **The register is the canonical record of known defects** — **16 tracked IDs across 30 findings**
+  after this release retired `NOO-010`/`NOO-011`/`NOO-014`/`NOO-021` and cleared `NOO-016` from the
+  automated count. Items are scheduled in `ROADMAP.md`; severe items (`NOO-001`, `NOO-007`,
+  `NOO-016`, `NOO-019`) are prioritised in `9.5.1` and `9.6.0`, and the `9.5.0` shell added no
+  register IDs.
 
 ---
 
 ## [9.4.1] — 2026-10-02
 
-The current published revision: a single-document browser desktop of seven windowed subsystems over
+The published revision at this tag: a single-document browser desktop of seven windowed subsystems over
 ten client-side engines. Total delivery: **88,649 bytes, 1,477 lines, one file, zero installed
 dependencies, zero build steps, zero network calls from the runtime.**
 

@@ -6,7 +6,7 @@
 **Status:** ❌ **Not conformant.** Tracked as [`NOO-016`](ARCHITECTURE.md#17-defect-register) (high).
 **Target:** WCAG 2.2 Level AA for the interface chrome; a defined-but-exempt status for the graph
 canvas (see [§ 7](#7-the-canvas-problem)).
-**Method:** static analysis of `HEAD` (58 buttons, 68 declared IDs, **17 `aria-*`** — all on the graph
+**Method:** static analysis of `HEAD` (61 buttons, 71 declared IDs, **17 `aria-*`** — all on the graph
 and ultra controls — 0 `role`, 0 `tabindex`) plus formula-measured contrast ratios. No automated
 accessibility tool has been run — and saying so is the point of this document.
 
@@ -120,7 +120,7 @@ change — but the substitution is applied inconsistently, so this is *partially
 | Gauge/radar values | Visual only; no table, no text summary | ⚠️ 1.1.1 |
 
 **Headings.** The instrument aesthetic means almost no text is marked as a heading. Visually this is
-correct; programmatically it leaves an AT user with no document outline for seven windowed regions.
+correct; programmatically it leaves an AT user with no document outline for eight windowed regions.
 
 **Suggested remediation shape:** each window becomes a labelled `role="region"` (or `<section>` with
 `aria-labelledby` pointing at its title), the transcript becomes `aria-live="polite"`,
@@ -188,9 +188,9 @@ Ordered by value per unit of effort. Every item is also a roadmap entry in
 
 | Priority | Item | Criteria addressed | Effort | Release |
 | --- | --- | --- | --- | --- |
-| **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.6.0 |
-| **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.6.0 |
-| **P1** | `prefers-reduced-motion` for the standard atlas and ambient loops (the ultra field honours it on entry) | 2.2.2, 2.3.3 | S | 9.5.0 ⚠️ partial · 9.6.0 rest |
+| **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.5.1 |
+| **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.5.1 |
+| **P1** | `prefers-reduced-motion`: standard atlas + ambient loops (the ultra field honours it on entry) | 2.2.2, 2.3.3 | S | 9.5.0 ⚠️ partial · 9.6.0 rest |
 | **P1** | `aria-live` on the transcript, ingestion status and node counter | 4.1.3 | S | 9.6.0 |
 | **P1** | Region semantics per window (`section` + `aria-labelledby`) and a real heading per window | 1.3.1, 2.4.1 | S | 9.6.0 |
 | **P1** | Modal: initial focus, `Escape` to close, focus containment, restore focus to trigger | 2.4.3, 2.1.2 | S | 9.6.0 |
@@ -211,9 +211,8 @@ document.
 
 ## 9. Verification plan
 
-Until a headless-browser harness lands (still planned — the 9.5.0 smoke harness is behavioural and
-does not test accessibility), verification is a manual matrix performed on each release candidate.
-
+Until a headless-browser harness lands in `9.6.0` (the 9.5.0 smoke harness is behavioural and does
+not test accessibility), verification is a manual matrix performed on each release candidate.
 | Check | Method | Pass condition |
 | --- | --- | --- |
 | Keyboard-only traversal | Unplug the mouse; complete every task | All controls reachable, focus order matches visual order, focus always visible |

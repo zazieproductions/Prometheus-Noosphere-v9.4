@@ -34,7 +34,7 @@ Baseline justification (required if any count increased):
 
 ## Verification
 
-Manual matrix tasks run (see [`docs/TESTING.md` § 3](docs/TESTING.md#3-manual-verification-tier)):
+Manual matrix tasks run (see [`docs/TESTING.md` § 3](../docs/TESTING.md#3-manual-verification-tier)):
 
 - [ ] `npm test` exits 0 (`npm run verify` runs the audit and the smoke harness together)
 - [ ] `npm start` serves the app and the change is visible
