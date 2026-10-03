@@ -18,6 +18,7 @@
 | Release cadence | Event-driven: correctness patches when the register justifies them, one feature line per horizon |
 | Supported surface | Current evergreen Chromium, Firefox and Safari. No IE, no legacy Edge, no polyfills |
 | Lifecycle expectation | The artefact runs offline, forever, with no backend. Nothing in it can rot by cancellation of a service. |
+| Local workstation mode | Optional, started with `npm start`; the only configuration in which a PTY, the inference proxy and the agent loop exist. Its trust boundary is loopback-only ([`SECURITY.md` § 4](../SECURITY.md#4--the-local-shell-is-not-sandboxed-docsshellmd)) |
 | Deprecation | Any removal is announced one minor version ahead in [`CHANGELOG.md`](../CHANGELOG.md) |
 
 ---
@@ -29,12 +30,12 @@ therefore unusually strict, and it is enforced in three tiers.
 
 ### 2.1 Runtime dependencies
 
-| Rule | Status |
-| --- | --- |
-| Installed runtime dependencies | **0** — and this is a design constraint, not a coincidence |
-| Vendored assets | 0 B — no images, fonts or audio committed for the app |
-| Third-party origins | **3** (Tailwind Play CDN, unpkg/Lucide, Google Fonts) — the known weakness, `NOO-008` |
-| Network calls from the runtime | **0** — no `fetch`, `XMLHttpRequest` or `WebSocket` |
+| Rule | Published artefact | Local workstation mode |
+| --- | --- | --- |
+| Installed runtime dependencies | **0** — a design constraint, not a coincidence | **3** (`@xterm/xterm`, `@xterm/addon-fit`, `ws`) + 1 optional (`node-pty`) — the sanctioned exception, § 2.4 |
+| Vendored assets | 0 B — no images, fonts or audio committed for the app | Served from `node_modules` at run time (`/vendor/*`); never copied into the artefact |
+| Third-party origins | **3** (Tailwind Play CDN, unpkg/Lucide, Google Fonts) — the known weakness, `NOO-008` | Same three, plus no others: xterm is local |
+| Network calls | **0** — no `fetch`, `XMLHttpRequest` or `WebSocket` | One same-origin `WebSocket` to the local bridge, opened by the shell window, plus optional local Ollama HTTP calls |
 
 **Adding a runtime dependency requires an ADR.** Not a discussion, not a preference — a record with
 context, consequences and rejected alternatives, appended to [`DECISIONS.md`](DECISIONS.md). The bar
@@ -46,15 +47,36 @@ is deliberately high: the project's thesis is the product.
 | --- | --- |
 | `scripts/` uses the Node standard library **only** | `npm test` must run with no install, so a reviewer can verify a checkout in one command |
 | No test framework | [`ADR-007`](DECISIONS.md#adr-007--zero-dependency-tooling-with-a-ratcheted-audit) |
-| Dev-only dependencies are permitted *outside the runtime path* | The planned Playwright harness in [`TESTING.md` § 7](TESTING.md#7-the-road-to-behavioural-tests) is the sanctioned example |
+| Dev-only dependencies are permitted *outside the runtime path* | `jsdom` (pinned 30.1.1) for the browser suite, and the planned Playwright harness in [`TESTING.md` § 7](TESTING.md#7-the-road-to-behavioural-tests) |
 | Any dev dependency must be pinned exactly | Reproducible CI is a prerequisite for a meaningful ratchet |
 
 ### 2.3 Prohibited
 
 Frameworks and view libraries · CSS preprocessors · bundlers in the **default** path · runtime
-polyfills · analytics, error-reporting or A/B SDKs · anything that introduces a server. The last item
-is absolute: a backend would invalidate [ADR-006](DECISIONS.md#adr-006--no-persistence-no-backend)
-and the deployment story in one move.
+polyfills · analytics, error-reporting or A/B SDKs · anything that introduces a **hosted** server.
+The last item is absolute: a backend with state would invalidate
+[ADR-006](DECISIONS.md#adr-006--no-persistence-no-backend) and the deployment story in one move.
+
+The shell is the one place this needs a footnote, so it gets one rather than an asterisk: local
+workstation mode runs `scripts/serve.mjs`, which is a loopback-only bridge, holds no state across
+restarts, is never required by the published artefact, and can be switched off entirely
+(`NOOSPHERE_SHELL=off`, `--no-shell`, or simply not running it). It amends ADR-006 in scope, not in
+spirit — see [ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml).
+
+### 2.4 The sanctioned exception: the shell's dependencies
+
+The rule above has exactly one exception, bounded by two ADRs.
+
+| Rule | Status |
+| --- | --- |
+| The exception must not touch the published artefact | `index.html` imports nothing; the shell's assets are fetched only when a local bridge exists ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)) |
+| Every shell dependency is pinned exactly | `@xterm/xterm` 6.0.0 · `@xterm/addon-fit` 0.11.0 · `ws` 8.22.0 · `node-pty` 1.1.0 |
+| The native dependency is optional, and its absence is a feature state | `optionalDependencies` + a dynamic `import()` inside `try`/`catch`; `npm install` cannot fail the project ([ADR-012](DECISIONS.md#adr-012--optional-native-dependency-with-a-degraded-mode)) |
+| No shell dependency enters the browser build | There is no build: xterm is served as a UMD script from the local `/vendor/*` route |
+| `npm test` still passes without an install | The audit is dependency-free; both behavioural suites skip cleanly on a bare checkout |
+
+A new dependency of any kind still requires an ADR. The shell's four are covered by ADR-011 and
+ADR-012, and no further ones are anticipated.
 
 ---
 
@@ -64,17 +86,17 @@ Measured at `HEAD`; all reproducible with `npm test` and the commands in the aud
 
 | Metric | Value | Reading |
 | --- | --- | --- |
-| Application payload | 88,649 B / 1,477 lines | Within budget (7,351 B of headroom to the warn threshold) |
-| Runtime script | 41,013 B / 801 lines | Ten engines, average ~80 lines each |
-| Markup + chrome | 42,360 B / 553 lines | **The markup now outweighs the logic** — see § 5 |
+| Application payload | 95,308 B / 1,571 lines | Within budget (692 B of headroom to the warn threshold) — the shell's runtime is external by design (ADR-011) |
+| Runtime script | 45,270 B / 869 lines | Ten engines plus the hooks that mount the shell window; the console itself is external (`shell/` — ADR-011) |
+| Markup + chrome | 44,686 B / 577 lines | Markup and logic are within 600 B of each other — see § 5.3 |
 | Design tokens | 2,080 B | Colours, fonts, shadows, animations |
 | CSS primitives | 2,056 B | Only what utilities cannot express |
-| Engines / modules | 10 | Each with a single responsibility and a documented surface |
-| Windowed subsystems | 7 | Each mapping to one engine or one engine pair |
-| Duplicated window chrome | 7 `.win-header` blocks, 15 control buttons | The single largest duplication in the repository |
+| Engines / modules | 10 internal + 1 external (`window.synapseShell`) | Each with a single responsibility and a documented surface; the external one is loadable only in local workstation mode |
+| Windowed subsystems | 8 | Each mapping to one engine or one engine pair; the shell window maps to `window.synapseShell` |
+| Duplicated window chrome | 8 `.win-header` blocks, 15 control buttons | The single largest duplication in the repository |
 | Magic numbers with semantic meaning | 12 named in § 4 | Candidates for a constants block |
-| Automated checks | 21 register IDs + 4 fatal rules | ~0.3 s, dependency-free |
-| Tracked findings | 38 across 21 IDs | Baselined, severity-classified, roadmap-mapped |
+| Automated checks | 21 register IDs + 4 fatal rules, then 34 behavioural tests | The audit is ~0.3 s and dependency-free; the behavioural suites skip cleanly without the shell's optional dependencies |
+| Tracked findings | 36 across 21 IDs | Baselined, severity-classified, roadmap-mapped |
 
 **Comment density and naming.** Engine banners (`// 3. FORCE-DIRECTED NEURAL GRAPH ATLAS ENGINE`)
 partition the script into labelled regions, and every engine exposes verb-named methods
@@ -141,7 +163,7 @@ to modify?" — and it is the argument for deriving values from data rather than
 | Tune the physics | 1 region (`updatePhysics`) | XS | Self-contained, but see § 4 |
 | Add a domain | **3** (`DOMAINS`, filter bar, modal selector) | S | Three parallel enumerations of the same concept — the source of `NOO-011` |
 | Add a directive | 3 (`VOCAB`, `runDirective`, toolbar chip) | S | Composition + presentation |
-| Add a window | **4** (shell markup, dock button, `resetWindowPositions`, optional engine) | M | Four enumerations; omitting one produces exactly `NOO-012`/`NOO-019` |
+| Add a window | **4** (window skeleton, dock button, `resetWindowPositions`, optional engine) | M | Four enumerations; omitting one produces exactly `NOO-012`/`NOO-019`. The SYNAPSE SHELL window (`9.5.0`) walked that checklist and produced neither — the recipe works when followed |
 | Change the node count | **3** (spawn loop, header badge, boot banner) | S | Numbers that should be derived, currently literal — `NOO-010` |
 | Replace the composer | 1 engine | M | Clean seam: `VOCAB` + one object literal |
 | Change the design tokens | 1 block | XS | Genuinely centralised — the token layer earns its keep |
@@ -153,11 +175,13 @@ The systematic fix, already reflected in the roadmap, is to derive each from a s
 
 ### 5.3 The markup/logic ratio
 
-Markup (42,360 B) now exceeds the runtime script (41,013 B). The reason is duplication: seven
-near-identical window headers, fifteen near-identical control buttons, repeated class strings. This
-is the largest structural debt in the repository — and it is **not** a defect in the register, because
-it costs nothing at runtime and the markup is honest and readable. It is a maintainability
-observation with a corresponding roadmap item (template the window chrome in `10.x`).
+Markup (44,686 B) and the runtime script (45,270 B) are now within 600 B of each other: the shell
+window added an eighth header (+1.5 KB of chrome) and the hooks that mount it (+4.3 KB of logic).
+The underlying reason is still duplication — eight near-identical window headers, fifteen
+near-identical control buttons, repeated class strings. This is the largest structural debt in the
+repository, and it is **not** a defect in the register, because it costs nothing at runtime and the
+markup is honest and readable. It is a maintainability observation with a corresponding roadmap item
+(template the window chrome in `10.x`).
 
 ---
 
@@ -196,6 +220,7 @@ src/
 │              palette.js  · grimoire.js  · combinator.js  · modal.js
 ├── data/      domains.js  · seed-themes.js  · vocab.js  · palettes.js  · grimoire-data.js
 ├── ui/        window-chrome.js     (templated markup)
+├── shell/     synapse-shell.js · synapse-shell.css   (already extracted — ADR-011)
 ├── app.js     boot sequence (the current DOMContentLoaded body)
 └── index.html thin shell: tokens + <style> + containers + <script type="module" src="src/app.js">
 ```
@@ -208,7 +233,9 @@ sound → window-manager → graph → polymath → ingestion → palette → gr
 
 The order is load-bearing ([ADR-010](DECISIONS.md#adr-010--sequential-boot-with-direct-coupling)).
 In a module world it becomes an explicit import graph, which is a genuine improvement: the current
-ordering contract is documented but unenforced.
+ordering contract is documented but unenforced. The shell follows this rule from the outside: it
+initialises after the boot sequence, talks over HTTP/WebSocket, and never touches another engine's
+internals ([`ARCHITECTURE.md` § 19.4](ARCHITECTURE.md#194-coupling-rule)).
 
 ### 7.3 Constraints on the extraction
 
@@ -223,7 +250,10 @@ ordering contract is documented but unenforced.
 ### 7.4 Why wait
 
 The single-file artefact *is* the project's thesis. Extraction becomes worthwhile when the file
-crosses the payload budget or when a second consumer appears (an embeddable component, a variant
+crosses the payload budget or when a second consumer appears. The shell is the first case taken
+([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)): its runtime is dead
+weight for every static-host visitor, so it lives outside the document while the document keeps its
+shape. (an embeddable component, a variant
 theme). Until then it would trade a real asset — one reviewable artefact — for modularity nobody is
 currently blocked on. This is a stated position, not an oversight.
 
@@ -234,8 +264,10 @@ currently blocked on. This is a stated position, not an oversight.
 | Risk | Likelihood | Impact | Mitigation |
 | --- | --- | --- | --- |
 | **Bus factor 1** | Certain | High | Conventional Commits, ADRs, this document, dependency-free tooling, and a manual matrix that assumes no author knowledge |
-| Unpinned CDNs change under a fixed commit | Medium | Medium | Pin URLs now; self-host in `9.5.0` (`NOO-008`); the CSP section in [`DEPLOYMENT.md`](DEPLOYMENT.md#5-content-security-policy) documents the blast radius |
-| Single file crosses the budget | Low | Medium | Warn at 96,000 B, fail at 128,000 B; § 7 is ready when it matters |
+| Unpinned CDNs change under a fixed commit | Medium | Medium | Pin URLs now; self-host in `9.6.0` (`NOO-008`); the CSP section in [`DEPLOYMENT.md`](DEPLOYMENT.md#5-content-security-policy) documents the blast radius |
+| Single file crosses the budget | **Medium** | Medium | Re-baselined at 96,000 B warn / 128,000 B fail with 692 B of headroom after the shell release; further shell work belongs in `shell/`, not the document ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)) |
+| Shell dependencies rot or fail to compile | Medium | Low | Pinned exactly; `node-pty` is optional and its absence renders as a state, not an error ([ADR-012](DECISIONS.md#adr-012--optional-native-dependency-with-a-degraded-mode)); the published artefact imports none of it |
+| A remote client or cross-site page reaches the PTY | Low | Critical | Per-request gate on peer, `Host`, `Origin`, forwarding headers and `Sec-Fetch-Site`; no CORS; refusals are tested for both HTTP and the WebSocket upgrade ([`SECURITY.md` § 4](../SECURITY.md#4--the-local-shell-is-not-sandboxed-docsshellmd)) |
 | Satire misread as endorsement | Medium | Medium | Explicit framing in the README, the architecture document and [`DESIGN.md` § 9](DESIGN.md#9-satire-and-disclosure) |
 | Accessibility work deferred indefinitely | Medium | High | It is P0/P1 in [`ACCESSIBILITY.md`](ACCESSIBILITY.md#8-remediation-plan) with register IDs and target releases, not a wish list |
 | Browser API churn (`backdrop-filter`, Web Audio autoplay policy) | Low | Low | Both are feature-detected or gracefully degraded; no polyfills by policy |
@@ -253,6 +285,7 @@ Documentation is treated as maintained code: it has an owner, a review trigger a
 | `README.md` | Features, metrics, roadmap horizons change | Counts come from `npm test` — never hand-typed |
 | `ARCHITECTURE.md` | Runtime topology, data models, physics or the register change | The source; line anchors verified before each release |
 | `API.md` | **Any** signature, return shape or side effect changes | The source; treated as a breaking change |
+| `SHELL.md` | Shell behaviour, AI modes, the trust boundary or troubleshooting change | The source; `server/routes.mjs` + `shell/synapse-shell.js` are the implementation |
 | `DESIGN.md` | A token, typeface, motion rule or chrome convention changes | `tailwind.config` + `<style>` |
 | `DECISIONS.md` | A foundational choice is made or reversed | Append-only; supersede rather than edit |
 | `ACCESSIBILITY.md` | A remediation item lands | Re-measure contrast; record the new state |
@@ -273,16 +306,20 @@ others must follow; the audit's own copy of the register is documented as needin
 For a maintainer taking over:
 
 1. `git clone` → `npm test` → `npm start`. If that sequence does not work, stop and fix it:
-   reproducibility is the project's first promise.
+   reproducibility is the project's first promise. The behavioural suites skip cleanly on a bare
+   checkout — that is a pass; run `npm install` to exercise the shell end to end.
 2. Read [`README.md` § What this is not](../README.md#what-this-is-not) before reading any code. The
    framing is part of the specification.
-3. Read the runtime table in [`ARCHITECTURE.md` § 6](ARCHITECTURE.md#6-engine-inventory) — ten rows
+3. Read the runtime table in [`ARCHITECTURE.md` § 6](ARCHITECTURE.md#6-engine-inventory) — eleven rows
    is the whole map.
 4. Read [`ARCHITECTURE.md` § 17](ARCHITECTURE.md#17-defect-register) — the 21 items that are already
    known, so you do not rediscover them as surprises.
 5. Change one tunable in § 4 and watch what happens. Nothing teaches this codebase faster.
 6. Work the P0 list in [`ACCESSIBILITY.md`](ACCESSIBILITY.md#8-remediation-plan) next: it is the
    highest-value outstanding work and every item is small.
+7. If you are touching the shell, read [`SHELL.md`](SHELL.md) first — it is short, and it states the
+   trust boundary and the two facts easiest to get wrong (nothing is sandboxed; `AUTONOMOUS` is the
+   authorisation).
 
 ---
 

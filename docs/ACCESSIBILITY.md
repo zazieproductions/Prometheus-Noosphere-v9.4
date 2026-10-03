@@ -182,12 +182,12 @@ Ordered by value per unit of effort. Every item is also a roadmap entry in
 
 | Priority | Item | Criteria addressed | Effort | Release |
 | --- | --- | --- | --- | --- |
-| **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.4.2 |
-| **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.4.2 |
-| **P1** | `prefers-reduced-motion`: static first frame, frozen ambient loops | 2.2.2, 2.3.3 | S | 9.5.0 |
-| **P1** | `aria-live` on the transcript, ingestion status and node counter | 4.1.3 | S | 9.5.0 |
-| **P1** | Region semantics per window (`section` + `aria-labelledby`) and a real heading per window | 1.3.1, 2.4.1 | S | 9.5.0 |
-| **P1** | Modal: initial focus, `Escape` to close, focus containment, restore focus to trigger | 2.4.3, 2.1.2 | S | 9.5.0 |
+| **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.5.1 |
+| **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.5.1 |
+| **P1** | `prefers-reduced-motion`: static first frame, frozen ambient loops | 2.2.2, 2.3.3 | S | 9.6.0 |
+| **P1** | `aria-live` on the transcript, ingestion status and node counter | 4.1.3 | S | 9.6.0 |
+| **P1** | Region semantics per window (`section` + `aria-labelledby`) and a real heading per window | 1.3.1, 2.4.1 | S | 9.6.0 |
+| **P1** | Modal: initial focus, `Escape` to close, focus containment, restore focus to trigger | 2.4.3, 2.1.2 | S | 9.6.0 |
 | **P2** | Canvas text alternative + keyboard pan/zoom + node traversal | 1.1.1, 2.1.1, 2.5.7 | M | 10.0.0 |
 | **P2** | Keyboard alternative for window movement (arrow-key nudge on the focused window) | 2.1.1, 2.5.7 | M | 10.0.0 |
 | **P2** | Turn `<div onclick>` surfaces (swatches, cards) into real buttons | 2.1.1, 4.1.2 | S | 10.0.0 |
@@ -201,7 +201,7 @@ document.
 
 ## 9. Verification plan
 
-Until a headless-browser harness lands in `9.5.0`, verification is a manual matrix performed on each
+Until a headless-browser harness lands in `9.6.0`, verification is a manual matrix performed on each
 release candidate.
 
 | Check | Method | Pass condition |

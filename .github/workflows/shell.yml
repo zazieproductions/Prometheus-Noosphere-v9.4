@@ -1,0 +1,78 @@
+name: Shell
+
+# Behavioural verification for SYNAPSE SHELL.
+#
+# The `Audit` workflow stays dependency-free and fast: it never installs anything.
+# This workflow is the opposite by necessity — it compiles `node-pty` and drives a
+# real PTY, because the one subsystem that touches the operating system cannot be
+# verified by reading `index.html` as text.
+#
+# It is path-filtered on purpose: a documentation-only or graph-only change should
+# never pay for a native build, and this job must not become the flaky gate that
+# makes the fast one feel optional.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'shell/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/shell.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'shell/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/shell.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shell-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  behavioural:
+    name: PTY integration + browser degradation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install shell dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Report whether the native PTY binding built
+        run: node -e "import('node-pty').then(() => console.log('node-pty: ok')).catch((e) => { console.error('node-pty failed:', e.message); process.exit(1); })"
+
+      - name: PTY integration suite
+        run: npm run test:shell
+
+      - name: Browser degradation suite
+        run: npm run test:ui
+
+      - name: Shell window assets are present in the deployable tree
+        run: |
+          test -f shell/synapse-shell.js
+          test -f shell/synapse-shell.css
+          node -e "
+            const fs = require('node:fs');
+            const html = fs.readFileSync('index.html', 'utf8');
+            for (const needle of ['shell/synapse-shell.js', 'shell/synapse-shell.css', 'id=\"win-shell\"', 'restoreOrFocus(\'win-shell\')']) {
+              if (!html.includes(needle)) { console.error('missing from index.html: ' + needle); process.exit(1); }
+            }
+            console.log('shell integration points present');
+          "

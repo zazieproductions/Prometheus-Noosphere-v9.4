@@ -29,7 +29,7 @@ dependencies), so the conventions below matter more than usual: they are what ke
 
 | Contribution | Where to start |
 | --- | --- |
-| **Fix a register item** | [`ROADMAP.md` § Now](docs/ROADMAP.md#now--942--correctness) — all `XS` items except `NOO-019` are scoped for first-time contributors |
+| **Fix a register item** | [`ROADMAP.md` § Now](docs/ROADMAP.md#now--951--correctness-carried-over) — all `XS` items except `NOO-019` are scoped for first-time contributors |
 | **Improve accessibility** | [`ACCESSIBILITY.md` § 8](docs/ACCESSIBILITY.md#8-remediation-plan) — P0 items are minutes of work and high impact |
 | **Tune the artefact** | [`MAINTAINABILITY.md` § 4](docs/MAINTAINABILITY.md#4-tunable-surface) — every constant that changes behaviour, in one table |
 | **Add content** | A fragment, palette, seed theme or directive: one array, no code |
@@ -291,7 +291,7 @@ Stated up front to save everyone a review cycle. Each refusal maps to a recorded
 ## Getting help
 
 - **Questions about a change** → open a discussion or comment on the issue for that register ID.
-- **Unsure where to start** → pick any `XS` item in the `9.4.2` horizon; they are designed as
+- **Unsure where to start** → pick any `XS` item in the `9.5.1` horizon; they are designed as
   onboarding.
 - **Security concerns** → do **not** open a public issue; follow [`SECURITY.md`](SECURITY.md).
 

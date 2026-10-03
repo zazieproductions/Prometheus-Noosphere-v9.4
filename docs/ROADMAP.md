@@ -6,7 +6,7 @@
 **Tracing rule:** every item below is either a register entry ([`ARCHITECTURE.md` § 17](ARCHITECTURE.md#17-defect-register))
 or an ADR consequence. Nothing arrives on this roadmap as a preference.
 
-**Releases:** `9.4.2` correctness · `9.5.0` fidelity and trust · `10.0.0` structure and access.
+**Releases:** `9.5.0` SYNAPSE SHELL *(shipped)* · `9.5.1` correctness *(carried over)* · `9.6.0` fidelity and trust · `10.0.0` structure and access.
 
 ---
 
@@ -20,38 +20,64 @@ or an ADR consequence. Nothing arrives on this roadmap as a preference.
 | **Acceptance** | The objective condition that closes the item |
 
 Horizons are named after [Semantic Versioning](https://semver.org): patches are corrections, minors
-are additive fidelity, majors are structural or contract-breaking.
+are additive fidelity, majors are structural or contract-breaking. The shell release landed ahead of
+the correctness patch originally numbered `9.4.2`; that work is now `9.5.1`, and the fidelity items
+originally planned for `9.5.0` moved to `9.6.0`.
 
 ---
 
-## Now — `9.4.2` · Correctness
+## Shipped — `9.5.0` · SYNAPSE SHELL
+
+The host shell is a **feature addition, not a register entry**: it is recorded here as delivered,
+with its acceptance evidence, rather than as a defect. It is also the release that re-baselined the
+payload budget ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml),
+[`ARCHITECTURE.md` § 19.2](ARCHITECTURE.md#192-why-the-shell-lives-outside-indexhtml)): the console
+runtime is external to `index.html`, so the 96,000 B warn threshold still holds.
+
+| Delivered | Evidence | Acceptance |
+| --- | --- | --- |
+| A real PTY per session on the user's own `$SHELL`, started in the repository root; multiple sessions; resize; interrupt; process-tree kill; restart | `server/shell.mjs`, [`SHELL.md`](SHELL.md) | `scripts/test-shell.mjs` — 29 integration tests against a live bridge |
+| Loopback-only trust boundary, enforced per HTTP request *and* per WebSocket upgrade | `server/gate.mjs`, [`SECURITY.md` § 4](../SECURITY.md#4--the-local-shell-is-not-sandboxed-docsshellmd) | Five refusal tests plus a positive localhost control |
+| AI SHELL `OFF` / `ASSIST` / `AUTONOMOUS`: fixed tool vocabulary, bounded loop, visible step log, STOP AGENT | `server/agent.mjs`, [ADR-014](DECISIONS.md#adr-014--ai-shell-control-mode-as-authorisation) | `OFF` exposes nothing; `ASSIST` cannot execute; `AUTONOMOUS` is bounded by MAX STEPS and MAX RUNTIME |
+| Eighth window with host/shell/PTY/PID/CWD chrome, QUICK ACTIONS, dock integration, `SHELL UNAVAILABLE` degradation | `shell/synapse-shell.js`, `index.html` | `scripts/test-ui.mjs` — 5 jsdom tests, including static-host and remote-client rendering |
+| Ephemeral terminal history by default; SAVE SESSION writes a provenance-headed, gitignored artefact only on request | `server/shell.mjs`, `.gitignore` | Saving is opt-in; no terminal content reaches Zaziopath automatically |
+
+Follow-up shell work is folded into the horizons below rather than repeated here.
+
+---
+
+## Now — `9.5.1` · Correctness (carried over)
 
 Theme: **the artefact should not contradict itself.** Every item here is small, verifiable, and
-either removes a visible flaw or makes an advertised number true.
+either removes a visible flaw or makes an advertised number true. This is the horizon previously
+numbered `9.4.2`; the shell release moved ahead of it.
 
 | ID | Item | Effort | Impact | Acceptance |
 | --- | --- | --- | --- | --- |
-| `NOO-019` | **Viewport-aware default layout** — clamp and flow the seven windows on boot and resize; keep the desktop metaphor | M | The synthesizer window stops being unreachable on ≤1500 px displays | No window requires a viewport wider than 1280 px to be grabbable; the audit's `NOO-019` count reaches 0 |
+| `NOO-019` | **Viewport-aware default layout** — clamp and flow the eight windows on boot and resize; keep the desktop metaphor | M | The synthesizer window stops being unreachable on ≤1500 px displays | No window requires a viewport wider than 1280 px to be grabbable; the audit's `NOO-019` count reaches 0 |
 | `NOO-001` | **Fix the undefined colour family** — rename `crimson-*` utilities to `neon-crimson-*`, or promote `crimson` to a top-level family | XS | Restores six missing borders; the analytics window stops blending into its background | `NOO-001` reaches 0; the affected panels show their intended borders in all three browsers |
 | `NOO-006` | **Replace the invalid Lucide icon** (`dread` → a real name such as `brain-circuit`) | XS | The combinator window regains its header glyph | `NOO-006` reaches 0; the icon renders |
 | `NOO-007` | **Escape human-origin interpolation** — route prompt text and dropped filenames through `textContent` or an `escapeHtml` helper | S | Closes the only trust-boundary problem in the runtime | `NOO-007` reaches 0; a filename containing `<img src=x onerror=…>` renders as literal text |
 | `NOO-009` | **Make advertised content true** — either correct "240+ fragments" / the `.PDF` claim, or ship the corpus | XS | The interface stops over-claiming | Every claim in the chrome matches its data; `NOO-009` reaches 0 |
 | `NOO-010` | **Derive all counters from one source** — badge and boot banner read `graphNodes.length` | XS | Header, banner and reality agree at 90 nodes | `NOO-010` reaches 0; injecting a node updates all three |
 | `NOO-011` | **Add the missing domain filter** (alchemical OS) | XS | The fifth domain becomes isolatable | `NOO-011` reaches 0; filtering by alchemy shows only its nodes |
-| `NOO-012` | **Add the synthesizer to the dock** | XS | The seventh window gains a launcher, compounding the `NOO-019` fix | `NOO-012` reaches 0; the dock lists 7 |
+| `NOO-012` | **Add the synthesizer to the dock** | XS | The synthesizer window gains a launcher, compounding the `NOO-019` fix | `NOO-012` reaches 0; the dock lists 8 |
 | `NOO-002` | Replace `py-0.2` with a valid spacing step | XS | Correct padding on window badges | `NOO-002` reaches 0 |
 | `NOO-003` | Declare the `fadeIn` animation used by ingested artefact rows | XS | Rows animate in as intended | `NOO-003` reaches 0 |
 | `NOO-004` | Define the `.no-scrollbar` utility | XS | The directive strip scrolls without a visible bar | `NOO-004` reaches 0 |
 | `NOO-005` | Delete or apply the dead `pulse-glow` / `scanline` animations | XS | Removes misleading config | Either applied and visible, or removed; `NOO-005` reaches 0 |
 | `NOO-013` | **Resolve the static "live" readouts** — drive them from state, or relabel them as static | S | Removes four places where the UI narrates activity that does not exist | `NOO-013` reaches 0 by either route; the choice is documented |
 
-**Patch exit criteria:** the audit reports **≤ 8 findings** (from 38), the payload stays under
-90,000 B, and no new register ID is introduced. Accessibility P0 items from
-[`ACCESSIBILITY.md`](ACCESSIBILITY.md#8-remediation-plan) ship in this release as well.
+**Patch exit criteria:** the audit reports **≤ 8 findings**, no register count regresses, and no
+new register ID is introduced. Accessibility P0 items from
+[`ACCESSIBILITY.md`](ACCESSIBILITY.md#8-remediation-plan) ship in this release as well. The payload
+stays inside the re-baselined budget — 96,000 B warn / 128,000 B fail, recorded in
+[`ARCHITECTURE.md` § 19.2](ARCHITECTURE.md#192-why-the-shell-lives-outside-indexhtml) — with the shell
+runtime external to the document ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)).
 
 ---
 
-## Next — `9.5.0` · Fidelity and trust
+## Next — `9.6.0` · Fidelity and trust
 
 Theme: **make it look right everywhere, tell the truth about itself, and become testable.**
 
@@ -64,9 +90,9 @@ Theme: **make it look right everywhere, tell the truth about itself, and become 
 | `NOO-021` | **Seeded RNG + `?seed=`** — replace the 19 `Math.random()` call sites with a seeded generator | S | Deterministic demos, shareable layouts, reproducible bug reports | The same seed produces an identical first frame, twice in a row |
 | — | **`prefers-reduced-motion`** (P1 accessibility) | S | Removes continuous animation for users who request it | With the OS setting enabled: one static frame, no ambient loops, no content loss |
 | — | **`aria-live` regions** (P1 accessibility) | S | Announces ingestion, injection and composition to screen readers | Transcript, ingestion status and node counter announce without stealing focus |
-| — | **Window semantics and headings** (P1 accessibility) | S | Gives assistive technology a navigable structure for seven windows | Each window is a labelled region with a heading; the audit ratchets `NOO-016` down |
+| — | **Window semantics and headings** (P1 accessibility) | S | Gives assistive technology a navigable structure for eight windows | Each window is a labelled region with a heading; the audit ratchets `NOO-016` down |
 | — | **Modal focus management** (P1 accessibility) | S | Keyboard users can enter, use and leave the injection modal | Initial focus set, `Escape` closes, focus returns to the trigger |
-| — | **Headless harness** — Playwright, pinned, dev-only, driven by the seeded layout | M | Behavioural and visual regression at three reference widths; would have caught `NOO-019` automatically | CI runs the harness; the 1280 px visual case fails on the pre-fix commit and passes after |
+| — | **Headless harness** — Playwright, pinned, dev-only, driven by the seeded layout | M | Behavioural and visual regression at three reference widths; would have caught `NOO-019` automatically | CI runs the harness; the 1280 px visual case fails on the pre-fix commit and passes after; a second spec drives the SYNAPSE SHELL window against a locally spawned bridge (command output, resize, mode switch, offline render) |
 | — | **README screenshot + live demo link** | XS | Replaces the placeholder block once the layout is stable | Committed capture at 1440 px from a seeded run |
 
 **Minor exit criteria:** `NOO-016` reduced to a single ratcheted count; accessibility P0 and P1
@@ -84,10 +110,11 @@ file.** Major version because these items move the contract, not just the implem
 | --- | --- | --- | --- | --- |
 | `NOO-015` | **Spatial index + worker physics** — uniform grid broad phase, optionally off the main thread with transferable typed arrays | L | Supports a much larger graph (300+ nodes) at 60 fps | Pair work drops from `O(n²)` to `O(n·k)`; the graph scales to 300 nodes within budget |
 | `NOO-016` | **Keyboard and assistive-technology model** — canvas text alternative, keyboard pan/zoom, node traversal, keyboard window movement | L | Makes the centrepiece usable without a pointing device | The full manual matrix in [`ACCESSIBILITY.md` § 9](ACCESSIBILITY.md#9-verification-plan) passes with a keyboard only |
-| — | **Module extraction behind an optional bundler** — one module per PR, `index.html` untouched until the shell swap | L | Reviewability of a growing codebase; keeps the single-file artefact shippable | Source modules exist, a build produces a byte-equivalent artefact, and the audit runs in both modes |
-| — | **Templated window chrome** | M | Removes the largest duplication (42 KB of markup > 41 KB of logic) | One template renders all seven windows; markup volume drops materially |
+| — | **Module extraction behind an optional bundler** — one module per PR; `shell/` is the existing precedent ([ADR-011](DECISIONS.md#adr-011--the-shell-module-lives-outside-indexhtml)) | L | Reviewability of a growing codebase; keeps the single-file artefact shippable | Source modules exist, a build produces a byte-equivalent artefact, and the audit runs in both modes |
+| — | **Templated window chrome** | M | Removes the largest duplication (42 KB of markup > 41 KB of logic) | One template renders all eight windows; markup volume drops materially |
 | — | **`TUNING` constants block** | XS | Behaviour adjustable without reading the physics | All 12 tunables in one frozen object, referenced by name |
-| `NOO-017` | **Delegated drag listeners** | S | Removes 14 permanent `document` listeners | One delegated listener pair regardless of window count |
+| `NOO-017` | **Delegated drag listeners** | S | Removes 16 permanent `document` listeners | One delegated listener pair regardless of window count |
+| — | **Terminal accessibility pass** — region semantics and a heading for the shell window, a keyboard-only path through its quick actions, and an honest statement of what a screen reader can and cannot read from a PTY stream | S | The shell window stops being the one subsystem outside the accessibility contract (ADR-011, ADR-014) | The window is a labelled region with a heading, every quick action is reachable and named, and the limitation is documented in [`ACCESSIBILITY.md`](ACCESSIBILITY.md) rather than implied away |
 | — | **Shareable state** (`#state=` fragment) | M | Reproducible layouts without a backend, consistent with [ADR-006](DECISIONS.md#adr-006--no-persistence-no-backend) | A copied URL restores graph, palette and transcript state with no server involved |
 | — | **Fourth domain-composition pass** — grow the vocabulary table so the composer's variation space scales with the corpus | S | Keeps the satire generative rather than repetitive | Composition space documented in `ARCHITECTURE.md` § 12 and updated in the same PR |
 
@@ -128,7 +155,7 @@ flowchart LR
   G -- approve --> H["Squash-merge to main"]
 ```
 
-**Good first issues:** every `XS` item in `9.4.2` except `NOO-019` — each is a single, verifiable
+**Good first issues:** every `XS` item in `9.5.1` except `NOO-019` — each is a single, verifiable
 correction with an objective acceptance criterion and a corresponding audit check that will flip to
 zero. That is deliberate: the register doubles as an onboarding queue.
 
@@ -145,12 +172,14 @@ wins.
 
 | Horizon | Register IDs | Count |
 | --- | --- | --- |
-| `9.4.2` | `NOO-001` `NOO-002` `NOO-003` `NOO-004` `NOO-005` `NOO-006` `NOO-007` `NOO-009` `NOO-010` `NOO-011` `NOO-012` `NOO-013` `NOO-019` | 13 |
-| `9.5.0` | `NOO-008` `NOO-014` `NOO-018` `NOO-020` `NOO-021` | 5 |
+| `9.5.1` | `NOO-001` `NOO-002` `NOO-003` `NOO-004` `NOO-005` `NOO-006` `NOO-007` `NOO-009` `NOO-010` `NOO-011` `NOO-012` `NOO-013` `NOO-019` | 13 |
+| `9.6.0` | `NOO-008` `NOO-014` `NOO-018` `NOO-020` `NOO-021` | 5 |
 | `10.0.0` | `NOO-015` `NOO-016` `NOO-017` | 3 |
 | **Total** | | **21** |
 
-Progress is measured by the baseline shrinking — not by this document being edited.
+Progress is measured by the baseline shrinking — not by this document being edited. The `9.5.0`
+shell release added no register IDs: its follow-up work (above) is an ADR consequence, tracked
+without an ID.
 
 ---
 
