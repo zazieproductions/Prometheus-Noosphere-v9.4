@@ -1,8 +1,8 @@
 {
   "name": "noosphere-os",
-  "version": "9.4.1",
+  "version": "9.5.0",
   "private": true,
-  "description": "NOÖSPHERE // OS — a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis.",
+  "description": "NOÖSPHERE // OS — a single-file browser operating system for polymathic neural cartography, semantic engineering and procedural idea synthesis, with SYNAPSE SHELL and Local-First WEB UPLINK.",
   "keywords": [
     "creative-coding",
     "canvas",
@@ -11,6 +11,9 @@
     "tailwindcss",
     "zero-build",
     "single-file",
+    "terminal",
+    "xterm",
+    "pty",
     "portfolio"
   ],
   "homepage": "https://zazieproductions.github.io/Prometheus-Noosphere-v9.4/",
@@ -29,14 +32,27 @@
   "scripts": {
     "start": "node scripts/serve.mjs",
     "serve": "node scripts/serve.mjs",
+    "start:no-shell": "node scripts/serve.mjs --no-shell",
     "audit": "node scripts/audit.mjs",
     "audit:json": "node scripts/audit.mjs --json",
     "audit:report": "node scripts/audit.mjs --write-report",
     "audit:baseline": "node scripts/audit.mjs --refresh-baseline",
+    "test": "node scripts/audit.mjs && node scripts/test-shell.mjs && node scripts/test-ui.mjs && node scripts/test-uplink.mjs",
+    "test:audit": "node scripts/audit.mjs",
+    "test:shell": "node scripts/test-shell.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
     "test:uplink": "node scripts/test-uplink.mjs",
-    "test": "node scripts/audit.mjs && node scripts/test-uplink.mjs",
     "ci": "node scripts/audit.mjs --write-report && node scripts/test-uplink.mjs"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "ws": "8.22.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "1.1.0"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.1"
+  }
 }

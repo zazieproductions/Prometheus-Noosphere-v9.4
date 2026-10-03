@@ -16,7 +16,7 @@ Two claims are worth defending, and one is worth retracting.
 
 | Claim | Status | Evidence |
 | --- | --- | --- |
-| The application payload is small and auditable | ✅ **Measured** — 88,649 B, 1,477 lines, 0 vendored assets | `npm test` |
+| The application payload is small and auditable | ✅ **Measured** — 95,308 B, 1,571 lines, 0 vendored assets | `npm test` |
 | The total delivery cost is small | ⚠️ **Unverified** — third-party CDN cost not measured here ([§ 7](#7-load-cost-and-its-measurement-gap)) | Requires network |
 | "Canvas 60 fps" (window badge) | ⚠️ **Aspirational** — the badge is authored copy, and several costs below are frame-budget-relevant | [§ 3](#3-frame-budget-model) |
 
@@ -29,8 +29,8 @@ design statement, not a measurement, and this document is where that distinction
 
 | Metric | Value | Source |
 | --- | --- | --- |
-| Application payload | **88,649 B** (86.6 KiB) | `scripts/audit.mjs` |
-| Lines | **1,477** | `scripts/audit.mjs` |
+| Application payload | **95,308 B** (93.1 KiB) | `scripts/audit.mjs` |
+| Lines | **1,571** | `scripts/audit.mjs` |
 | Runtime dependencies installed | **0** | `package.json` |
 | Vendored assets (images/fonts/audio) | **0 B** | Repository contains one data-free PNG in `docs/` |
 | Network calls from the runtime | **0** | No `fetch` / `XMLHttpRequest` / `WebSocket` in the source |
@@ -42,8 +42,8 @@ design statement, not a measurement, and this document is where that distinction
 
 | Threshold | Bytes | Current | Headroom |
 | --- | --- | --- | --- |
-| Warn | 96,000 | 88,649 | +7,351 B |
-| Fail | 128,000 | 88,649 | +39,351 B |
+| Warn | 96,000 | 95,308 | +692 B |
+| Fail | 128,000 | 95,308 | +32,692 B |
 
 The budget exists because an 88 KB single file is a *design asset*: it stays reviewable in one
 sitting. Growth past the warn threshold is a signal to reconsider the single-file decision, not
@@ -207,7 +207,7 @@ optimisation to our 88 KB can offset.
 
 1. **Our payload is not the load cost.** Optimising a 88 KB file while a browser-side CSS compiler
    runs at startup is optimising the wrong thing — which is precisely the argument for the self-hosting
-   path in [`ROADMAP.md`](ROADMAP.md) (`9.5.0`, `NOO-008`) and the reason ADR-002 is recorded as a
+   path in [`ROADMAP.md`](ROADMAP.md) (`9.6.0`, `NOO-008`) and the reason ADR-002 is recorded as a
    trade-off rather than a win.
 2. **Unreachable CDNs degrade the artefact.** With no network, `index.html` renders as unstyled
    semantic HTML: every utility class is a no-op. The application still *functions* (all behaviour is

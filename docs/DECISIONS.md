@@ -21,6 +21,10 @@ consequence listed below is reflected in the defect register and the roadmap.
 | [ADR-008](#adr-008--satirical-corpus-with-explicit-disclosure) | Satirical corpus with explicit disclosure | Accepted |
 | [ADR-009](#adr-009--semantic-accent-system-on-a-flat-surface-ramp) | Semantic accent system on a flat surface ramp | Accepted |
 | [ADR-010](#adr-010--sequential-boot-with-direct-coupling) | Sequential boot with direct coupling | Accepted |
+| [ADR-011](#adr-011--the-shell-module-lives-outside-indexhtml) | The shell module lives outside `index.html` | Accepted |
+| [ADR-012](#adr-012--optional-native-dependency-with-a-degraded-mode) | Optional native dependency, with a degraded mode | Accepted |
+| [ADR-013](#adr-013--no-sandbox-command-filter-or-confirmation-prompt-for-the-local-shell) | No sandbox, command filter or confirmation prompt for the local shell | Accepted |
+| [ADR-014](#adr-014--ai-shell-control-mode-as-authorisation) | AI SHELL control: mode as authorisation | Accepted |
 
 ---
 
@@ -42,7 +46,7 @@ CSS primitives and all ten engines.
 
 **Positive**
 - `git clone` → open the file → it runs. There is no step where the artefact is not working.
-- The whole system fits in a reviewable object: 1,477 lines, 88,649 B, no generated code.
+- The whole system fits in a reviewable object: 1,571 lines, 95,308 B, no generated code.
 - Constraint-driven design: because everything is visible at once, there is nowhere to hide
   unnecessary abstraction, and every engine was written to fit the same metaphor.
 - Deployment is a file copy — Pages, Netlify, an S3 bucket, a USB stick.
@@ -96,7 +100,7 @@ that utilities cannot express (CRT overlay, backdrop-filter glass, glow, hatchin
   in sync and out of the review path.
 - **Hand-written CSS only.** Rejected: a token layer plus utilities is a *better* system here, and
   removing utilities would push hundreds of declarations into the markup.
-- **Vendored Tailwind build on release.** This is the planned `9.5.0` direction: keep authoring
+- **Vendored Tailwind build on release.** This is the planned `9.6.0` direction: keep authoring
   against the CDN, and self-host a built stylesheet for offline parity.
 
 ---
@@ -133,7 +137,7 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
 ### Alternatives considered
 - **A component framework.** Rejected: the framework would model the windows, but the interesting
   part of the system (canvas physics, audio, ingestion) has no state to reconcile.
-- **Web components.** Rejected as over-engineering for seven windows sharing one behaviour module.
+- **Web components.** Rejected as over-engineering for eight windows sharing one behaviour module.
 
 ---
 
@@ -279,7 +283,7 @@ tiers:
   and encoding it as checks (`NOO-019`), and runtime defects are found by reading, not by the tool.
 - The baseline invites "baseline drift" if reviewers approve increases casually; mitigated by
   requiring the reason in the PR template.
-- No rendered-state verification until the `9.5.0` headless-browser harness lands.
+- No rendered-state verification until the `9.6.0` headless-browser harness lands.
 
 ### Alternatives considered
 - **ESLint + Prettier + html-validate.** Rejected as a dependency tree for a one-file project;
@@ -369,7 +373,7 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 **Status:** Accepted
 
 ### Context
-Ten engines, one document, seven windows. The textbook answer is an event bus and a central
+Ten internal engines, one external shell module, one document, eight windows. The textbook answer is an event bus and a central
 orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
 
 ### Decision
@@ -400,6 +404,207 @@ DOM. No event bus, no store, no pub/sub.
   loop deliberately bypasses any reactive layer.
 - **Revisit trigger.** If the engine count passes ~15 or any engine needs shared *derived* state, this
   decision should be reopened rather than extended.
+
+---
+
+## ADR-011 · The shell module lives outside `index.html`
+
+**Status:** Accepted · **Amends:** [ADR-001](#adr-001--single-file-delivery), [ADR-006](#adr-006--no-persistence-no-backend)
+
+### Context
+
+SYNAPSE SHELL needs a terminal emulator, session tabs, an agent console, panels and ~380 lines of
+styling — roughly 1,100 lines. `index.html` sits at 95,308 B against a 96,000 B warn threshold and a
+128,000 B hard budget. Inlining the shell would push the document past the warn threshold for every
+visitor, including the majority (static hosts, GitHub Pages) for whom none of that code can execute,
+because there is no PTY bridge to talk to.
+
+### Decision
+
+Keep the **application** single-file and put the shell's runtime in two optional assets loaded by two
+tags: `shell/synapse-shell.js` (one IIFE, `defer`) and `shell/synapse-shell.css`. The window's
+markup skeleton stays in `index.html` (so docking, dragging and the layout audit still work), and the
+interior is built at runtime.
+
+Admitting a shell also admits a process to serve it. Local workstation mode runs
+`scripts/serve.mjs` — a loopback-only bridge. That amends [ADR-006](#adr-006--no-persistence-no-backend)
+in scope, not in spirit: a loopback socket, no hosted state, no persistence beyond an explicit SAVE
+SESSION, and nothing the published artefact depends on.
+
+### Consequences
+
+**Positive**
+- The payload that every visitor downloads is unchanged in structure and only 148 bytes heavier in
+  tags; the shell's ~25 KB is fetched only when the page asks for it.
+- The shell is the only module that cannot run on a static host, and it can now be omitted from a
+  deployment without touching the document.
+- The shell's code is testable in isolation (`scripts/test-ui.mjs` loads it into jsdom directly).
+
+**Negative**
+- ADR-001's clean "one file" rule now has one documented exception, and the audit no longer sees the
+  shell's DOM ids or handlers. Mitigation: the shell builds its own DOM and wires listeners by
+  delegation, so there is nothing for the static audit to miss; the window skeleton that *is* audited
+  keeps every window contract intact.
+- Two more requests on a local server. Irrelevant at loopback latency.
+
+### Alternatives considered
+- **Inline everything.** Rejected: it spends the budget of every static visitor on the one feature
+  they cannot use.
+- **Move the whole app to modules.** Rejected: it breaks the project's thesis (ADR-001) for a single
+  subsystem, and the extraction plan in [`MAINTAINABILITY.md`](MAINTAINABILITY.md) already covers the
+  principled route.
+- **Load xterm from a CDN.** Rejected: it would add a fourth unpinned third-party origin and make an
+  offline-capable local tool depend on the internet.
+
+---
+
+## ADR-012 · Optional native dependency, with a degraded mode
+
+**Status:** Accepted · **Supersedes:** nothing
+
+### Context
+
+A real PTY requires a native binding: `node-pty`, which compiles against the Node headers. The
+project's identity is "no dependencies, no build step", and a failed native build must not be able to
+break the application or the install.
+
+### Decision
+
+Ship `node-pty` as an **optionalDependency**, import it dynamically inside a `try`/`catch`
+(`server/shell.mjs`), and treat its absence as a first-class state — not an error. The server boots,
+logs `SYNAPSE SHELL → OFFLINE (reason)`, and `/api/shell/status` reports `available:false`; the
+browser renders `SYNAPSE SHELL // LOCAL PTY UNAVAILABLE` with the reason. `ws`, `@xterm/xterm` and
+`@xterm/addon-fit` are ordinary dependencies but equally optional at runtime: a missing vendor asset
+404s with an install hint and the window reports `TERMINAL LIBRARY MISSING`.
+
+### Consequences
+
+**Positive**
+- `npm install` cannot fail the project; `npm start` cannot crash the app.
+- The failure is legible and actionable rather than a blank window.
+- The published artefact is untouched: it never imports any of this.
+
+**Negative**
+- Two dependency classes exist now (runtime-optional, dev-only), so "does the app need Node?"
+  requires a sentence rather than a word. Handled in the README and here.
+- CI compiles `node-pty` only in the path-filtered behavioural workflow
+  (`.github/workflows/shell.yml`); on a machine without a toolchain the suite still skips cleanly, so
+  a native-build regression is caught on a pull request rather than on a user's machine.
+
+### Alternatives considered
+- **Required dependency.** Rejected: it makes a native toolchain a precondition for a project whose
+  entire premise is that a file opens in a browser.
+- **Custom PTY in C/Node-API.** Rejected outright: it would replace a well-tested binding with
+  maintained-by-us native code.
+- **No PTY at all (pipe a child process).** Rejected: it would not be a terminal, and the product
+  claim would be a lie.
+
+---
+
+## ADR-013 · No sandbox, command filter or confirmation prompt for the local shell
+
+**Status:** Accepted · **Supersedes:** nothing
+
+### Context
+
+Giving a browser window a real shell invites the instinct to "make it safe": allowlists, denylists,
+a confirmation dialog per command, a jail directory. Each was considered. A shell is a Turing-complete
+surface: `python3 -c`, `git`, `make`, `bash -c`, package managers and `ssh` all defeat enumeration,
+so a filter cannot be sound. A prompt per command cannot be sound either — it trains the operator to
+click through, and it cannot anticipate what the command will do.
+
+### Decision
+
+Do not filter, jail or confirm **human** input. Feed terminal input to the real PTY. Put the
+enforcement where it can actually be sound:
+
+1. **The network boundary** — the shell exists only for requests provably from the same machine
+   (`server/gate.mjs`), so a remote client or a cross-site page cannot type into it.
+2. **The AI boundary** — the model's access is a mode (`OFF`/`ASSIST`/`AUTONOMOUS`), a fixed tool
+   vocabulary validated before execution, and hard bounds (MAX STEPS, MAX RUNTIME) enforced in the
+   loop.
+3. **The UI boundary** — the panel's kill button may only signal NOÖSPHERE's own process trees; the
+   *shell* remains unrestricted because that authority comes from the user's account, not the UI.
+4. **Honest documentation** — `SHELL.md` states in its first section that nothing is sandboxed.
+
+### Consequences
+
+**Positive**
+- The tool does what it claims: it is a terminal, not a toy command runner, and `vim`, `htop`,
+  `docker`, `ssh`, `sudo` and package managers work because nothing intervenes.
+- Every control that exists is one that can be enforced; `SECURITY.md` can describe real properties
+  instead of implied ones.
+
+**Negative**
+- The mode `AUTONOMOUS` grants a local model the user's own authority. That is a genuinely sharp
+  edge, mitigated by it being off by default, never persisted, bound-checked, and revocable with one
+  click (STOP AGENT / INTERRUPT / KILL PROCESS) without the model's cooperation.
+- A user who expected a sandbox must read the docs to learn there is none — which is exactly why the
+  first line of `SHELL.md` says so.
+
+### Alternatives considered
+- **Command allowlist.** Rejected: unsound and easily circumvented; it would create false confidence.
+- **Per-command confirmation.** Rejected: friction without safety, and explicitly ruled out by the
+  operating requirement that ordinary shell activity not be interrupted.
+- **Filesystem jail (`chroot`/`sandbox-exec`).** Rejected as a default: it breaks the stated purpose
+  (a personal workstation shell), and a user who wants a capability boundary should run the whole
+  workstation inside a VM, which is a stronger boundary than a hand-rolled jail. This remains the
+  recommended posture for untrusted experiments.
+- **No shell at all.** Rejected: it is the feature.
+
+---
+
+## ADR-014 · AI SHELL control: mode as authorisation
+
+**Status:** Accepted · **Supersedes:** nothing
+
+### Context
+
+The local model should be able to use the shell (that is the point of an integrated workstation), and
+the user should not have to approve every command. The two failure directions are opposite: an
+isolated AI (no shell) makes the workstation inert, and an unsupervised AI with a shell is a loaded
+gun. Both extremes were on the table — "never expose the shell to the model" and "let the agent run
+freely".
+
+### Decision
+
+Make the **control mode itself the authorisation**, with three named states that are impossible to
+miss in the UI:
+
+* `OFF` — the tool surface is not merely unused, it is not exposed; the endpoints 403.
+* `ASSIST` — the model may type into the input buffer only; newline bytes are stripped so a proposal
+  cannot execute itself, and the loop stops after the first proposal rather than pretending to know
+  the result.
+* `AUTONOMOUS` — execution permitted, bounded by user-editable MAX STEPS / MAX RUNTIME / STOP ON
+  ERROR, with the command streamed into a visible step log.
+
+The mode lives in memory only, is never enabled by the model, and is never persisted.
+
+### Consequences
+
+**Positive**
+- The user's intent is expressed once, explicitly, and is visible at all times (badge, strip, dock).
+- `ASSIST` is a genuinely useful middle state — it makes the model a prompt-composer instead of a
+  gambler — and it is only honest because execution is structurally impossible in that mode.
+- Stopping is always possible without cooperation: aborting the SSE stream, STOP AGENT, INTERRUPT,
+  KILL PROCESS, RESTART.
+
+**Negative**
+- Two more concepts to learn (`ASSIST` vs `AUTONOMOUS`), and a state that can be left on by accident
+  until the server restarts. Mitigation: the badge pulses crimson in AUTONOMOUS, the dock badge
+  repeats it, and boot always returns to `OFF`.
+- `AUTONOMOUS` quality depends on the model; a small local model will take wrong turns. Bounds, the
+  visible step log and STOP are the answer; correctness of judgement is not something the harness can
+  promise.
+
+### Alternatives considered
+- **Per-command confirmation.** Rejected: the operating requirement explicitly rules it out, and it
+  degrades into rubber-stamping.
+- **A permanent tool allowlist for the agent** (e.g. read-only commands). Rejected: it would make the
+  stated goal (iterating on real work: tests, builds, servers, media) unreachable, and the mode
+  already provides a stricter and more honest control.
+- **Model-side filtering ("only safe commands").** Rejected: prompt-level safety is not an
+  enforcement mechanism, and treating it as one is the failure mode this ADR exists to avoid.
 
 ---
 

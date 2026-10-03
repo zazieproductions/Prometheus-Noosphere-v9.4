@@ -3,7 +3,7 @@
 > Every public surface in NOÖSPHERE // OS: global functions, engine methods, the DOM contract that
 > binds them together, the inline handler map, and the tooling API.
 
-**Version:** 9.4.1 · **Source of truth:** [`index.html`](../index.html) and [`scripts/`](../scripts)
+**Version:** 9.5.0 · **Source of truth:** [`index.html`](../index.html), [`shell/`](../shell), [`server/`](../server) and [`scripts/`](../scripts)
 
 ---
 
@@ -107,7 +107,7 @@ Attaches the full drag behaviour to a window shell. Called once per `.glass-pane
 | `mouseup` on `document` | drag end | Clears the drag flag and `body.no-select` |
 | `mousedown` on the shell | any click into the window | Focus (z-order) |
 
-**Side effects:** two permanent `document` listeners per window (7 × 2 = 14) — tracked as
+**Side effects:** two permanent `document` listeners per window (8 × 2 = 16) — tracked as
 `NOO-017`. No-ops when the window has no `.win-header`.
 
 #### `minimizeWindow(id: string) → void`
@@ -505,29 +505,120 @@ makes "known debt" auditable rather than rhetorical.
 
 ### `scripts/serve.mjs`
 
-Zero-dependency static server.
+The local workstation server: static files, the local inference proxy, the SYNAPSE SHELL bridge and
+the agent endpoint, all in one process.
 
 ```bash
-node scripts/serve.mjs [--port 4173] [--host 0.0.0.0]
-# environment fallbacks: PORT, HOST
+node scripts/serve.mjs [--port 4173] [--host 0.0.0.0] [--no-shell]
+                       [--shell-remote-token <secret>] [--zaziopath <path>]
+                       [--log-dir <path>] [--ollama <url>]
+# environment fallbacks: PORT, HOST, NOOSPHERE_SHELL=off,
+#   NOOSPHERE_SHELL_REMOTE_TOKEN, NOOSPHERE_ZAZIOPATH, NOOSPHERE_OLLAMA_URL
 ```
 
 | Property | Behaviour |
 | --- | --- |
 | Default bind | `0.0.0.0:4173` — reachable from containers and remote sandboxes |
 | Directory index | `/` → `index.html` |
-| MIME map | html · js · mjs · css · json · svg · png/jpeg/webp · ico · woff2 · txt · md |
+| MIME map | html · js · mjs · css · json · svg · png/jpeg/webp · ico · woff2 · txt · log · md |
 | Traversal | Resolved paths must stay inside the project root; dotfile segments are refused (`403`) |
-| Caching | `cache-control: no-store` — the server is a development tool |
+| Caching | `cache-control: no-store` — the server is a workstation tool |
 | Headers | No `X-Frame-Options` and no `frame-ancestors` directive, so embedding works |
-| Shutdown | `SIGINT` / `SIGTERM` close the listener cleanly |
+| Vendor assets | `/vendor/xterm.js`, `/vendor/xterm.css`, `/vendor/addon-fit.js` from `node_modules` (404 + install hint when absent) |
+| Shell routes | `/api/shell/*`, `/ws/shell`, `/api/noosphere/agent/*` — refused unless the request passes the loopback gate |
+| Shutdown | `SIGINT` / `SIGTERM` close every PTY, then the listener; `process.on('exit')` force-kills survivors |
+
+---
+
+## SYNAPSE SHELL transport API
+
+Full behaviour: [`SHELL.md`](SHELL.md). Every route below is **local-machine only**; a refusal is
+`403 {"error":"Local access only","reason":"host-not-loopback"|…}` with no CORS headers. Body limit
+128 KB; all responses `cache-control: no-store`.
+
+### HTTP
+
+| Method | Path | Body / query | Returns |
+| --- | --- | --- | --- |
+| `GET` | `/api/shell/status` | — | host, shell path, platform, node, cwd, zaziopath, limits, sessions, model availability, tool list (empty unless ≥ ASSIST), `expose` |
+| `GET` | `/api/shell/sessions` | — | `{ sessions, ai }` |
+| `POST` | `/api/shell/sessions` | `{cwd?, cols?, rows?}` | `{session}` (201) |
+| `DELETE` | `/api/shell/sessions/:id` | — | close + reap the process tree |
+| `POST` | `/api/shell/sessions/:id/restart` | — | new PTY, same id/label/cwd |
+| `POST` | `/api/shell/sessions/:id/write` | `{data}` | raw bytes to the PTY (this executes) |
+| `POST` | `/api/shell/sessions/:id/insert` | `{text}` | text at the prompt, `\r`/`\n` stripped (never executes) |
+| `POST` | `/api/shell/sessions/:id/exec` | `{command, timeoutMs?}` | run + observe; **403 unless AUTONOMOUS** |
+| `POST` | `/api/shell/sessions/:id/resize` | `{cols, rows}` | PTY `TIOCSWINSZ`; clamped 20–500 × 5–200 |
+| `POST` | `/api/shell/sessions/:id/interrupt` | `{reason?}` | sends `\u0003`; resolves an in-flight exec |
+| `POST` | `/api/shell/sessions/:id/kill` | — | `SIGTERM` → `SIGKILL` over the tree |
+| `POST` | `/api/shell/sessions/:id/save` | — | writes `logs/sessions/<ts>-<id>.log`, returns the path |
+| `GET` | `/api/shell/sessions/:id/read` | `?from=&maxChars=` | bounded scrollback + absolute offsets |
+| `GET` | `/api/shell/processes` | — | processes descending from a NOÖSPHERE PTY + host total |
+| `GET` | `/api/shell/ports` | — | listening TCP sockets (`lsof` → `ss` → explanation) |
+| `POST` | `/api/shell/processes/kill` | `{pid, signal?}` | **403** unless the pid belongs to a NOÖSPHERE tree |
+| `POST` | `/api/shell/ai` | `{mode?}`, `{limits?}` | sets/reads AI SHELL control; returns the tool list |
+| `GET` | `/api/noosphere/agent/status` | — | mode, limits, model, tools, active runs |
+| `POST` | `/api/noosphere/agent/stop` | `{runId?\|sessionId?}` | aborts runs, sends Ctrl+C; never 404s on a stale handle |
+| `POST` | `/api/noosphere/agent/run` | `{goal, sessionId?, limits?}` | **`text/event-stream`** of loop events; abort by disconnecting |
+
+### WebSocket — `/ws/shell?session=pty-01&v=1`
+
+Attaching with an unknown or missing `session` creates a new PTY. Frames are JSON text.
+
+| Direction | Frame | Meaning |
+| --- | --- | --- |
+| → client | `{t:'ready', session, ai, status}` | attached; includes pid, cwd, geometry |
+| → client | `{t:'data', data}` | decoded terminal output (UTF-8 safe across chunk boundaries) |
+| → client | `{t:'cwd', cwd}` | working-directory change (OSC 7 or polled) |
+| → client | `{t:'resized', cols, rows}` | geometry acknowledged |
+| → client | `{t:'exit', code, signal}` | shell process ended |
+| → client | `{t:'error'\|'unavailable'\|'pong'}` | refusals and keepalive |
+| ← client | `{t:'input', data}` | keystrokes (≤ 64 KB per frame) |
+| ← client | `{t:'insert', data}` | paste without executing newlines |
+| ← client | `{t:'resize'\|'interrupt'\|'kill'\|'ping'}` | control |
+
+Backpressure: if a client queues > 8 MB the PTY is paused; it resumes below 1 MB. Output is never
+dropped.
+
+### Agent SSE events
+
+`start` · `thinking` · `action` · `observation` · `rejected` · `awaiting-human` · `finish` · `error` ·
+`done` (terminal event: `{runId, steps, stopped, aborted, ms, summary}`), where `stopped` ∈
+`finished · max-steps · max-runtime · error · stop-requested · client-disconnected · awaiting-human`.
+
+### `window.synapseShell` (client engine)
+
+| Member | Purpose |
+| --- | --- |
+| `boot()` | fetch status, load xterm, render the console or the offline panel |
+| `newSession(cwd?)` · `attach(session)` · `select(id)` · `closeSession(id)` · `restartActive()` | session lifecycle |
+| `setMode('off'\|'assist'\|'autonomous')` | the AI SHELL control surface |
+| `runAgent()` · `stopAgent()` | the loop, streamed into the step log |
+| `togglePanel('processes'\|'ports'\|'none')` · `killProcess(pid)` | visibility and termination |
+| `saveSession(record)` · `copyAll(record)` · `copySelection(record)` | artefacts and clipboard |
+| `reconcile()` | every 5 s: attach sessions opened elsewhere, drop dead ones |
+| `toast(message, tone)` · `agentLog(entry)` | chrome feedback |
+
+### Server modules (Node)
+
+| Module | Exported surface |
+| --- | --- |
+| `server/gate.mjs` | `classify(req, url, {remoteToken})` → `{allowed, local, reason}` · `classifyStrict(req, url)` · `LOOPBACK_PEERS` |
+| `server/shell.mjs` | `createShellHub(options)` → hub (`status`, `create`, `list`, `get`, `describe`, `write`, `insert`, `exec`, `read`, `resize`, `interrupt`, `kill`, `close`, `restart`, `closeAll`, `killAllSync`, `save`, `processes`, `ports`, `killProcess`, `aiState`, `setAiMode`, `setLimits`, `permits`, `attach`) · `stripAnsi` · `clampText` · `resolveShell` · `DEFAULT_LIMITS` |
+| `server/agent.mjs` | `runAgent({hub, goal, sessionId, limits, onEvent, signal})` · `activeRuns()` · `stopRuns({runId, sessionId})` · `TOOLS` |
+| `server/ollama.mjs` | `MODEL` · `baseUrl()` · `chat({messages, …})` · `listModels()` · `hasModel()` · `extractJson(text)` |
+| `server/procinfo.mjs` | `snapshot()` · `descendants(rows, roots)` · `listeners()` · `signalPids(pids, signal)` · `killTree(pids, {graceMs})` |
+| `server/routes.mjs` | `createRouter({hub, remoteToken, meta})` → `{handleHttp, handleUpgrade, gate}` |
 
 ### npm scripts
 
 | Command | Equivalent |
 | --- | --- |
-| `npm start` / `npm run serve` | `node scripts/serve.mjs` |
-| `npm test` | `node scripts/audit.mjs` |
+| `npm start` / `npm run serve` | `node scripts/serve.mjs` (UI + inference proxy + PTY bridge) |
+| `npm run start:no-shell` | `node scripts/serve.mjs --no-shell` |
+| `npm test` | `audit → test-shell → test-ui` |
+| `npm run test:shell` | `node scripts/test-shell.mjs` (29 PTY/gate/agent integration tests) |
+| `npm run test:ui` | `node scripts/test-ui.mjs` (5 browser degradation tests) |
 | `npm run audit:json` | `node scripts/audit.mjs --json` |
 | `npm run audit:report` | `node scripts/audit.mjs --write-report` |
 | `npm run audit:baseline` | `node scripts/audit.mjs --refresh-baseline` |
