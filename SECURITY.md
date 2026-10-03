@@ -154,3 +154,14 @@ browser at page load and governed by their vendors' own policies.
 <div align="center">
 <sub>Disclosing your own defects in a public register is a security posture, not a liability.</sub>
 </div>
+
+## Optional local inference privacy boundary
+
+On `npm start`, terminal prompts and limited graph, grimoire, history and ingested text excerpts
+are posted to the same-origin local server and forwarded only to `127.0.0.1:11434` (Ollama).
+They do not leave the machine through this integration. The inference routes require a
+loopback socket, localhost Host and matching Origin; static assets retain the existing bind
+behavior. Do not expose either server to untrusted users. Model outputs are rendered as text,
+not HTML. The historical static-only privacy statement above applies to file-open and
+GitHub Pages simulation mode, not to local inference mode. The separate Ollama installation
+and its configuration are the user's responsibility.

@@ -326,3 +326,11 @@ The only recurring cost this project could incur is a domain name.
 <div align="center">
 <sub>Next: <a href="MAINTAINABILITY.md">Maintainability →</a></sub>
 </div>
+
+## Local inference versus static deployment
+
+GitHub Pages and other static hosts cannot run Ollama or the local Node proxy; the public
+terminal remains in `SIMULATION MODE` with the original deterministic templates. For private
+local inference run `ollama serve` with the already-installed `llama3.1:8b`, then `npm start`
+and visit `http://localhost:4173`. Keep both services private. Do not forward the dev server
+or Ollama ports to the internet. There are no API keys or cloud inference services.

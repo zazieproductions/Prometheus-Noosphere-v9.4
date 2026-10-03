@@ -581,3 +581,13 @@ person to state the limits of the thing you built.
 <div align="center">
 <sub>Next: <a href="API.md">Engine API reference →</a></sub>
 </div>
+
+## Optional local inference path (current runtime)
+
+Historical sections above describe the original deterministic engine and static-only
+architecture. With `npm start`, the browser now probes same-origin `/api/noosphere/status`
+and submits prompts plus bounded in-memory graph/grimoire/terminal/ingestion context to
+`/api/noosphere`. The Node development server alone contacts loopback Ollama (`llama3.1:8b`)
+using native `fetch`; the browser never contacts Ollama directly. On failure the existing
+composer remains operational. File-open and GitHub Pages deployments still use simulation;
+no backend or model runs on a static host. The local API refuses non-loopback callers.
