@@ -236,7 +236,8 @@ graph (8 strata anchors + 29 § 00c entities + 1 unresolved question = 38 nodes,
 scripts/serve.mjs ─┬─ static files (0.0.0.0, preview-friendly)
                    ├─ /api/noosphere            → 127.0.0.1:11434 (Ollama proxy)
                    ├─ /api/shell/*, /ws/shell   → server/shell.mjs (node-pty) ← gate: loopback only
-                   └─ /api/noosphere/agent/*    → server/agent.mjs (bounded tool loop)
+                   └─ /api/uplink/*             → scripts/uplink/* (local research orchestrator)
+                   ├─ /api/noosphere/agent/*    → server/agent.mjs (bounded tool loop)
 ```
 
 Every window is wired to `makeDraggable` at parse time, before any engine initialises.
