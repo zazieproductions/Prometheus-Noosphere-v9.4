@@ -1,239 +1,100 @@
-# Accessibility Audit
+# Accessibility audit
 
-> A measured gap analysis of NOÖSPHERE // OS against **WCAG 2.2 Level AA**, with the remediation
-> plan, the reasoning behind it, and the things this document does not claim.
+> Current limitations and a verification plan for the Zaziopath edition of NOÖSPHERE // OS. This is a source review, not a conformance claim.
 
-**Status:** ❌ **Not conformant.** Tracked as [`NOO-016`](ARCHITECTURE.md#17-defect-register) (high).
-**Target:** WCAG 2.2 Level AA for the interface chrome; a defined-but-exempt status for the graph
-canvas (see [§ 7](#7-the-canvas-problem)).
-**Method:** static analysis of `HEAD` (44 buttons, 42 IDs, 0 `aria-*`, 0 `role`, 0 `tabindex`) plus
-formula-measured contrast ratios. No automated accessibility tool has been run — and saying so is the
-point of this document.
+**Status:** **Not established as WCAG 2.2 AA conformant.** The static audit currently records no `NOO-016` finding because the graph has a supported Canvas role and meaningful accessible name. That rule checks only this graph-summary contract—not the keyboard model, labels of every control, live regions, visual contrast in a browser, or overall conformance.
+
+**Current markup snapshot:** `index.html` contains one canvas `role="img"` with an `aria-label`, no `tabindex`, 48 native buttons, 4 inputs, 3 selects, and one heading element. The graph has no per-node keyboard traversal or parallel accessible node list. No browser, axe/Lighthouse/Pa11y run, or assistive-technology test has been performed in this workspace.
+
+**Goal:** retain the visual operating-system metaphor while making controls, source status, and text access usable without relying on Canvas pointer interactions alone.
 
 ---
 
-## 1. Why publish an audit that says the project fails it
+## 1. What works and what does not
 
-Two reasons, and neither is performative.
-
-1. **A claim of accessibility is a claim of engineering rigour.** This repository asserts that
-   documentation is a deliverable. Access is the one area where a portfolio piece can look
-   immaculate and exclude a third of its audience in silence. Naming the gap is cheaper than
-   pretending it does not exist, and more useful than a vague "accessibility improvements planned".
-2. **Most of the fixes are small and bounded.** The gap is not architectural. It is 14 missing
-   labels, a handful of keyboard handlers, two contrast tokens and a media query. That is a
-   *roadmap item with a size*, which is exactly what a defect register is for.
-
-This document is deliberately specific. Every number below is reproducible from the source; every
-ratio is computed with the WCAG relative-luminance formula, not estimated.
-
----
-
-## 2. What is already right
-
-Honesty cuts both ways. These properties are real, verified, and worth protecting in any refactor.
-
-| Property | Evidence | Relevant criterion |
+| Area | Current state | Notes |
 | --- | --- | --- |
-| Language declared | `<html lang="en">` | 3.1.1 Language of Page ✅ |
-| Semantic landmarks | `<header>` · `<main>` · `<footer>` | 1.3.1, 2.4.1 (partial) ✅ |
-| Real controls, not div-soup | 44 `<button>`, 3 `<select>`, 4 `<input>` | 4.1.2 (partial) ✅ |
-| Text zoom survives | Tailwind sizes are `rem`-based | 1.4.4 Resize Text ✅ |
-| No audio autoplay | Audio context is constructed on first gesture | 1.4.2 ✅ |
-| No timing traps | No session limits, no auto-advance, no CAPTCHA | 2.2.1 ✅ |
-| No flashing | Nothing exceeds 3 flashes/second | 2.3.1 ✅ |
-| Colour is not the only channel | Active filter = colour **+** underline **+** bold; status = colour **+** text | 1.4.1 ✅ |
-| Contrast in the core palette | 6 of the primary roles clear AAA on dark steps | 1.4.3 (partial) ✅ |
+| Language and landmarks | `lang="en"`; header, main, and footer landmarks | Partial structure; individual windows are not named regions |
+| Native controls | Buttons, inputs, and selects remain native elements | Some icon-first actions and custom click targets still need manual name/keyboard review |
+| Canvas summary | `role="img"` and a text alternative describe the eight-stratum source graph and point to text-based alternatives | Summary only; it does not expose individual nodes or relationships |
+| Provenance distinctions | Graph legend and interface labels include SOURCE / INFERENCE / SYNTHESIS / OPEN QUESTION | Status is not conveyed by color alone |
+| Contrast | Core cyan, emerald, amber, and slate-300 values are strong on dark surfaces | Slate-500/600 and violet/crimson/hyper on hover surfaces need attention for small text |
+| Motion | Continuous canvas loop, status pulse, equalizer, and identity animation | `prefers-reduced-motion` is not honored |
+| Text selection | Body styling suppresses selection for the draggable desktop effect | This can make copying content difficult; verify and narrow the suppression |
+| Narrow viewports | Authored desktop geometry extends beyond smaller screens | High-severity `NOO-019`; some windows are difficult to grab/recover |
 
-The last row matters: the design system's foundation is sound. The failures are at the edges —
-interaction steps, micro-labels and the canvas — not in the base palette.
+The VM smoke test validates JavaScript behavior with DOM/canvas stubs. It does not evaluate browser accessibility trees, focus behavior, layout, or a real screen reader.
 
----
+## 2. Contrast findings
 
-## 3. Colour contrast (1.4.3 · 1.4.11)
+Ratios below are measured against the four dark surface tokens with the WCAG relative-luminance formula. Most interface text is small, so the 4.5:1 AA threshold is the relevant target for meaningful text.
 
-Ratios computed against the four surface tokens. The interface runs at 9–12 px for most text, so the
-**AA small-text threshold of 4.5:1** applies throughout; there is no "large text" exemption to
-claim.
+| Foreground | `void` | `obsidian` | `surface` | `surface-bright` | Note |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `slate-300` | 13.74 | 13.18 | 12.36 | 10.79 | AAA |
+| `neon.emerald` | 15.34 | 14.72 | 13.80 | 12.04 | AAA |
+| `neon.cyan` | 15.30 | 14.68 | 13.76 | 12.01 | AAA |
+| `neon.amber` | 10.69 | 10.25 | 9.62 | 8.39 | AAA |
+| `slate-400` | 7.96 | 7.63 | 7.16 | 6.25 | AAA |
+| `neon.hyper` | 5.56 | 5.33 | 5.00 | **4.36** | Below AA on `surface-bright` |
+| `neon.crimson` | 5.23 | 5.02 | 4.70 | **4.11** | Below AA on `surface-bright` |
+| `neon.violet` | 5.16 | 4.95 | 4.64 | **4.05** | Below AA on `surface-bright` |
+| `slate-500` | **4.29** | **4.11** | **3.86** | **3.37** | Below AA |
+| `slate-600` | **2.69** | **2.58** | **2.42** | **2.11** | Below AA |
 
-| Foreground | `void` | `obsidian` | `surface` | `surface-bright` | Verdict |
-| --- | --- | --- | --- | --- | --- |
-| `slate-300` | 13.74 | 13.18 | 12.36 | 10.79 | ✅ AAA |
-| `neon.emerald` | 15.34 | 14.72 | 13.80 | 12.04 | ✅ AAA |
-| `neon.cyan` | 15.30 | 14.68 | 13.76 | 12.01 | ✅ AAA |
-| `neon.amber` | 10.69 | 10.25 | 9.62 | 8.39 | ✅ AAA |
-| `slate-400` | 7.96 | 7.63 | 7.16 | 6.25 | ✅ AAA |
-| `neon.hyper` | 5.56 | 5.33 | 5.00 | **4.36** | ⚠️ Fails on `surface-bright` |
-| `neon.crimson` | 5.23 | 5.02 | 4.70 | **4.11** | ⚠️ Fails on `surface-bright` |
-| `neon.violet` | 5.16 | 4.95 | 4.64 | **4.05** | ⚠️ Fails on `surface-bright` |
-| `slate-500` | **4.29** | **4.11** | **3.86** | **3.37** | ❌ Fails everywhere |
-| `slate-600` | **2.69** | **2.58** | **2.42** | **2.11** | ❌ Fails everywhere |
+**Practical constraints:** reserve slate-500/600 for non-essential decoration, avoid small violet/crimson/hyper text on hovered `surface-bright`, and check inactive borders as non-text controls. See [Design System § 2.3](DESIGN.md#23-contrast-budget-measured).
 
-### Findings
+## 3. Keyboard, focus, and regions
 
-| # | Finding | Impact | Fix |
-| --- | --- | --- | --- |
-| A1 | `slate-500` used for micro-labels and timestamps | ~4.1:1 at 9–10 px — unreadable for low-vision users | Promote to `slate-400` (7.63:1) |
-| A2 | `slate-600` used for separators and hints | 2.6:1 — decorative text only | Replace with `slate-500` **or** keep strictly non-semantic |
-| A3 | Violet/crimson/hyper text on `surface-bright` (hover state) | Contrast drops ~20 % on interaction — fails exactly when the user is looking | Darken the hover step, or forbid small accent text on it |
-| A4 | Text-size floor of 9 px | Tracking and contrast cannot rescue 9 px on a projector or at 200 % zoom | Introduce a 12 px minimum for any text carrying meaning |
-| A5 | Non-text contrast on inactive window borders | Borders sit near `rgba(0,247,255,0.12)` — well under 3:1 | Raise inactive-window border alpha, or rely on elevation shadow |
+- Window dragging and graph pan/zoom are pointer-driven. There is no keyboard equivalent for moving windows or traversing graph nodes.
+- Grimoire cards and palette swatches are created as custom clickable elements; they need button semantics, focus visibility, and keyboard activation.
+- The modal does not currently implement a complete focus lifecycle (initial focus, Escape handling, focus containment, and return to the trigger).
+- Each desktop window should have a named region and a logical heading. The document's single heading element is insufficient to navigate the seven windows as sections.
+- Icon-only controls, including window actions, need an explicit screen-reader name. A native `title` alone is not a substitute for consistent accessible naming.
+- The terminal transcript, ingestion status, and changing graph counts are not announced through live regions/status semantics.
 
----
+## 4. Canvas and text alternatives
 
-## 4. Keyboard and pointer (2.1.1 · 2.4.3 · 2.5.7)
+The Canvas 2D graph now announces a high-level description and directs users to Grimoire search and Polymath Terminal for text-based excerpts and provenance. Those alternatives are useful but do not provide parity with graph interaction:
 
-| Interaction | Keyboard | Pointer alternative | Status |
-| --- | --- | --- | --- |
-| 26 labelled buttons | ✅ Native, tabbable | — | Pass |
-| 3 `<select>`, 4 `<input>` | ✅ Native | — | Pass |
-| **14 icon-only buttons** | ✅ Focusable, ❌ **no accessible name** | — | ❌ 4.1.2 |
-| **Window drag** | ❌ Mouse-only | ❌ None | ❌ 2.1.1, 2.5.7 |
-| **Window minimise/maximise** | ✅ Buttons are reachable | — | Pass (once labelled) |
-| **Graph pan/zoom** | ❌ Mouse-only; `wheel` with `preventDefault` | ❌ None | ❌ 2.1.1, 2.5.7 |
-| **Swatch → clipboard** | ❌ `<div onclick>`, not focusable | Mouse only | ❌ 2.1.1, 4.1.2 |
-| **Grimoire card → dispatch** | ❌ `<div onclick>`, not focusable | Mouse only | ❌ 2.1.1, 4.1.2 |
-| **Modal** | ⚠️ Reachable, but no focus trap, no `Escape`, no initial focus | — | ❌ 2.4.3, 2.1.2 (containment) |
-| **Focus order** | ⚠️ DOM order ≠ visual order — 7 absolutely positioned windows | — | ❌ 2.4.3 |
+1. Add a focusable, filter-aware list of graph records with title, stratum, epistemic status, summary, and source locator.
+2. Provide keyboard selection and a way to activate the same terminal context as pointer selection.
+3. Keep the accessible list synchronized with session-local ingestion and remove those records when the page reloads.
+4. Announce selection/filter changes without forcing focus into the transcript.
 
-**The 14 unnamed controls** (measured): 7 `minimizeWindow`, 6 `maximizeWindow`, 1 `closeInjectModal`.
-All render an icon and nothing else. A screen reader announces fourteen variants of "button".
+The graph is a source-navigation surface, not a confidence or diagnostic visualization. An accessible alternative must preserve that epistemic distinction rather than reduce records to unlabeled text.
 
-**Focus visibility (2.4.7):** most controls retain the browser default outline and therefore pass.
-Seven inputs use `outline-none`; each substitutes `focus:border-neon-cyan`, which is a real visible
-change — but the substitution is applied inconsistently, so this is *partially* met rather than met.
+## 5. Motion and responsive behavior
 
----
+`prefers-reduced-motion` is not currently honored. Add a reduced-motion mode that pauses ambient CSS animation and renders a stable graph frame while preserving filtering, selection, and text access. Do not disable access to the graph when motion is reduced.
 
-## 5. Screen readers and live regions (1.1.1 · 1.3.1 · 4.1.3)
+The desktop layout has a documented narrow-viewport reachability issue (`NOO-019`). Keep the CRT/window language, but ensure every window can be restored and its header reached at the supported viewport width. Also review `select-none` so it only suppresses text while a drag is active.
 
-| Element | Accessible exposure | Status |
+## 6. Prioritized remediation
+
+| Priority | Work | Acceptance |
 | --- | --- | --- |
-| Graph canvas | Opaque. No text alternative, no node list, no summary | ❌ 1.1.1, 1.3.1 |
-| Inspector HUD | Exists in the DOM and updates on hover — hover has no AT equivalent | ❌ 1.3.1 |
-| Transcript (`#terminal-output`) | Appends content; not a live region, so nothing is announced | ❌ 4.1.3 |
-| Ingestion status (`#ingest-status-text`) | Swaps colour and text; not announced | ❌ 4.1.3 |
-| Node counter (`#synapse-count`) | Changes on injection; not announced | ❌ 4.1.3 |
-| Heading structure | Exactly **one** heading in the document (an `<h4>` inside the HUD) | ❌ 1.3.1 |
-| Gauge/radar values | Visual only; no table, no text summary | ⚠️ 1.1.1 |
+| P0 | Name icon-only controls and make custom cards/swatches native keyboard-operable buttons | Every interactive control has a programmatic name, role, state, and visible focus |
+| P0 | Fix meaningful low-contrast microcopy and non-text control borders | Contrast checks meet WCAG AA for meaningful text and relevant boundaries |
+| P1 | Add named regions/headings and live status semantics to transcript, ingestion, and counts | Screen-reader navigation exposes window purpose and announces important updates |
+| P1 | Implement modal focus management and Escape behavior | Focus enters, stays within, and returns from the modal correctly |
+| P1 | Respect `prefers-reduced-motion` | Ambient motion pauses and graph interaction remains available |
+| P1 | Make all default windows reachable on the documented minimum viewport | Every header can be reached and every window can be restored without reloading |
+| P2 | Add synchronized graph-record text access and keyboard selection/pan/zoom | Core source discovery and selection do not require a pointer |
 
-**Headings.** The instrument aesthetic means almost no text is marked as a heading. Visually this is
-correct; programmatically it leaves an AT user with no document outline for seven windowed regions.
+See [Roadmap](ROADMAP.md) for related UI items. The static `NOO-016` check now protects the graph-summary name/role contract; it should be extended to catch missing control names and other structural accessibility regressions.
 
-**Suggested remediation shape:** each window becomes a labelled `role="region"` (or `<section>` with
-`aria-labelledby` pointing at its title), the transcript becomes `aria-live="polite"`,
-`aria-atomic="false"`, and the telemetry readouts use `role="status"`. The graph canvas gets a
-companion summary: a visually-hidden, focusable list of nodes and domains that reflects the same
-state — which is both a text alternative and a genuinely useful feature.
+## 7. Verification still required
 
----
+Before making a conformance claim, perform these checks in a current browser and document the result:
 
-## 6. Motion and timing (2.2.2 · 2.3.3)
+| Check | Pass condition |
+| --- | --- |
+| Keyboard-only use | All controls and source-discovery tasks are reachable; focus is visible and order is usable |
+| Screen reader | Controls expose name/role/state; selection, ingestion, and terminal updates are announced appropriately |
+| Zoom and reflow | At 200% zoom and the supported narrow viewport, content remains reachable without hidden windows |
+| Reduced motion | Continuous and ambient animation stop or reduce without losing data access |
+| Contrast | Re-measure meaningful text and relevant controls against rendered states |
+| Graph alternative | Browse, filter, select, and open context for source nodes without interacting with Canvas |
 
-| Animated element | Duration | Pausable | Status |
-| --- | --- | --- | --- |
-| Graph render loop | continuous, rAF | ❌ | ❌ 2.2.2 |
-| Status dot (`animate-ping`) | 1 s loop | ❌ | ❌ 2.2.2 |
-| Equaliser bars (`animate-pulse`) | 1 s loop | ❌ | ❌ 2.2.2 |
-| Identity atom (`animate-spin`) | 12 s loop | ❌ | ❌ 2.2.2 |
-| CRT scanline overlay | static texture | — | ✅ |
-| Telemetry drift | 1 Hz, text updates | ❌ | ❌ 2.2.2 |
-
-There is **no `prefers-reduced-motion` support**. The continuous canvas animation is the substantive
-issue: an auto-updating, non-pausable region of moving content, which is both a 2.2.2 concern and a
-vestibular trigger. Two declared animations (`pulse-glow`, `scanline`) are currently unused, which
-reduces the surface by accident rather than by design (`NOO-005`).
-
-**Minimum viable fix**, in one place, before any engine initialises:
-
-```js
-const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// → skip the rAF loop (render one static frame), freeze ambient loops, and
-//   let telemetry updates apply without transition.
-```
-
-A fuller fix adds an in-UI motion toggle, which is preferable to relying on an OS setting the user
-may not know exists.
-
----
-
-## 7. The canvas problem
-
-The graph is the centrepiece, and a `<canvas>` is a bitmap: nothing inside it exists for assistive
-technology. This is not a small fix, and pretending otherwise would be the dishonest move. The plan,
-in order of cost:
-
-| Step | Change | Effort | Value |
-| --- | --- | --- | --- |
-| 1 | `role="img"` + `aria-label` summarising the graph ("90 nodes across 5 domains; 5 currently prominent") | XS | Answers "what is this?" |
-| 2 | Keyboard model: arrow keys pan the camera, `+`/`−` zoom, `Tab`/arrows traverse nodes with the HUD announced as a status region | M | Makes the atlas usable without a mouse |
-| 3 | Visually-hidden, focusable node list mirroring graph state — the same data the HUD shows | S | Full text alternative + new feature |
-| 4 | Keyboard-accessible node injection and a "clear injected nodes" control | S | Completes the loop |
-
-Step 3 is the interesting one: the accessible version of this feature is also a *better* feature,
-which is the usual case once the work is scoped honestly.
-
----
-
-## 8. Remediation plan
-
-Ordered by value per unit of effort. Every item is also a roadmap entry in
-[`ROADMAP.md`](ROADMAP.md).
-
-| Priority | Item | Criteria addressed | Effort | Release |
-| --- | --- | --- | --- | --- |
-| **P0** | Label the 14 icon-only buttons (`aria-label` or visually-hidden text) | 4.1.2 | XS | 9.4.2 |
-| **P0** | Raise `slate-500` → `slate-400`; restrict `slate-600` to non-semantic use | 1.4.3 | XS | 9.4.2 |
-| **P1** | `prefers-reduced-motion`: static first frame, frozen ambient loops | 2.2.2, 2.3.3 | S | 9.5.0 |
-| **P1** | `aria-live` on the transcript, ingestion status and node counter | 4.1.3 | S | 9.5.0 |
-| **P1** | Region semantics per window (`section` + `aria-labelledby`) and a real heading per window | 1.3.1, 2.4.1 | S | 9.5.0 |
-| **P1** | Modal: initial focus, `Escape` to close, focus containment, restore focus to trigger | 2.4.3, 2.1.2 | S | 9.5.0 |
-| **P2** | Canvas text alternative + keyboard pan/zoom + node traversal | 1.1.1, 2.1.1, 2.5.7 | M | 10.0.0 |
-| **P2** | Keyboard alternative for window movement (arrow-key nudge on the focused window) | 2.1.1, 2.5.7 | M | 10.0.0 |
-| **P2** | Turn `<div onclick>` surfaces (swatches, cards) into real buttons | 2.1.1, 4.1.2 | S | 10.0.0 |
-| **P2** | Raise accent contrast on `surface-bright`; verify non-text contrast for window borders | 1.4.3, 1.4.11 | S | 10.0.0 |
-
-**Exit criteria for "AA conformant":** P0 and P1 complete, P2 canvas item complete or explicitly
-exempted with a documented text-alternative path, and a repeat manual audit recorded in this
-document.
-
----
-
-## 9. Verification plan
-
-Until a headless-browser harness lands in `9.5.0`, verification is a manual matrix performed on each
-release candidate.
-
-| Check | Method | Pass condition |
-| --- | --- | --- |
-| Keyboard-only traversal | Unplug the mouse; complete every task | All controls reachable, focus order matches visual order, focus always visible |
-| Screen-reader pass | VoiceOver / NVDA / Narrator, one task per window | Every control announces a name, a role and (where relevant) a state |
-| Contrast regression | Re-measure the token table in [§ 3](#3-colour-contrast-143--1411) | No ratio below 4.5:1 for meaningful text |
-| Zoom / reflow | 200 % zoom and 320 px viewport | Content remains usable (will fail until `NOO-019` is fixed — recorded honestly) |
-| Reduced motion | Enable the OS setting | No continuous animation; no content loss |
-| Live regions | Trigger ingestion, injection and a directive | Each is announced without stealing focus |
-
-**Automation, when it lands:** the audit script will assert static invariants (every icon-only
-button carries an accessible name; every interactive `<div>` is focusable with a role; a
-`prefers-reduced-motion` block exists), which converts most of this document into ratcheted checks in
-the same style as [`NOO-016`](ARCHITECTURE.md#17-defect-register).
-
----
-
-## 10. What this document does not claim
-
-- **No automated audit has been run.** No axe, Lighthouse or Pa11y result exists for this repository.
-  The findings above are from reading the source and computing contrast ratios by formula.
-- **No assistive-technology testing has been performed.** Behaviour with real screen readers is
-  predicted from the markup, not observed.
-- **The project is not conformant,** at A or AA. The table in [§ 8](#8-remediation-plan) is a plan,
-  not a record of work done.
-- **The desktop metaphor is not a mobile layout.** Fixed-pixel window geometry is a hard limit on
-  narrow viewports (`NOO-019`), and reflow at 320 px is out of scope for the metaphor rather than
-  merely unimplemented. That is a trade-off to state, not to hide.
-
----
-
-<div align="center">
-<sub>Next: <a href="PERFORMANCE.md">Performance &amp; frame budget →</a></sub>
-</div>
+No browser or screen-reader testing has been run for this change. The audit describes known limitations and a test plan; it is not a conformance statement.

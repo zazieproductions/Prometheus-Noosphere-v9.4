@@ -26,66 +26,27 @@ rather than enumerated. Everything from `9.4.1` forward is tracked here and enfo
 
 ### Added
 
-- **Documentation set** (`docs/`) — a complete engineering dossier:
-  - `ARCHITECTURE.md` — runtime topology, ten-engine inventory, data models, the force-simulation
-    derivation, camera transform, window manager, extension seams, verified invariants, the full
-    defect register, and a glossary translating the interface's vocabulary into engineering terms.
-  - `API.md` — every global function and engine method with signatures, side effects and complexity;
-    the 42-element DOM contract; the inline handler map; the tooling API.
-  - `DESIGN.md` — token system, typography registers, elevation and texture, motion policy, chrome
-    grammar, colour-in-motion semantics, voice rules, and the anti-pattern list.
-  - `DECISIONS.md` — ten architecture decision records (`ADR-001`…`ADR-010`) covering single-file
-    delivery, the no-build constraint, vanilla JS, Canvas 2D, deterministic content, no persistence,
-    ratcheted tooling, the satirical framing, the semantic accent system and direct coupling.
-  - `ACCESSIBILITY.md` — a measured WCAG 2.2 AA gap analysis with contrast ratios computed by
-    formula, a P0/P1/P2 remediation plan and an explicit list of what remains unverified.
-  - `PERFORMANCE.md` — measured payload, modelled frame budget, complexity analysis, a ten-rung
-    optimisation ladder, a paste-in profiling harness, and the third-party load-cost measurement gap.
-  - `TESTING.md` — the verification strategy, the 21 ratcheted checks and 4 fatal rules, a 32-task
-    manual matrix, the audit's blind spots, and the plan for behavioural tests.
-  - `DEPLOYMENT.md` — hosting recipes for GitHub Pages, Netlify, Vercel, Cloudflare and S3, the exact
-    CSP the current architecture requires (and the hardened one it is heading toward), caching
-    policy, a release checklist and rollback procedure.
-  - `MAINTAINABILITY.md` — dependency policy, measured code-health metrics, the tunable surface,
-    coupling and change-cost analysis, the extraction plan, the risk register and a handover list.
-  - `ROADMAP.md` — now / next / later horizons with acceptance criteria, an explicit "not planned"
-    section, and a traceability matrix from every register ID to its release.
-- **Static integrity audit** (`scripts/audit.mjs`) — dependency-free, ~0.3 s, 21 register checks plus
-  four always-fatal DOM contract rules (duplicate ids, dangling `getElementById` references,
-  unresolved dock targets, undefined inline handlers). Findings are ratcheted against
-  `scripts/audit-baseline.json`: known debt is permitted, new debt fails CI.
-- **Zero-dependency dev server** (`scripts/serve.mjs`) — MIME mapping, directory index,
-  path-traversal refusal, dotfile blocking, `no-store`, and binding to `0.0.0.0` for containers and
-  remote sandboxes.
-- **Project files** — `CONTRIBUTING.md` (conventions, commit format, review rubric, recipes),
-  `SECURITY.md` (threat model and disclosure policy), `CODE_OF_CONDUCT.md`, `.editorconfig`,
-  `.gitignore`, and a rewritten `README.md`.
-- **CI and templates** (`.github/`) — an audit workflow, a deployment workflow, issue forms and a PR
-  template that asks for the register delta.
-- **Doc asset** — an abstract neural-cartography banner for the README (`docs/assets/`).
+- **Committed Zaziopath source snapshot** (`data/zaziopath-graph.js`): 8 strata, 86 source-derived nodes, 117 cited relationships, and 15 searchable Grimoire fragments at source revision `63d99e311c852b9d57ddc29418455f9bb4ba80b1`.
+- **Source/provenance validator** (`scripts/validate-zaziopath-graph.mjs`) for duplicate IDs/names, missing endpoints/provenance/excerpts, invalid strata/statuses, and broken fragment references.
+- **Runtime smoke harness** (`scripts/test-runtime.mjs`) covering graph boot, deterministic fallback, bounded Ollama context/failure, Grimoire selection, session ingestion, local-only behavior, and deduplication.
+- **Corpus documentation** for data refresh, committed-vs-session data, epistemic labels, privacy boundaries, optional local inference, and static fallback.
 
 ### Changed
 
-- **`README.md`** rewritten as a technical overview: honest framing first, verified metrics, a
-  feature map, the architecture in one diagram, a documentation index, and status reporting driven by
-  the audit rather than by prose.
+- Replaced the procedural boot graph and placeholder Grimoire with the stable cited corpus; retained the Canvas renderer, force simulation, draggable desktop windows, CRT visual language, and zero-build app structure.
+- Reframed Polymath around selected graph/source/provenance/history context, optional local `llama3.1:8b`, and deterministic lexical retrieval when Ollama is unavailable.
+- Reworked local ingestion to read text with `FileReader`, extract at most three high-signal candidates, deduplicate normalized names, create source-backed file records, and visibly mark SYNTHESIS/INFERENCE links. Session additions disappear on reload and are never uploaded or persisted.
+- Replaced procedural “idea mutation” with a session-local OPEN QUESTION that does not claim an undocumented cross-stratum relationship.
+- Corrected source/stratum analytics and removed unsupported tone-effect language.
+- Updated the static audit for the current data-driven runtime, committed graph size, and live status/count elements; adjusted the HTML audit budget for the larger source-aware runtime.
 
-### Notes
+### Privacy and fallback
 
-- **The application runtime is unchanged in this release.** `index.html` is byte-identical; the
-  9.4.1 behaviour, appearance and defects are exactly as published. Everything above is
-  documentation and tooling.
-- **The register is now the canonical record of known defects** — 21 IDs across 38 findings. Items
-  are scheduled in `ROADMAP.md`; severe items (`NOO-001`, `NOO-007`, `NOO-016`, `NOO-019`) are
-  prioritised in `9.4.2` and `9.5.0`.
-
----
+- Local inference routes are optional, use only `llama3.1:8b`, and are restricted to loopback use by the bundled Node server. GitHub Pages/direct-file use remains static and uses the offline graph/Grimoire/retrieval path.
 
 ## [9.4.1] — 2026-10-02
 
-The current published revision: a single-document browser desktop of seven windowed subsystems over
-ten client-side engines. Total delivery: **88,649 bytes, 1,477 lines, one file, zero installed
-dependencies, zero build steps, zero network calls from the runtime.**
+Historical baseline before the Zaziopath corpus transformation: a single-document browser desktop of seven windowed subsystems over ten client-side engines. The release details below describe that original prototype, not the current working tree.
 
 ### Added
 
@@ -115,9 +76,7 @@ dependencies, zero build steps, zero network calls from the runtime.**
 
 ### Known issues
 
-The full register — 21 IDs, 38 findings, severity-classified with remediation notes — is maintained
-in [`docs/ARCHITECTURE.md` § 17](docs/ARCHITECTURE.md#17-defect-register) and enforced by
-`npm test`. The most significant at this revision:
+At the original `9.4.1` baseline, the static audit recorded 38 findings across 21 IDs. The prototype's defect notes below are historical, not the current audit state; current checks and residual UI debt are maintained by `scripts/audit.mjs`, `scripts/audit-baseline.json`, and [`docs/ROADMAP.md`](docs/ROADMAP.md). The most significant findings at that revision:
 
 - `NOO-001` — six utilities reference an undefined Tailwind colour family (`crimson-*`), silently
   dropping borders.
@@ -131,9 +90,9 @@ in [`docs/ARCHITECTURE.md` § 17](docs/ARCHITECTURE.md#17-defect-register) and e
 
 ### Notes
 
-- **This is satirical fiction presented as critical design.** The "Polymath LLM" is a template
-  composer, not a model; the telemetry is synthetic; the corpus is a critique of growth-hacking
-  language and is not advice. See [`README.md` § What this is not](README.md#what-this-is-not).
+- **The original demo was satirical critical design.** Its "Polymath LLM" was a template composer,
+  not a model, and its telemetry was synthetic. That framing belongs to the prototype, not the
+  current Zaziopath edition; see [ADR-008](docs/DECISIONS.md#adr-008--satirical-corpus-with-explicit-disclosure) for the historical decision.
 - No analytics, no cookies, no persistence, no uploads. Ingested files never leave the tab.
 
 ---

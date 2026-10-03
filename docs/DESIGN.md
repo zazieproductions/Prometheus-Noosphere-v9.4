@@ -4,7 +4,7 @@
 > behind them — written as a system, not as a mood board.
 
 **Scope:** the design of the interface. For the honesty policy governing the corpus language it
-presents, see [§ 9 Satire and disclosure](#9-satire-and-disclosure).
+presents, see [§ 9 Corpus framing and disclosure](#9-corpus-framing-and-disclosure).
 
 ---
 
@@ -28,8 +28,7 @@ than a pile of inline styles.
 
 ## 2. Token system
 
-Tokens are declared once in the inline `tailwind.config` block (`index.html:16–61`) and consumed by
-name. There are no hard-coded hex values in the workspace markup — colour always arrives as a token.
+Core surface and accent tokens are declared in the inline `tailwind.config` block (`index.html:16–61`) and used by name in the utility classes. Deliberate exceptions include the Aesthetic Matrix's sample palettes and small CSS primitives such as the CRT/glass treatments; document those exceptions rather than treating every literal as a design token.
 
 ### 2.1 Surfaces — the four-step elevation ramp
 
@@ -51,13 +50,13 @@ turning into grey mush.
 | `neon.cyan` | `#00f7ff` | **System / focus / primary action** | Identity, graph, active window, primary CTA |
 | `neon.emerald` | `#00ff9d` | **Healthy / confirm / live** | Status pulse, terminal core, synthesis confirm |
 | `neon.amber` | `#ffaa00` | **Warning / ingestion / pending** | Upload states, node counts, latency |
-| `neon.crimson` | `#ff0055` | **Danger / analytical / alert** | Analytics viewport, negative controls, threat metrics |
+| `neon.crimson` | `#ff0055` | **Alert / archive signal** | Corpus-count window accent and status cues |
 | `neon.violet` | `#a855f7` | **Aesthetic / secondary concept** | Palette engine, hexonomy, semiotic accents |
 | `neon.hyper` | `#f43f5e` | **Emphasis (reserved)** | Registered but currently unapplied |
 
 Rule: **an accent hue owns a subsystem.** Cyan is the system's voice, emerald its health, amber its
-process, crimson its analysis, violet its aesthetic. A component that borrows a hue outside its lane
-is a bug, not a stylistic choice.
+process, crimson its archive-count/status cues, violet its aesthetic. A component that borrows a hue
+outside its lane is a bug, not a stylistic choice.
 
 ### 2.3 Contrast budget (measured)
 
@@ -79,8 +78,8 @@ UI text (9–11 px dominates this interface) is held to the **AA small-text thre
 
 **Conclusions that drive the accessibility roadmap:**
 
-- The **core palette is strong.** Six of the primary text/role colours clear AAA on the darkest
-  steps — the interface is not fighting its own contrast.
+- The **core palette is strong.** Five foreground values in the table clear AAA on all four dark
+  surface steps — the interface is not fighting its own contrast.
 - **`surface-bright` is the failure region.** Violet, crimson and hyper fall below 4.5:1 there. The
   rule that follows: *never set small text in violet/crimson on a hovered surface.*
 - **`slate-500` and `slate-600` are decoration only.** They are currently used for micro-labels and
@@ -91,10 +90,10 @@ Full audit, including non-text failures: [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
 
 ### 2.4 Known token defect
 
-Six utilities reference a `crimson` family that does not exist — the token is nested as
-`neon.crimson`, so Tailwind generates `neon-crimson-*`. Those utilities (`border-crimson-900/60`,
-`bg-crimson-950/60`, `border-crimson-900/40`, `border-crimson-700/50`) resolve to nothing and the
-affected borders fall back to `currentColor`.
+Four utility occurrences across the archive-count and Grimoire windows reference a `crimson` family
+that does not exist — the token is nested as `neon.crimson`, so Tailwind generates
+`neon-crimson-*`. The invalid classes (`border-crimson-900/60`, `bg-crimson-950/60`,
+`border-crimson-700/50`) produce no intended Tailwind background/border rule.
 
 | | |
 | --- | --- |
@@ -197,7 +196,7 @@ Every window is built from the same five parts, in the same order. Learn one, kn
 ┌────────────────────────────────────────────────────────────┐
 │ ▣  TITLE // MONIKER        [badge]      ⚙ · — · ▢          │  1 · header
 ├────────────────────────────────────────────────────────────┤
-│ FILTER: ALL · MEMETICS …              PAN: DRAG · ZOOM: …   │  2 · toolbar
+│ STRATUM: ALL · INDEX · IDENTITY · SHADOW … PAN · ZOOM       │  2 · toolbar
 ├────────────────────────────────────────────────────────────┤
 │                                                            │
 │                        viewport                            │  3 · content
@@ -232,12 +231,12 @@ The accent system carries live state. The mapping is fixed and worth knowing bef
 
 | State | Signal | Example |
 | --- | --- | --- |
-| Idle / ready | emerald, steady | `HYPER-COGNITION: ONLINE` |
+| Idle / ready | emerald, steady | `SIMULATION MODE // LOCAL CORPUS RETRIEVAL` |
 | Active / focused | cyan border + glow | Focused window |
-| Processing | amber, `animate-pulse` | `INGESTING n ARTIFACT(S)…` |
-| Good outcome | emerald string | `CORPUS SYNCHRONIZED`, `+n SYNAPSES` |
-| Analysis / threat framing | crimson | Telemetry window, war-room metrics |
-| Secondary / aesthetic | violet | Palette engine, semiotic accents |
+| Processing | amber, `animate-pulse` | `INGESTING n LOCAL FILE(S)…` |
+| Good outcome | emerald string | `CORPUS EXPANDED · SESSION ONLY` |
+| Archive count / error cue | crimson | Corpus counts; `NOT INGESTED` errors |
+| Secondary / aesthetic | violet | Palette engine and selected corpus accents |
 
 Because the mapping is stable, the UI can be understood at a glance without reading it — which is
 what allows the copy to be as dense as it is.
@@ -248,37 +247,29 @@ what allows the copy to be as dense as it is.
 
 | Context | Rule | Example |
 | --- | --- | --- |
-| Controls | Imperative, uppercase, ≤ 3 words | `TRANSMIT` · `RE-ALIGN` · `MUTATE & DISCOVER AXIOM` |
-| Data labels | Instrument style, uppercase, colon-suffixed | `SYNAPSE CAPACITY:` · `MEMETIC VALENCE` |
-| System messages | Terse, present tense, prefixed by role | `⚡ Artifact Ingested: [name]` |
-| Corpus content | Deliberately overwrought (see § 9) | "…collapses buyer-skepticism at the sensory cortex level" |
-| Error/empty states | Honest, never cute | `READY FOR STREAM` · `AXIS READY` |
+| Controls | Imperative, uppercase, terse | `TRACE SOURCES` · `RE-ALIGN` · `OPEN QUESTIONS` |
+| Data labels | Instrument style; status and provenance stay explicit | `SOURCE NODES` · `INFERENCE` · `PROVENANCE` |
+| System messages | Terse, present tense, prefixed by role | `Local file read: [name] · session only` |
+| Corpus content | Preserve the source wording, excerpt, and epistemic label | A bounded citation with its path and locator |
+| Error/empty states | Honest, never cute | `SIMULATION MODE` · `No lexical match in the curated graph. Try a source title…` |
 
-The voice split is the design's sharpest joke: **the chrome is disciplined, the corpus is
-unhinged.** An operator-facing terminal would be terse; the content it processes is absurd. The
-contrast *is* the critique.
+The interface keeps the **chrome disciplined and the archive attributable**: terminal controls stay
+terse, while source excerpts, authored interpretations, and unresolved questions retain their own
+wording and status. That contrast supports exploration without turning the archive into a diagnosis
+or an unqualified claim engine.
 
 ---
 
-## 9. Satire and disclosure
+## 9. Corpus framing and disclosure
 
-The interface and its copy are **critical design**. The vocabulary of "memetic warfare", "subliminal
-indoctrination" and "cognitive friction arbitrage" is presented at its most extreme so that its
-absurdity is self-evident; the artefact is a critique of growth-hacking language, not a toolkit for
-it.
+The interface preserves its CRT/terminal language while presenting **Zaziopath as a non-clinical self-analysis archive, creative research instrument, evidence system, recursive notebook, and conceptual laboratory**—not as a personality-diagnosis engine.
 
-Two design constraints keep the satire from becoming misleading:
+Two design constraints keep the visual system from overstating the evidence:
 
-1. **The chrome never lies about capability.** Where a subsystem simulates something, the interface
-   says "force-sim", "zero-latency engine" or "telemetry" — and the documentation states plainly
-   that the metrics are synthetic and the "LLM" is a template composer
-   ([`ARCHITECTURE.md` § Vocabulary](ARCHITECTURE.md#18-vocabulary-project-language--engineering-meaning)).
-2. **Nothing is instructional.** The corpus never documents *how* to do what it names. It is
-   presented as a field report from a fictional department, which is why it reads as satire rather
-   than as advice.
+1. **The chrome reflects actual data.** Graph/stratum counts derive from the committed source snapshot; no synthetic telemetry or behavioral scores are displayed.
+2. **Epistemic status remains visible.** SOURCE, INFERENCE, SYNTHESIS, and OPEN QUESTION use distinct labels and graph styling. Stratum hue is a navigation key, not a confidence score; source-authored interpretations remain interpretations.
 
-Complete honesty policy: [`README.md` § What this is not](../README.md#what-this-is-not) and
-[`SECURITY.md`](../SECURITY.md).
+The detailed source and privacy policy lives in [`ZAZIOPATH-CORPUS.md`](ZAZIOPATH-CORPUS.md), [`README.md`](../README.md#what-this-is-not), and [`SECURITY.md`](../SECURITY.md).
 
 ---
 

@@ -5,9 +5,7 @@
 
 **Format:** lightweight ADR (context → decision → consequences → alternatives).
 **Status values:** Accepted · Superseded · Deprecated.
-**Note:** these records were written retroactively at `v9.4.1`, documenting the constraints the
-project was actually built under rather than rationalising them after the fact. Every "negative"
-consequence listed below is reflected in the defect register and the roadmap.
+**Note:** ADR-001–010 document the original v9.4 prototype and its historical trade-offs; ADR-011–013 record the Zaziopath corpus implementation. Superseded prototype choices are labeled rather than silently presented as current behavior.
 
 | ID | Decision | Status |
 | --- | --- | --- |
@@ -15,12 +13,15 @@ consequence listed below is reflected in the defect register and the roadmap.
 | [ADR-002](#adr-002--no-build-step-tailwind-play-cdn) | No build step; Tailwind Play CDN | Accepted |
 | [ADR-003](#adr-003--vanilla-javascript-no-framework) | Vanilla JavaScript, no framework | Accepted |
 | [ADR-004](#adr-004--canvas-2d-for-the-graph) | Canvas 2D for the graph | Accepted |
-| [ADR-005](#adr-005--deterministic-procedural-content) | Deterministic procedural content, no model backend | Accepted |
-| [ADR-006](#adr-006--no-persistence-no-backend) | No persistence, no backend | Accepted |
+| [ADR-005](#adr-005--deterministic-procedural-content) | Original deterministic template composer | Superseded |
+| [ADR-006](#adr-006--no-persistence-optional-local-inference) | No persistence; optional local inference | Accepted |
 | [ADR-007](#adr-007--zero-dependency-tooling-with-a-ratcheted-audit) | Zero-dependency tooling with a ratcheted audit | Accepted |
-| [ADR-008](#adr-008--satirical-corpus-with-explicit-disclosure) | Satirical corpus with explicit disclosure | Accepted |
+| [ADR-008](#adr-008--satirical-corpus-with-explicit-disclosure) | Original satirical demo corpus | Superseded |
 | [ADR-009](#adr-009--semantic-accent-system-on-a-flat-surface-ramp) | Semantic accent system on a flat surface ramp | Accepted |
 | [ADR-010](#adr-010--sequential-boot-with-direct-coupling) | Sequential boot with direct coupling | Accepted |
+| [ADR-011](#adr-011--committed-source-derived-zaziopath-snapshot) | Committed source-derived Zaziopath snapshot | Accepted |
+| [ADR-012](#adr-012--optional-loopback-only-ollama-inference) | Optional loopback-only Ollama inference | Accepted |
+| [ADR-013](#adr-013--epistemic-labels-and-non-clinical-framing) | Epistemic labels and non-clinical framing | Accepted |
 
 ---
 
@@ -35,24 +36,23 @@ cost of "how do I run this?" — and a README that says `npm install && npm run 
 appears on screen has already spent that budget.
 
 ### Decision
-Ship the entire application as **one `index.html`** containing markup, the token configuration, the
-CSS primitives and all ten engines.
+Keep the application markup, styles, and vanilla runtime in **one `index.html`**. The source-derived graph is a separate committed data sidecar at `data/zaziopath-graph.js` so the stable corpus remains inspectable and can be refreshed without turning the app into a build product.
 
 ### Consequences
 
 **Positive**
 - `git clone` → open the file → it runs. There is no step where the artefact is not working.
-- The whole system fits in a reviewable object: 1,477 lines, 88,649 B, no generated code.
+- Application logic remains in one reviewable HTML document; the only generated runtime sidecar is the committed, source-auditable corpus JS.
 - Constraint-driven design: because everything is visible at once, there is nowhere to hide
   unnecessary abstraction, and every engine was written to fit the same metaphor.
-- Deployment is a file copy — Pages, Netlify, an S3 bucket, a USB stick.
+- Deployment is a static file copy of `index.html` plus `data/zaziopath-graph.js` — Pages, Netlify, an S3 bucket, or a USB stick.
 
 **Negative**
 - No module boundaries: the engines share one global scope, and the ordering of the runtime script is
   load-bearing.
 - No tree-shaking, code splitting, or lazy loading; the payload is the payload.
 - Editor tooling cannot follow symbol references across the document as reliably as across modules.
-- Related register items: `NOO-017` (per-window listeners), `NOO-021` (denormalised colour cache).
+- Related register items: `NOO-017` (per-window listeners), `NOO-014` (HiDPI canvas), and the audited HTML payload budget.
 
 ### Alternatives considered
 - **Multi-file ES modules with no bundler.** Rejected: browsers would need a server for a module
@@ -106,13 +106,10 @@ that utilities cannot express (CRT overlay, backdrop-filter glass, glow, hatchin
 **Status:** Accepted
 
 ### Context
-Seven windows, ten engines, one shared canvas, no server. The instinct on a project this size is to
-reach for React or Svelte — but the coordination problem here is *local* (drag, zoom, append), not
-*synchronisation* of shared derived state.
+Seven windows and a shared canvas run in the browser without a required application backend. An optional local Node proxy exists only for loopback Ollama inference. The instinct on a project this size is to reach for React or Svelte — but the coordination problem here is *local* (drag, zoom, append), not *synchronisation* of shared derived state.
 
 ### Decision
-Write the runtime in plain ES2020: object literals for engines, direct DOM manipulation, one
-`requestAnimationFrame` loop, `innerHTML` for templated transcript entries.
+Write the runtime in plain ES2020: object literals for engines, direct DOM manipulation with text-safe rendering of user/source strings, and one `requestAnimationFrame` canvas loop.
 
 ### Consequences
 
@@ -123,12 +120,9 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
   offers in a single document.
 
 **Negative**
-- **DOM mutation is manual and therefore fallible**: the `innerHTML` template sinks are exactly where
-  `NOO-007` lives.
-- No declarative state→view binding: the node-count badge, the transcript and the graph state must be
-  updated in the right places by hand, which is also how `NOO-010` (parity drift) arises.
-- Accessibility primitives (focus management, ARIA state) that frameworks provide for free must be
-  written by hand — currently deferred to `10.0.0` (`NOO-016`).
+- **DOM mutation is manual and therefore fallible.** Current user/source text is rendered through `textContent`/text nodes and the static audit detects no tainted `innerHTML` interpolation (`NOO-007` is resolved in this snapshot); future dynamic markup still needs careful review.
+- No declarative state→view binding: counts, selection, transcript, and graph state must be updated in the right places by hand. Current graph/count parity checks pass (`NOO-010` has no remaining findings).
+- Accessibility primitives (focus management, keyboard traversal, and complete per-node graph semantics) still need to be written and verified by hand (`NOO-016`).
 
 ### Alternatives considered
 - **A component framework.** Rejected: the framework would model the windows, but the interesting
@@ -142,8 +136,7 @@ Write the runtime in plain ES2020: object literals for engines, direct DOM manip
 **Status:** Accepted
 
 ### Context
-The atlas renders 90 nodes, ≈270 edges, animated continuously, with glow, labels, hover emphasis and
-zoom-dependent level of detail.
+The atlas starts from 86 committed source-derived nodes and 117 explicitly sourced relationships across eight strata, animated continuously with glow, labels, hover emphasis, and zoom-dependent level of detail.
 
 ### Decision
 Render with **Canvas 2D** in a single `requestAnimationFrame` loop. Keep the simulation state in
@@ -154,19 +147,16 @@ plain arrays (`graphNodes`, `graphEdges`) and use the DOM only for the inspector
 **Positive**
 - Cost is proportional to primitives drawn, not to DOM nodes or style recalculation.
 - Per-node glow (`shadowBlur`), camera transforms and LOD are one-liners in immediate mode.
-- The simulation lives independently of rendering, which is what makes the extracted-worker path in
-  the roadmap a drop-in change rather than a rewrite.
+- The force simulation is independent of the corpus-building step; the committed source graph remains available if canvas behavior or layout changes.
 
 **Negative**
-- **Nothing is accessible**: the graph is opaque to assistive technology and to the keyboard
-  (`NOO-016`). A DOM/SVG renderer would have given basic semantics for free.
+- **Per-node access is incomplete**: the canvas exposes a graph summary, but does not provide keyboard traversal or assistive-technology access to every node and edge (`NOO-016`). A DOM/SVG renderer would have supplied some semantics automatically.
 - Hit-testing must be implemented by hand (linear scan per pointer move) rather than delegated to
-  the platform — and the same loop is where a spatial index is needed (`NOO-015`).
+  the platform — and the same loop is where a spatial index may eventually help (`NOO-015`).
 - The canvas is not DPR-scaled, so it is soft on HiDPI displays (`NOO-014`).
 
 ### Alternatives considered
-- **SVG.** Rejected: 270+ elements with per-node glow and per-frame position updates would force style
-  recalculation on every frame.
+- **SVG.** Rejected: a per-node SVG tree with per-frame position updates and glow would add DOM/style work that the current 86-node Canvas graph does not require.
 - **WebGL / a graph library.** Rejected: a hard dependency (violating C3) to render a few thousand
   primitives that Canvas 2D handles comfortably.
 
@@ -174,7 +164,7 @@ plain arrays (`graphNodes`, `graphEdges`) and use the DOM only for the inspector
 
 ## ADR-005 · Deterministic procedural content
 
-**Status:** Accepted
+**Status:** Superseded by ADR-011 and ADR-012. The old vocabulary-template composer and procedural boot graph are no longer used; the committed graph and deterministic lexical fallback provide offline behavior, with optional local inference.
 
 ### Context
 The centrepiece interaction is asking a "cognition core" for strategy, and getting an authoritative,
@@ -211,36 +201,31 @@ simulate deliberation. Document its actual mechanism prominently.
 
 ---
 
-## ADR-006 · No persistence, no backend
+## ADR-006 · No persistence, optional local inference
 
 **Status:** Accepted
 
 ### Context
-The system accumulates state — injected nodes, ingested corpora, transcript history. Persisting it
-would require storage, migrations and privacy obligations.
+The system accumulates graph selection, terminal history, local file ingestion, and user-authored notes. Persisting private additions would change the privacy model and require storage/export guarantees. Optional text inference is useful, but cloud APIs or a general network backend would violate the local-first/static deployment requirement.
 
 ### Decision
-Keep **all state in memory**. No `localStorage`, no cookies, no IndexedDB, no network I/O. Reloading
-restores the authored defaults exactly.
+Keep user-added graph nodes, ingested text, synthesis questions, and terminal context in page memory only. Do not use `localStorage`, cookies, IndexedDB, a database, or cloud inference. Offer an optional zero-dependency Node proxy only for local `llama3.1:8b`; restrict its inference routes to loopback clients/Host/Origin. The committed graph and deterministic lexical retrieval must continue to work without it.
 
 ### Consequences
 
 **Positive**
-- Nothing is collected, nothing is transmitted, nothing must be disclosed: the privacy policy is
-  "there is no data".
-- Two visitors see the same system; a demo is reproducible and screenshot comparisons are stable.
-- Dropped files are read locally with `FileReader` and never leave the tab — the ingestion feature
-  cannot exfiltrate anything even by accident.
+- Reloading discards private/session additions; the committed corpus remains unchanged.
+- No API keys, cloud calls, hosted database, or remote inference service is needed.
+- GitHub Pages and direct static use preserve the source graph, simulation, Grimoire, and fallback.
 
 **Negative**
-- Injected nodes, palettes and transcripts are lost on reload; there is no "save my session".
-- The ingestion pipeline cannot build a durable corpus across sessions.
+- Session ingestion and manual notes cannot be restored or shared after reload.
+- Local inference requires the developer's own Ollama process and is unavailable on GitHub Pages/remote previews.
+- When inference is enabled, bounded prompt/context text (including short local excerpts) reaches that machine's local Ollama process.
 
 ### Alternatives considered
-- **`localStorage` for session continuity.** Rejected: it would make reloads non-deterministic, which
-  undermines both the demo and the ratcheted audit narrative.
-- **Shareable URL state.** Deferred, not rejected — a compressed state fragment is a credible `10.x`
-  feature and is listed in the roadmap.
+- **Browser storage/export.** Deferred; would require a separately reviewed private-data policy.
+- **Cloud model or embedding service.** Rejected: it would transmit corpus/session text and make the offline/static mode dependent on a remote service.
 
 ---
 
@@ -267,7 +252,7 @@ tiers:
 ### Consequences
 
 **Positive**
-- `npm test` runs in ~300 ms with no install step — a contributor can verify a change immediately.
+- `npm test` runs graph validation, a dependency-free runtime smoke harness, and the static audit with no install step.
 - Known debt is **explicit and bounded**: it is a number in a file, reviewable in a diff, rather than
   a claim in a doc.
 - The gate is one-directional: debt can only shrink, and shipping new debt requires deliberately
@@ -279,7 +264,7 @@ tiers:
   and encoding it as checks (`NOO-019`), and runtime defects are found by reading, not by the tool.
 - The baseline invites "baseline drift" if reviewers approve increases casually; mitigated by
   requiring the reason in the PR template.
-- No rendered-state verification until the `9.5.0` headless-browser harness lands.
+- The VM smoke harness exercises runtime contracts but does not validate pixels or browser layout; visual behavior remains a manual browser check.
 
 ### Alternatives considered
 - **ESLint + Prettier + html-validate.** Rejected as a dependency tree for a one-file project;
@@ -292,7 +277,7 @@ tiers:
 
 ## ADR-008 · Satirical corpus with explicit disclosure
 
-**Status:** Accepted
+**Status:** Superseded by ADR-013. This records the original prototype's satirical demo corpus; the current corpus is the Zaziopath source archive and is framed non-clinically, not as a diagnosis engine.
 
 ### Context
 The project's content satirises marketing's most manipulative register — "memetic warfare",
@@ -351,8 +336,7 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 **Negative**
 - `surface-bright`, the interaction step, is where contrast is weakest: violet, crimson and hyper fall
   below 4.5:1 there, and `slate-500`/`slate-600` fail at every step (`NOO-016`).
-- The nested token path (`neon.crimson`) is the direct cause of `NOO-001` — six utilities referencing
-  a family that only exists under the namespace.
+- The nested token path (`neon.crimson`) is the direct cause of the remaining `NOO-001` audit findings: four current class occurrences use a family that exists only under the namespace.
 - A flat ramp makes focus states subtle; that is why `.window-active` uses border *and* glow *and*
   `z-index`, rather than relying on any one channel.
 
@@ -369,8 +353,7 @@ roles**, one per subsystem. Hierarchy comes from elevation, borders and shadow �
 **Status:** Accepted
 
 ### Context
-Ten engines, one document, seven windows. The textbook answer is an event bus and a central
-orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
+Several interacting browser modules, one document, and seven windows. The textbook answer is an event bus and a central orchestrator; the honest question is whether the coupling actually needs decoupling at this size.
 
 ### Decision
 Initialise in a fixed order inside a single `DOMContentLoaded` handler. Couple engines **directly**
@@ -406,3 +389,49 @@ DOM. No event bus, no store, no pub/sub.
 <div align="center">
 <sub>Next: <a href="ACCESSIBILITY.md">Accessibility audit →</a></sub>
 </div>
+
+## ADR-011 · Committed source-derived Zaziopath snapshot
+
+**Status:** Accepted
+
+### Context
+The original procedural seed graph and placeholder Grimoire did not preserve repository identity, strata, source excerpts, or defensible relationships. Runtime crawling would make the graph unstable and make static hosting dependent on the source repository.
+
+### Decision
+Curate a stable graph from the public Zaziopath source and commit the generated `data/zaziopath-graph.js` snapshot. Keep definitions and excerpt anchors in `scripts/build-zaziopath-graph.mjs`; validate all source paths/anchors and graph references before regeneration. Reuse the README's indexed wires and method spine before adding other explicitly documented links. Record source revision and visible epistemic labels.
+
+### Consequences
+- Boot data is deterministic and available offline/GitHub Pages without a package or API dependency.
+- Source refresh is an explicit, reviewable curation operation; it is not performed in the browser.
+- Binary artifacts are not quoted when their text is unavailable; catalogue/ledger provenance is labeled.
+- The committed payload is a curated snapshot, not a complete mirror of the source repository.
+
+## ADR-012 · Optional loopback-only Ollama inference
+
+**Status:** Accepted
+
+### Context
+The Polymath Terminal benefits from bounded source/selection/history context, but the product must remain useful when offline and must not require cloud inference, API credentials, models other than `llama3.1:8b`, embeddings, or a hosted backend.
+
+### Decision
+Use a small Node-standard-library local proxy in `scripts/serve.mjs` for optional access to an already-installed `llama3.1:8b` Ollama process at `127.0.0.1:11434`. Restrict inference routes to loopback clients/Host/Origin. On static hosts or request failure, use deterministic local lexical retrieval and extraction.
+
+### Consequences
+- Static graphs, Grimoire, simulation, and fallback do not require Node/Ollama.
+- Local inference requests include bounded selected graph/source/fragment/history context and short session-ingestion excerpts; keep both services private.
+- Generated concepts/edges remain labeled INFERENCE and never become committed source facts.
+
+## ADR-013 · Epistemic labels and non-clinical framing
+
+**Status:** Accepted
+
+### Context
+The source corpus contains self-report, evidence records, authored interpretations, experiments, speculative readings, and unresolved questions. A single graph style or diagnostic framing would collapse these distinctions and overstate what the archive can establish.
+
+### Decision
+Present Zaziopath as a non-clinical self-analysis archive, creative research instrument, evidence system, recursive notebook, and conceptual laboratory—not as a personality-diagnosis engine. Preserve SOURCE, INFERENCE, SYNTHESIS, and OPEN QUESTION on records and links, with citations and visible UI treatment. Treat a source citation as evidence of what the source records, not independent validation of an interpretation.
+
+### Consequences
+- Source and model claims remain attributable; unresolved matters can remain unresolved.
+- Session-generated bridges are research questions, not assertions.
+- Stratum color is navigation only and does not encode confidence or evidence quality.
